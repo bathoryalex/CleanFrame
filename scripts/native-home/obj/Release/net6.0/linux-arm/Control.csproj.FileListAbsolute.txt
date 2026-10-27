@@ -1,0 +1,14 @@
+C:\Users\Alex\Projects\CleanFrame\scripts\native-home\bin\Release\net6.0\linux-arm\CleanFrameHomeControl.deps.json
+C:\Users\Alex\Projects\CleanFrame\scripts\native-home\bin\Release\net6.0\linux-arm\CleanFrameHomeControl.runtimeconfig.json
+C:\Users\Alex\Projects\CleanFrame\scripts\native-home\bin\Release\net6.0\linux-arm\CleanFrameHomeControl.dll
+C:\Users\Alex\Projects\CleanFrame\scripts\native-home\bin\Release\net6.0\linux-arm\CleanFrameHomeControl.pdb
+C:\Users\Alex\Projects\CleanFrame\scripts\native-home\obj\Release\net6.0\linux-arm\Control.csproj.AssemblyReference.cache
+C:\Users\Alex\Projects\CleanFrame\scripts\native-home\obj\Release\net6.0\linux-arm\Control.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\Alex\Projects\CleanFrame\scripts\native-home\obj\Release\net6.0\linux-arm\Control.AssemblyInfoInputs.cache
+C:\Users\Alex\Projects\CleanFrame\scripts\native-home\obj\Release\net6.0\linux-arm\Control.AssemblyInfo.cs
+C:\Users\Alex\Projects\CleanFrame\scripts\native-home\obj\Release\net6.0\linux-arm\Control.csproj.CoreCompileInputs.cache
+C:\Users\Alex\Projects\CleanFrame\scripts\native-home\obj\Release\net6.0\linux-arm\CleanFrameHomeControl.dll
+C:\Users\Alex\Projects\CleanFrame\scripts\native-home\obj\Release\net6.0\linux-arm\refint\CleanFrameHomeControl.dll
+C:\Users\Alex\Projects\CleanFrame\scripts\native-home\obj\Release\net6.0\linux-arm\CleanFrameHomeControl.pdb
+C:\Users\Alex\Projects\CleanFrame\scripts\native-home\obj\Release\net6.0\linux-arm\Control.genruntimeconfig.cache
+C:\Users\Alex\Projects\CleanFrame\scripts\native-home\obj\Release\net6.0\linux-arm\ref\CleanFrameHomeControl.dll

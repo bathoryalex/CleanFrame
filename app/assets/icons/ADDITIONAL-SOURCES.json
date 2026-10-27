@@ -1,0 +1,45 @@
+[
+  {
+    "icon": "xbox",
+    "source": "https://github.com/simple-icons/simple-icons/blob/develop/icons/xbox.svg",
+    "license": "CC0-1.0"
+  },
+  {
+    "icon": "nintendoswitch",
+    "source": "https://github.com/simple-icons/simple-icons/blob/develop/icons/nintendoswitch.svg",
+    "license": "CC0-1.0"
+  },
+  {
+    "icon": "smartthings",
+    "source": "https://github.com/simple-icons/simple-icons/blob/develop/icons/smartthings.svg",
+    "license": "CC0-1.0"
+  },
+  {
+    "icon": "browser",
+    "source": "CleanFrame original mark inspired by Samsung Internet",
+    "license": "MIT (CleanFrame)"
+  },
+  {
+    "icon": "nuvio",
+    "source": "Simplified from Nuvio Legacy store icon (iqui27/nuvio-native-legacy)",
+    "license": "MIT (CleanFrame adaptation)"
+  },
+  {
+    "icon": "spotify",
+    "source": "https://github.com/simple-icons/simple-icons/blob/develop/icons/spotify.svg",
+    "licence": "CC0-1.0",
+    "note": "Shape unchanged; white fill for launcher."
+  },
+  {
+    "icon": "hbomax",
+    "source": "https://github.com/simple-icons/simple-icons/blob/develop/icons/hbomax.svg",
+    "licence": "CC0-1.0",
+    "note": "Shape unchanged; white fill for launcher."
+  },
+  {
+    "icon": "tubi",
+    "source": "https://github.com/simple-icons/simple-icons/blob/develop/icons/tubi.svg",
+    "licence": "CC0-1.0",
+    "note": "Shape unchanged; white fill for launcher."
+  }
+]

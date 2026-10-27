@@ -1,0 +1,4 @@
+C:\Users\Alex\Projects\CleanFrame\.local\native-home\out\CleanFrameHomeControl.dll
+C:\Users\Alex\Projects\CleanFrame\.local\native-home\out\CleanFrameHomeControl.deps.json
+C:\Users\Alex\Projects\CleanFrame\.local\native-home\out\CleanFrameHomeControl.runtimeconfig.json
+C:\Users\Alex\Projects\CleanFrame\.local\native-home\out\CleanFrameHomeControl.pdb
