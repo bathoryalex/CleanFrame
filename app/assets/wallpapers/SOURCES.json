@@ -158,5 +158,15 @@
     "tone": "light",
     "credit": "Charles O'Rear",
     "source": "Windows XP default wallpaper (Bliss)"
+  },
+  {
+    "id": "wallpaper",
+    "name": "Wallpaper",
+    "src": "assets/wallpapers/wallpaper.jpg",
+    "thumb": "assets/wallpapers/wallpaper-thumb.jpg",
+    "pos": "50% 50%",
+    "tone": "dark",
+    "credit": "Alex",
+    "source": "User-supplied leaf pattern"
   }
 ]

@@ -146,6 +146,64 @@
   function colorMarkImg(src, w, h) {
     return '<span class="mark mark-color" style="width:' + w + 'px;height:' + h + 'px"><img alt="" src="' + esc(src) + '" style="width:100%;height:100%;object-fit:contain"></span>';
   }
+  var DOCK_RASTER_BOOST = { nuvio: 1.14, smartthings: 1.32 };
+  function colorInkSideCap(w, h) {
+    var ref = window.FrameIconMetrics && window.FrameIconMetrics.nuvio, k;
+    if (!ref) return 0;
+    k = h / ref.h;
+    if (ref.w * k > w) k = w / ref.w;
+    return ref.n * k;
+  }
+  function markInkScale(id, slotW, inkH) {
+    var m = window.FrameIconMetrics && window.FrameIconMetrics[id];
+    if (!m) return 0;
+    var k = inkH / m.h;
+    if (m.w * k > slotW) k = slotW / m.w;
+    return k;
+  }
+  function colorMarkSide(brand, w, h) {
+    var cap = colorInkSideCap(w, h), k = markInkScale(brand, w, h), m, side;
+    if (!k || !cap) return 0;
+    m = window.FrameIconMetrics[brand];
+    side = m.n * k;
+    if (side > cap) side = cap;
+    return side;
+  }
+  function colorMarkImgInk(brand, w, h) {
+    var src = colorIconSrc(brand), side, ih;
+    side = colorMarkSide(brand, w, h);
+    if (!side) return colorMarkImg(src, w, h);
+    if (brand === 'xbox' && src.indexOf('.png') >= 0) {
+      side = colorMarkSide('spotify', w, h);
+      if (!side) return colorMarkImg(src, w, h);
+      side = Math.min(w, Math.round(side * 1.29));
+      return '<span class="mark mark-color ink-fit" style="width:' + w + 'px;height:' + h + 'px">'
+        + '<img alt="" src="' + esc(src) + '" style="width:' + px(side) + ';height:' + px(side) + ';object-fit:contain"></span>';
+    }
+    if (src.indexOf('.png') >= 0) {
+      ih = Math.round(side);
+      return '<span class="mark mark-color ink-fit" style="width:' + w + 'px;height:' + h + 'px">'
+        + '<img alt="" src="' + esc(src) + '" style="height:' + px(ih) + ';width:auto;max-width:' + px(w) + ';object-fit:contain"></span>';
+    }
+    return '<span class="mark mark-color ink-fit" style="width:' + w + 'px;height:' + h + 'px">'
+      + '<img alt="" src="' + esc(src) + '" style="width:' + px(side) + ';height:' + px(side) + ';object-fit:contain"></span>';
+  }
+  function dockRasterMarkImg(src, w, h, brand) {
+    var boost = DOCK_RASTER_BOOST[brand] || 1;
+    if (boost === 1) return colorMarkImg(src, w, h);
+    var ih = Math.round(h * boost);
+    return '<span class="mark mark-color ink-fit" style="width:' + w + 'px;height:' + h + 'px">'
+      + '<img alt="" src="' + esc(src) + '" style="height:' + px(ih) + ';width:auto;max-width:' + px(w) + ';object-fit:contain"></span>';
+  }
+  function markHtmlDock(id, w, h) {
+    var m = window.FrameIconMetrics && window.FrameIconMetrics[id], k = markInkScale(id, w, h), st, s;
+    if (!m || !k) return markHtml(id, w, h, h);
+    s = m.n * k;
+    st = 'width:' + px(s) + ';height:' + px(s) + ';left:' + px(w / 2 - (m.x + m.w / 2) * k) + ';top:' + px(h / 2 - (m.y + m.h / 2) * k);
+    probeMark(id);
+    return '<span class="mark' + (markProbes[id] === 'bad' ? ' is-bad' : '') + '" data-mark="' + id + '" style="width:' + w + 'px;height:' + h + 'px">'
+      + (maskSupport ? '<span class="mk" style="' + st + ';-webkit-mask-image:url(' + ICONS + id + '.svg);mask-image:url(' + ICONS + id + '.svg)"></span>' : '<img alt="" src="' + ICONS + id + '.svg" style="' + st + '">') + '</span>';
+  }
   function colorIconSrc(brand) {
     if (brand === 'xbox') return ICONS + 'color/xbox_2.png';
     if (brand === 'nuvio') return ICONS + 'color/nuvio2.png';
@@ -161,21 +219,21 @@
   }
   function dockAppMark(a) {
     var w = S.c.apps === 'icons' ? 128 : 112;
-    return withDockMark(appMark(a, w, DOCK_MARK_H, DOCK_MARK_H));
+    return withDockMark(appMark(a, w, DOCK_MARK_H, DOCK_MARK_H, true));
   }
   function prefersBundledColor(a) {
     var brand = a.brand || a.id;
     return S.c.iconStyle !== 'minimal' && !!a.mark && (PRIMARY.indexOf(a.id) >= 0 || MARK_BRANDS.indexOf(brand) >= 0);
   }
-  function appMark(a, w, h, size) {
+  function appMark(a, w, h, size, dock) {
     var brand = a.brand || a.id, minimal = S.c.iconStyle === 'minimal';
     if (!minimal) {
-      if (prefersBundledColor(a)) return colorMarkImg(colorIconSrc(brand), w, h);
+      if (prefersBundledColor(a)) return colorMarkImgInk(brand, w, h);
       if (a.nativeIcon || a.icon) return '<span class="mark mark-color native-icon" style="width:' + w + 'px;height:' + h + 'px"><img alt="" data-native-icon="true" src="' + esc(a.nativeIcon || a.icon) + '" style="width:100%;height:100%;object-fit:contain"></span>';
-      if (a.mark || brand) return colorMarkImg(colorIconSrc(brand), w, h);
+      if (a.mark || brand) return colorMarkImgInk(brand, w, h);
     }
-    if (minimalIconSrc(brand)) return colorMarkImg(minimalIconSrc(brand), w, h);
-    if (a.mark && (maskSupport || S.c.bg !== 'light')) return markHtml(brand, w, h, size);
+    if (minimalIconSrc(brand)) return dock ? dockRasterMarkImg(minimalIconSrc(brand), w, h, brand) : colorMarkImg(minimalIconSrc(brand), w, h);
+    if (a.mark && (maskSupport || S.c.bg !== 'light')) return dock ? markHtmlDock(brand, w, h) : markHtml(brand, w, h, size);
     var words = a.name.split(/\s+/), letters = words[0].charAt(0) + (words.length > 1 ? words[1].charAt(0) : '');
     return '<span class="mark monogram' + (a.icon ? ' native-icon' : '') + '" style="width:' + w + 'px;height:' + h + 'px;font-size:' + Math.round(size * .65) + 'px"><span>' + esc(letters.toUpperCase()) + '</span>'
       + (a.icon ? '<img alt="" data-native-icon="true" src="' + esc(a.icon) + '">' : '') + '</span>';

@@ -241,5 +241,20 @@ window.CleanFrameWallpapers = [
     "listColumn": 0,
     "dockQuiet": false,
     "clockMist": false
+  },
+  {
+    "id": "wallpaper",
+    "name": "Wallpaper",
+    "src": "assets/wallpapers/wallpaper.jpg",
+    "thumb": "assets/wallpapers/wallpaper-thumb.jpg",
+    "tone": "dark",
+    "ut": {
+      "tr": "mist",
+      "br": "light"
+    },
+    "frostVeil": 0.16,
+    "listColumn": 0,
+    "dockQuiet": false,
+    "clockMist": true
   }
 ];
