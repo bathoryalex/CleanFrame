@@ -4,7 +4,7 @@
 
 A quieter home screen for Samsung TVs. Your apps, a photograph and the time, with an interface made for the TV remote.
 
-![Frame Home on Samsung TV — custom dock and wallpaper](docs/images/cleanframe-dock.jpg)
+![Frame Home on Samsung TV — custom dock and wallpaper](docs/images/frame-home-dock.jpg)
 
 This repo uses [Nathan Clark's CleanFrame](https://github.com/nthnclrk/CleanFrame) as a base and changes it to suit my Samsung TV (**Frame Home**, custom app identity). Recent fork work includes dock icon tuning, extra wallpapers, a home-screen **Wi‑Fi QR** shortcut with settings, and other tweaks I want on my set. It is still evolving; upstream remains the better reference for a general-purpose project.
 
