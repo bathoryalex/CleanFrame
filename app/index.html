@@ -84,6 +84,14 @@
           <div class="sheet-veil" aria-hidden="true"></div>
           <div class="view" id="sheetView" role="dialog" aria-modal="true"></div>
         </div>
+        <div class="wifi-qr-overlay" id="wifiQr" hidden aria-hidden="true">
+          <div class="wifi-qr-shade" aria-hidden="true"></div>
+          <div class="wifi-qr-card" id="wifiQrCard">
+            <canvas class="wifi-qr-canvas" id="wifiQrCanvas" width="420" height="420" aria-hidden="true"></canvas>
+            <p class="wifi-qr-title">Scan to join Wi‑Fi</p>
+            <p class="wifi-qr-ssid" id="wifiQrSsid"></p>
+          </div>
+        </div>
         <div class="focus-status" id="focusStatus" aria-live="polite"></div>
         <div class="build-version" id="buildVersion" hidden></div>
       </main>
@@ -93,6 +101,7 @@
 <script src="assets/wallpapers/catalog.js"></script>
 <script src="assets/adaptive-ink.js"></script>
 <script src="assets/font-catalog.js"></script>
+<script src="assets/qrcode.js"></script>
 <script src="main.js"></script>
 </body>
 </html>

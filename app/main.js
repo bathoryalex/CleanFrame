@@ -51,13 +51,16 @@
   var LOOK_VALUES = { bg: ['dark', 'light', 'photo'], layout: ['list', 'dock'], apps: ['icons', 'both', 'text'], iconStyle: ['color', 'minimal'], font: Object.keys(FONTS).filter(function (id) { return id === 'manrope' || PRIVATE_FONTS.indexOf(id) >= 0; }), controls: ['icons', 'both', 'text'], focus: ['type', 'glass'], material: ['soft', 'frost', 'tint'] };
   var LOOK_NAMES = { bg: 'Background', layout: 'Layout', apps: 'Apps', font: 'Font', controls: 'Home controls', focus: 'Focus', material: 'Material' };
   var VALUE_NAMES = { dark: 'Dark', light: 'Light', photo: 'Photo', list: 'List', dock: 'Dock', type: 'Type', glass: 'Glass', soft: 'Soft', frost: 'Frost', tint: 'Clear tint', icons: 'Icons', both: 'Icons and text', text: 'Text', color: 'Color', minimal: 'Minimal' };
-  var UTIL = { art: ['Art Mode', 'art'], apps: ['All apps', 'apps'], arrange: ['Arrange', 'arrange'], settings: ['Settings', 'settings'] };
+  var UTIL = { art: ['Art Mode', 'art'], wifi: ['Wi‑Fi', 'wifi'], apps: ['All apps', 'apps'], arrange: ['Arrange', 'arrange'], settings: ['Settings', 'settings'] };
+  var WIFI_CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_. !@#$%&*+';
   var MSG = {
-    leave: { title: 'Leave Home?', line: 'Open Samsung Home?', note: '', actions: [['stay', 'Stay'], ['samsung', 'Samsung Home']] }
+    leave: { title: 'Leave Home?', line: 'Open Samsung Home?', note: '', actions: [['stay', 'Stay'], ['samsung', 'Samsung Home']] },
+    wifiSetup: { title: 'Wi‑Fi QR not set up', line: 'Add your network name in Settings → Wifi QR code settings.', note: '', actions: [['settings', 'Open Settings'], ['stay', 'Close']] }
   };
   var SVG = {
     art: '<rect x="3.5" y="4.5" width="17" height="15" rx="2"/><circle cx="9" cy="9.8" r="1.5"/><path d="m4.5 17.5 4.5-4.5 3 3 2.5-2.5 5 5"/>',
     apps: '<rect x="4" y="4" width="6.5" height="6.5" rx="1.6"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.6"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.6"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.6"/>',
+    wifi: '<path d="M12 4.5C7.8 4.5 4.1 6.6 1.8 9.8"/><path d="M12 8.5c-2.8 0-5.3 1.2-7.1 3.2"/><path d="M12 12.5c-1.4 0-2.6.6-3.5 1.5"/><circle cx="12" cy="16.5" r="1.35"/>',
     arrange: '<path d="M4 8.5h14M15 5.5l3 3-3 3M20 15.5H6M9 12.5l-3 3 3 3"/>',
     settings: '<path d="m9 3-.6 2.4-2 1.2L4 6l-2 3.5L3.8 11v2L2 14.5 4 18l2.4-.6 2 1.2L9 21h6l.6-2.4 2-1.2 2.4.6 2-3.5-1.8-1.5v-2L22 9.5 20 6l-2.4.6-2-1.2L15 3Z"/><circle cx="12" cy="12" r="3.2"/>',
     home: '<path d="M4 11 12 4.5l8 6.5v8a1 1 0 0 1-1 1h-4.5v-6h-5v6H5a1 1 0 0 1-1-1Z"/>',
@@ -438,7 +441,10 @@
       focus: pick(modern.focus, LOOK_VALUES.focus, legacyList ? 'type' : 'glass'), material: pick(modern.material, LOOK_VALUES.material, 'soft'),
       font: pick(modern.font, LOOK_VALUES.font, 'manrope'), wall: wall(modern.wall || s.wallpaper) ? modern.wall || s.wallpaper : WALLS[0].id,
       home: h, recent: recent, lastApp: h.indexOf(s.lastApp) >= 0 ? s.lastApp : h[0],
-      mode: pick(s.mode, MODES.map(function (m) { return m.id; }), 'fixed')
+      mode: pick(s.mode, MODES.map(function (m) { return m.id; }), 'fixed'),
+      wifiSsid: typeof s.wifiSsid === 'string' ? s.wifiSsid.slice(0, 32) : '',
+      wifiPass: typeof s.wifiPass === 'string' ? s.wifiPass.slice(0, 63) : '',
+      wifiSec: s.wifiSec === 'nopass' ? 'nopass' : 'WPA'
     };
   }
   function serialise(c) {
@@ -472,7 +478,12 @@
   }
   function clearSession() { S.undo = []; S.removedAt = {}; S.note = null; S.err = null; }
   function begin() { S.note = null; }
-  function next(home, recent) { var c = lookOf(S.c); c.home = home; c.recent = recent; c.lastApp = S.c.lastApp; c.mode = S.c.mode; return c; }
+  function next(home, recent) {
+    var c = lookOf(S.c);
+    c.home = home; c.recent = recent; c.lastApp = S.c.lastApp; c.mode = S.c.mode;
+    c.wifiSsid = S.c.wifiSsid; c.wifiPass = S.c.wifiPass; c.wifiSec = S.c.wifiSec;
+    return c;
+  }
   function snap() { return { home: S.c.home.slice(), recent: S.c.recent.slice() }; }
   function pushRecent(list, id) { return [id].concat(without(list, id)).slice(0, 5); }
   function write(c, label) {
@@ -611,22 +622,49 @@
   }
 
   /* ---------- Navigation targets ---------- */
-  function utils() { return ['apps', 'settings']; }
+  function utils() { return ['wifi', 'apps', 'settings']; }
   /* prev/next run along the apps; out goes to the controls, inn comes back (or to a per-app action). */
   function axes() {
     var v = S.c.layout === 'list';
     return { prev: v ? 'up' : 'left', next: v ? 'down' : 'right', out: v ? 'right' : 'up', inn: v ? 'left' : 'down' };
   }
+  function wifiReady() { return !!(S.c.wifiSsid && String(S.c.wifiSsid).trim()); }
+  function wifiQrPayload() {
+    var ssid = String(S.c.wifiSsid || '').trim(), pass = String(S.c.wifiPass || ''), sec = S.c.wifiSec === 'nopass' ? 'nopass' : 'WPA';
+    function esc(s) { return s.replace(/([\\;,":])/g, '\\$1'); }
+    if (sec === 'nopass' || !pass) return 'WIFI:T:nopass;S:' + esc(ssid) + ';;';
+    return 'WIFI:T:' + sec + ';S:' + esc(ssid) + ';P:' + esc(pass) + ';;';
+  }
+  function openWifiQr() {
+    if (!wifiReady()) { push({ id: 'message', msg: 'wifiSetup', f: { b: 0 } }); return; }
+    push({ id: 'wifiqr', beat: Date.now(), f: {} });
+  }
   function utilAction(u) {
-    if (u === 'apps') openApps();
+    if (u === 'wifi') openWifiQr();
+    else if (u === 'apps') openApps();
     else openSettings();
   }
   function addAppsRoute() { openEditor('home'); }
   function openSettings() { push({ id: 'settings', f: { id: S.settingsFocus } }); }
   function openAppearance(group) {
     var axis = { background: 'bg', layout: 'layout', typography: 'font', focus: 'focus' }[group];
-    var action = S.detailFocus[group] || (axis ? 'choice.' + axis + '.' + S.c[axis] : group === 'rotation' ? 'rotation.' + S.c.mode : 'samsung.home');
+    var action = S.detailFocus[group] || (axis ? 'choice.' + axis + '.' + S.c[axis] : group === 'rotation' ? 'rotation.' + S.c.mode : group === 'wifiqr' ? 'wifi.edit.ssid' : 'samsung.home');
     push({ id: 'appearance', group: group, f: { action: action } });
+  }
+  function openWifiField(field) {
+    push({ id: 'wifitype', field: field, draft: field === 'ssid' ? S.c.wifiSsid : S.c.wifiPass, f: { zone: 'char', ci: 0, ai: 0 } });
+  }
+  function saveWifiDraft(field, draft) {
+    var c = next(S.c.home.slice(), S.c.recent.slice());
+    if (field === 'ssid') c.wifiSsid = String(draft || '').slice(0, 32);
+    else c.wifiPass = String(draft || '').slice(0, 63);
+    if (!write(c, 'Wi‑Fi QR settings')) { S.err = 'Wi‑Fi QR settings'; return false; }
+    return true;
+  }
+  function applyWifiSec(value) {
+    var c = next(S.c.home.slice(), S.c.recent.slice());
+    c.wifiSec = value === 'nopass' ? 'nopass' : 'WPA';
+    if (!write(c, 'Wi‑Fi security')) S.lookError = { type: 'save', patch: { wifiSec: value }, row: 'wifiSec', transient: false };
   }
   function openMessage(key) { push({ id: 'message', msg: key, f: { b: 0 } }); }
   function openApps() {
@@ -942,6 +980,7 @@
       { id: 'typography', label: 'Typography', value: FONTS[S.c.font].name },
       { id: 'focus', label: 'Focus', value: VALUE_NAMES[S.c.focus] + (materialApplies() ? ', ' + VALUE_NAMES[S.c.material] : '') },
       { id: 'editor', label: 'Apps on Home', value: n + (n === 1 ? ' app' : ' apps') },
+      { id: 'wifiqr', label: 'Wifi QR code settings', value: wifiReady() ? S.c.wifiSsid : 'Not set' },
       { id: 'samsung', label: 'Samsung', value: 'Home and TV settings' }];
   }
   function settingsIds() { return settingsRows().map(function (r) { return r.id; }); }
@@ -962,10 +1001,10 @@
     if (id === 'editor') openEditor('settings');
     else openAppearance(id);
   }
-  var DETAIL_NAMES = { background: 'Background', layout: 'Layout', typography: 'Typography', focus: 'Focus', rotation: 'Rotation', samsung: 'Samsung' };
+  var DETAIL_NAMES = { background: 'Background', layout: 'Layout', typography: 'Typography', focus: 'Focus', rotation: 'Rotation', samsung: 'Samsung', wifiqr: 'Wifi QR code settings' };
   function choice(axis, value, disabled) {
-    return { action: axis === 'mode' ? 'rotation.' + value : 'choice.' + axis + '.' + value, axis: axis, value: value, disabled: !!disabled,
-      label: axis === 'font' ? FONTS[value].name : axis === 'mode' ? MODES.filter(function (m) { return m.id === value; })[0].name : value === 'both' ? 'Both' : VALUE_NAMES[value] };
+    return { action: axis === 'mode' ? 'rotation.' + value : axis === 'wifiSec' ? 'wifi.sec.' + value : 'choice.' + axis + '.' + value, axis: axis, value: value, disabled: !!disabled,
+      label: axis === 'font' ? FONTS[value].name : axis === 'mode' ? MODES.filter(function (m) { return m.id === value; })[0].name : axis === 'wifiSec' ? (value === 'nopass' ? 'Open network' : 'WPA/WPA2') : value === 'both' ? 'Both' : VALUE_NAMES[value] };
   }
   function detailSections(t) {
     var flat = S.c.bg !== 'photo', inactive = !materialApplies();
@@ -989,6 +1028,11 @@
     ];
     if (t.group === 'rotation') return [{ id: 'mode', title: '', items: options('mode', MODES.map(function (m) { return m.id; }), flat),
       reason: flat ? 'Choose Photo in Background to use rotation.' : 'Timed changes pause while Settings or another panel is open.' }];
+    if (t.group === 'wifiqr') return [
+      { id: 'ssid', title: 'Network name', items: [{ action: 'wifi.edit.ssid', label: S.c.wifiSsid || 'Add network name', description: 'SSID shown in the QR code' }] },
+      { id: 'pass', title: 'Password', items: [{ action: 'wifi.edit.pass', label: S.c.wifiPass ? 'Change password' : 'Add password', description: S.c.wifiPass ? 'Saved (hidden)' : 'Optional for open networks' }] },
+      { id: 'sec', title: 'Security', horizontal: true, items: [choice('wifiSec', 'WPA'), choice('wifiSec', 'nopass')] }
+    ];
     return [{ id: 'samsung', title: '', items: [
       { action: 'samsung.home', label: 'Samsung Home', description: 'Open Samsung’s Home screen' },
       { action: 'samsung.settings', label: 'TV settings', description: 'Picture, sound and network settings' }
@@ -1032,10 +1076,13 @@
       if (error && error.patch[error.row] !== undefined) detailFocus(t, choice(error.row, error.patch[error.row]), 0);
       if (error && error.row === 'mode') applyRotation(error.patch.mode);
       else if (error) setLook(error.patch, { row: error.row });
-    } else if (item.axis === 'mode') applyRotation(item.value);
+    }     else if (item.axis === 'mode') applyRotation(item.value);
+    else if (item.axis === 'wifiSec') applyWifiSec(item.value);
     else if (item.axis) { patch[item.axis] = item.value; setLook(patch, { row: item.axis }); }
     else if (item.action === 'background.wallpaper') openWallpaper();
     else if (item.action === 'background.rotation') openAppearance('rotation');
+    else if (item.action === 'wifi.edit.ssid') openWifiField('ssid');
+    else if (item.action === 'wifi.edit.pass') openWifiField('pass');
     else if (item.action === 'samsung.home') perform('Samsung Home', FrameDevice.home);
     else if (item.action === 'samsung.settings') perform('TV settings', FrameDevice.settings);
   }
@@ -1085,9 +1132,53 @@
       if (k === 'left') t.f.b = Math.max(0, t.f.b - 1);
       else if (k === 'right') t.f.b = Math.min(A.length - 1, t.f.b + 1);
       else if (k === 'back') pop();
-      else if (k === 'ok') { a = A[t.f.b][0]; pop(); if (a === 'samsung') perform('Samsung Home', FrameDevice.home); }
+      else if (k === 'ok') {
+        a = A[t.f.b][0]; pop();
+        if (a === 'samsung') perform('Samsung Home', FrameDevice.home);
+        else if (a === 'settings') { S.settingsFocus = 'wifiqr'; openSettings(); openAppearance('wifiqr'); }
+      }
     },
     point: function (t, z, i) { if (z === 'act') { t.f.b = i; this.key(t, 'ok'); } }
+  };
+  V.wifiqr = {
+    sheet: false,
+    key: function (t, k) { if (k === 'back' || k === 'ok') pop(); }
+  };
+  V.wifitype = {
+    sheet: true,
+    norm: function (t) {
+      t.draft = typeof t.draft === 'string' ? t.draft : '';
+      t.f.ci = clamp(t.f.ci, 0, WIFI_CHARS.length - 1);
+      t.f.ai = clamp(t.f.ai, 0, 2);
+      if (t.f.zone !== 'char' && t.f.zone !== 'act') t.f.zone = 'char';
+    },
+    key: function (t, k) {
+      var f = t.f;
+      if (f.zone === 'char') {
+        if (k === 'left' && f.ci > 0) f.ci--;
+        else if (k === 'right' && f.ci < WIFI_CHARS.length - 1) f.ci++;
+        else if (k === 'down') f.zone = 'act';
+        else if (k === 'ok') {
+          if (t.field === 'pass' && t.draft.length >= 63) return;
+          if (t.field === 'ssid' && t.draft.length >= 32) return;
+          t.draft += WIFI_CHARS.charAt(f.ci);
+        } else if (k === 'back') pop();
+        return;
+      }
+      if (k === 'up') { f.zone = 'char'; return; }
+      if (k === 'left' && f.ai > 0) f.ai--;
+      else if (k === 'right' && f.ai < 2) f.ai++;
+      else if (k === 'back') pop();
+      else if (k === 'ok') {
+        if (f.ai === 0) t.draft = t.draft.slice(0, -1);
+        else if (f.ai === 1) { if (saveWifiDraft(t.field, t.draft)) pop(); }
+        else pop();
+      }
+    },
+    point: function (t, z, i) {
+      if (z === 'char') { t.f.zone = 'char'; t.f.ci = i; this.key(t, 'ok'); }
+      else if (z === 'act') { t.f.zone = 'act'; t.f.ai = i; this.key(t, 'ok'); }
+    }
   };
 
   /* ---------- Dispatch ---------- */
@@ -1115,6 +1206,7 @@
   var utPlates = [$('utLens'), $('utLensAlt')], utFields = [$('utField'), $('utFieldAlt')], utPlateIndex = 0, utPlateKey = null;
   var photoMode = null, photoTransitionToken = 0;
   var sheetEl = $('sheet'), sheetView = $('sheetView');
+  var wifiQrEl = $('wifiQr'), wifiQrCanvas = $('wifiQrCanvas'), wifiQrSsid = $('wifiQrSsid'), wifiQrCard = $('wifiQrCard');
   var IMG = { photo: $('photo'), mat: $('matImg'), bg: $('sheetBg'), field: $('phFieldImg'), fieldAlt: $('phFieldImgAlt'), utility: $('utFieldImg'), utilityAlt: $('utFieldImgAlt') };
   var sheetKey = '', slotEls = {}, dockEdgeFrame = 0, dockEdgeUntil = 0, dockAnchorCenter = 960;
   var appliedPalette = null, appliedPhoto = null, appliedFont = null, appliedFontMetrics = null;
@@ -1147,7 +1239,7 @@
   function render() {
     var t = top(), sheet = !!V[t.id].sheet, shown = wall(S.shown ? S.shown.wall : S.c.wall), palette = ADAPTIVE_INK[shown.id];
     var adaptive = applyAdaptiveInk(palette), tr = adaptive && palette.tr ? palette.tr.pol : shown.ut.tr, br = adaptive && palette.br ? palette.br.pol : shown.ut.br;
-    stage.className = 'stage bg-' + S.c.bg + ' l-' + S.c.layout + ' v-' + S.variant + ' m-' + (materialApplies() ? S.c.material : 'none') + ' f-' + S.c.focus + ' a-' + S.c.apps + ' i-' + S.c.iconStyle + ' u-' + S.c.controls + ' g-' + S.geom + ' tone-' + shown.tone + ' tr-' + tr + ' br-' + br + wallClasses(shown) + inkRungClasses(palette, adaptive) + ' at-' + t.id + ' font-' + homeFont() + (homeFont() !== 'manrope' ? ' font-custom' : '') + (S.fontSwitch ? ' is-font-switch' : '') + (adaptive ? ' has-adaptive-ink adaptive-tl-' + palette.tl.pol : '') + (!adaptive && shown.clockInk ? ' has-clock-ink' : '') + (!adaptive && shown.dockClockInk ? ' has-dock-clock-ink' : '') + (registeredMaterial(shown.id) ? ' registered-material' : '') + (sheet ? ' is-sheet' : '') + (S.hdmiInApp ? ' is-hdmi-input' : '') + (S.reflow ? ' is-reflow' : '');
+    stage.className = 'stage bg-' + S.c.bg + ' l-' + S.c.layout + ' v-' + S.variant + ' m-' + (materialApplies() ? S.c.material : 'none') + ' f-' + S.c.focus + ' a-' + S.c.apps + ' i-' + S.c.iconStyle + ' u-' + S.c.controls + ' g-' + S.geom + ' tone-' + shown.tone + ' tr-' + tr + ' br-' + br + wallClasses(shown) + inkRungClasses(palette, adaptive) + ' at-' + t.id + ' font-' + homeFont() + (homeFont() !== 'manrope' ? ' font-custom' : '') + (S.fontSwitch ? ' is-font-switch' : '') + (adaptive ? ' has-adaptive-ink adaptive-tl-' + palette.tl.pol : '') + (!adaptive && shown.clockInk ? ' has-clock-ink' : '') + (!adaptive && shown.dockClockInk ? ' has-dock-clock-ink' : '') + (registeredMaterial(shown.id) ? ' registered-material' : '') + (sheet ? ' is-sheet' : '') + (t.id === 'wifiqr' ? ' is-wifi-qr' : '') + (S.hdmiInApp ? ' is-hdmi-input' : '') + (S.reflow ? ' is-reflow' : '');
     if (!adaptive && shown.clockInk) stage.style.setProperty('--clock-ink', shown.clockInk);
     else stage.style.removeProperty('--clock-ink');
     if (!adaptive && shown.dockClockInk) stage.style.setProperty('--dock-clock-ink', shown.dockClockInk);
@@ -1156,7 +1248,51 @@
     if (!sheet) renderHome(t);
     renderSheet(t, sheet);
     renderAppearance(t);
+    renderWifiOverlay(t);
     renderFocusStatus(t);
+  }
+
+  function drawWifiQrCanvas() {
+    var payload, qr, n, cells, size, cell, ctx, r, c, x, y;
+    if (!window.qrcode || !wifiQrCanvas) return;
+    payload = wifiQrPayload();
+    qr = qrcode(0, 'M');
+    qr.addData(payload);
+    qr.make();
+    n = qr.getModuleCount();
+    cells = n + 8;
+    size = 388;
+    cell = size / cells;
+    ctx = wifiQrCanvas.getContext('2d');
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, 420, 420);
+    ctx.fillStyle = '#0e0a06';
+    for (r = 0; r < n; r++) for (c = 0; c < n; c++) {
+      if (!qr.isDark(r, c)) continue;
+      x = 16 + (c + 4) * cell;
+      y = 16 + (r + 4) * cell;
+      ctx.fillRect(x, y, Math.ceil(cell), Math.ceil(cell));
+    }
+  }
+  function renderWifiOverlay(t) {
+    var on = t.id === 'wifiqr', card;
+    if (!wifiQrEl) return;
+    wifiQrEl.hidden = !on;
+    wifiQrEl.setAttribute('aria-hidden', on ? 'false' : 'true');
+    if (!on) return;
+    wifiQrSsid.textContent = S.c.wifiSsid;
+    drawWifiQrCanvas();
+    card = wifiQrCard;
+    if (card && t.beat !== card._beat) {
+      card._beat = t.beat;
+      card.className = 'wifi-qr-card';
+      void card.offsetWidth;
+      card.className = 'wifi-qr-card';
+    }
+  }
+  function wifiDraftDisplay(t) {
+    if (t.field === 'pass') return t.draft ? Array(t.draft.length + 1).join('•') : 'No password';
+    return t.draft || 'Network name';
   }
 
   function applyHomeFont() {
@@ -1531,7 +1667,7 @@
     else sheetView.removeAttribute('aria-modal');
     sceneEl.setAttribute('aria-hidden', sheet || isSettingsDetail(t) ? 'true' : 'false');
     if (!sheet) { sheetView.innerHTML = ''; sheetKey = ''; return; }
-    key = t.id + '|' + (t.mode || '') + '|' + (t.msg || '') + '|' + S.variant + '|' + S.c.bg;
+    key = t.id + '|' + (t.mode || '') + '|' + (t.msg || '') + '|' + (t.field || '') + '|' + S.variant + '|' + S.c.bg;
     if (key !== sheetKey) {
       sheetView.innerHTML = FRAMES[t.id](t);
       sheetKey = key; slotEls = {};
@@ -1678,6 +1814,9 @@
     message: function (t) {
       var m = messageContent(t);
       return '<h2 class="msg-title">' + esc(m.title) + '</h2><p class="msg-line">' + esc(m.line) + '</p><p class="msg-note">' + esc(m.note) + '</p><div class="msg-acts" data-slot="acts"></div>';
+    },
+    wifitype: function () {
+      return '<div class="wifi-field-panel"><h2 class="s-title" data-slot="title"></h2><p class="wifi-field-value" data-slot="value"></p><div class="wifi-char-row" data-slot="chars"></div><div class="wifi-field-actions" data-slot="acts"></div></div>';
     }
   };
   function gridTileHtml(id) {
@@ -1775,6 +1914,16 @@
     message: function (t, el) {
       setHTML(el.acts, messageContent(t).actions.map(function (a, i) {
         return '<button type="button" tabindex="-1" class="btn' + (i === t.f.b ? ' is-focus' : '') + '" data-z="act" data-i="' + i + '" data-action="message.' + a[0] + '"><span>' + a[1] + '</span></button>';
+      }).join(''));
+    },
+    wifitype: function (t, el) {
+      var f = t.f, chars = '', acts = ['Delete last', 'Save', 'Cancel'], i;
+      setHTML(el.title, t.field === 'ssid' ? 'Network name' : 'Password');
+      setHTML(el.value, esc(wifiDraftDisplay(t)));
+      for (i = 0; i < WIFI_CHARS.length; i++) chars += '<button type="button" tabindex="-1" class="btn' + (f.zone === 'char' && f.ci === i ? ' is-focus' : '') + '" data-z="char" data-i="' + i + '" data-action="wifi.char.' + i + '">' + esc(WIFI_CHARS.charAt(i)) + '</button>';
+      setHTML(el.chars, chars);
+      setHTML(el.acts, acts.map(function (label, ai) {
+        return '<button type="button" tabindex="-1" class="btn' + (f.zone === 'act' && f.ai === ai ? ' is-focus' : '') + '" data-z="act" data-i="' + ai + '" data-action="wifi.act.' + ai + '"><span>' + esc(label) + '</span></button>';
       }).join(''));
     }
   };
@@ -2018,6 +2167,10 @@
     else { release(); after(); updateClock(); focusStage(); }
   });
   window.addEventListener('resize', fit);
+  if (wifiQrEl) wifiQrEl.addEventListener('click', function () {
+    if (top().id !== 'wifiqr') return;
+    pop(); render(); syncRotation();
+  });
 
   /* Readable browser checks use the real state and actions, without fake outcomes. */
   var NAV = { left: 'left', right: 'right', up: 'up', down: 'down', ok: 'ok', enter: 'ok', back: 'back', escape: 'back' };
@@ -2030,6 +2183,7 @@
     out.rotation = { activeMs: activeMs + (activeSince ? Date.now() - activeSince : 0), active: !!activeSince };
     out.draft = t.lifted ? { id: t.lifted.id, order: t.lifted.order.slice() } : null;
     out.settingsGroup = t.id === 'wallpaper' ? 'wallpaper' : t.id === 'appearance' ? t.group : null;
+    out.wifiQr = { ssid: S.c.wifiSsid, ready: wifiReady(), sec: S.c.wifiSec };
     out.focusedChoice = item && item.axis ? { axis: item.axis, value: item.value, action: item.action, disabled: item.disabled } : null;
     out.candidate = out.focusedChoice ? { axis: item.axis, value: item.value, action: item.action, pending: !!S.pending, pendingTarget: S.pending ? S.pending.target : null } : null;
     out.wallpaperPicker = t.id === 'wallpaper' ? { candidate: WALLS[t.i].id, applied: S.c.wall, shown: S.wallShown, pending: t.previewDue || S.wallPending,

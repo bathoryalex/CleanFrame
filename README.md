@@ -1,23 +1,21 @@
-# CleanFrame
+# CleanFrame (Frame Home)
 
-> **Fork:** Personal fork of [nthnclrk/CleanFrame](https://github.com/nthnclrk/CleanFrame) — [bathoryalex/CleanFrame](https://github.com/bathoryalex/CleanFrame). See [FORK.md](FORK.md) and [docs/alex-tv-setup.md](docs/alex-tv-setup.md) for this installation.
+> Personal fork of [nthnclrk/CleanFrame](https://github.com/nthnclrk/CleanFrame) — [bathoryalex/CleanFrame](https://github.com/bathoryalex/CleanFrame). **Work in progress.** See [FORK.md](FORK.md) and [docs/alex-tv-setup.md](docs/alex-tv-setup.md) for this installation.
 
-A quieter home screen for Samsung The Frame. Your apps, a photograph and the time, with an interface made for the TV remote.
+A quieter home screen for Samsung TVs. Your apps, a photograph and the time, with an interface made for the TV remote.
 
-![CleanFrame browser preview using the bundled Manrope font](docs/images/cleanframe-dock.jpg)
+![Frame Home on Samsung TV — custom dock and wallpaper](docs/images/cleanframe-dock.jpg)
 
-I built CleanFrame for one TV: my own Samsung The Frame, running Tizen. I'm sharing the code and setup notes as a starting point for other people to build on.
+This repo uses [Nathan Clark's CleanFrame](https://github.com/nthnclrk/CleanFrame) as a base and changes it to suit my Samsung TV (**Frame Home**, custom app identity). Recent fork work includes dock icon tuning, extra wallpapers, a home-screen **Wi‑Fi QR** shortcut with settings, and other tweaks I want on my set. It is still evolving; upstream remains the better reference for a general-purpose project.
 
-**Use it at your own risk.** Most of the work has gone into making it work well on my TV. Very little has gone into making it portable. The setup scripts reflect my computer, TV and firmware, so expect to adapt them and test the result on your own hardware.
-
-I highly recommend forking it and building on top of it, ideally with a coding agent that can help you understand and adapt the setup. Start with the browser preview, make the interface your own, then work through TV installation when you're ready. Native Home/startup changes need particular care; the setup guide covers the risks and recovery steps.
+**Use it at your own risk.** Setup scripts, certificates and TV notes here match my machine and firmware. Fork again, start with the browser preview, and adapt before you install on your own hardware. Native Home/startup changes need particular care; the setup guide covers the risks and recovery steps.
 
 ## Try the interface
 
 You need Node.js 22+ and Python 3.10+ to run the browser preview.
 
 ```sh
-git clone https://github.com/nthnclrk/CleanFrame.git
+git clone https://github.com/bathoryalex/CleanFrame.git
 cd CleanFrame
 npm ci
 npm run dev:public

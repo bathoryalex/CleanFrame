@@ -71,7 +71,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000}
 .quiet-utils .u.is-focus{opacity:1;color:#f6f1e7;background:none;text-shadow:0 1px 2px rgba(14,10,6,.40),0 2px 8px rgba(14,10,6,.24)}
 .quiet-utils .u.is-idle{opacity:.40;color:#f6f1e7}
 .quiet-utils .u.is-idle.is-focus{opacity:.62}
-.quiet-utils.is-icons{gap:16px}
+.quiet-utils.is-icons{gap:16px;right:186px}
 .quiet-utils.is-icons .u{width:64px;padding:0;justify-content:center}
 .quiet-utils.is-icons .u .ico{width:36px;height:36px}
 .quiet-utils.is-icons .u-label{display:none}
@@ -306,16 +306,18 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000}
 .f-type .sheet .sc.is-lifted .panel-content,.f-type .sheet .er.is-lifted .panel-content{transform:none}
 
 /* Settings overview: each group carries one short, committed summary. */
-.settings-overview{position:absolute;left:112px;top:212px;width:1056px}
+.settings-overview{position:absolute;left:112px;top:212px;width:1056px;bottom:80px;overflow:hidden}
 .settings-group{width:100%;height:112px;padding:12px 32px 12px 28px;border-radius:20px;display:flex;align-items:center;justify-content:space-between;gap:32px;color:var(--ink);transition:background-color 140ms linear,color 140ms linear}
+.settings-overview .settings-group{height:100px;padding:10px 32px 10px 28px}
 .settings-group+.settings-group{margin-top:8px}
+.settings-overview .settings-group+.settings-group{margin-top:6px}
 .settings-group-copy{min-width:0;display:flex;flex-direction:column;gap:4px}
 .settings-group-name{font-size:40px;line-height:48px;font-weight:500;letter-spacing:-.6px}
 .settings-group-value{font-size:26px;line-height:34px;color:var(--mute);white-space:nowrap}
 .settings-group>.ico{width:30px;height:30px;color:var(--mute)}
 .settings-group.is-focus{background:var(--solid);color:var(--solid-ink)}
 .settings-group.is-focus .settings-group-value,.settings-group.is-focus>.ico{color:var(--solid-mute)}
-.settings-overview-hint{position:absolute;left:140px;top:968px;display:flex;align-items:center;gap:16px;font-size:26px;line-height:36px;color:var(--mute)}
+.settings-overview-hint{position:absolute;left:140px;bottom:36px;display:flex;align-items:center;gap:16px;font-size:26px;line-height:36px;color:var(--mute);pointer-events:none}
 .remote-key{display:inline-flex;align-items:center;justify-content:center;min-width:48px;height:34px;padding:0 10px;border:1.5px solid currentColor;border-radius:17px;font-size:21px;line-height:28px;font-weight:600;letter-spacing:0}
 .lay-note{position:absolute;left:140px;top:608px;max-width:1040px;font-size:30px;line-height:42px;font-weight:500;color:var(--mute)}
 
@@ -601,6 +603,25 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000}
 .l-list .quiet-utils.is-text{gap:0}
 .l-list .quiet-utils.is-text .u-label{max-width:330px}
 .l-list .quiet-utils.is-text .u-content{gap:0}
+
+.stage.is-wifi-qr .scene{filter:blur(20px) saturate(1.08);transform:scale(1.015);transition:filter 420ms var(--ease),transform 420ms var(--ease)}
+.wifi-qr-overlay{position:absolute;inset:0;z-index:12;display:flex;align-items:center;justify-content:center;pointer-events:none}
+.wifi-qr-overlay:not([hidden]){pointer-events:auto}
+.wifi-qr-shade{position:absolute;inset:0;background:rgba(8,12,14,.46);opacity:0;animation:wifi-shade-in 520ms var(--ease) forwards}
+.wifi-qr-card{position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;gap:20px;padding:40px 48px 36px;border-radius:32px;background:linear-gradient(165deg,rgba(255,255,255,.22),rgba(255,255,255,.08) 55%,rgba(255,255,255,.12));box-shadow:0 24px 80px rgba(6,10,12,.42),inset 0 1px 0 rgba(255,255,255,.28);opacity:0;transform:scale(.86) rotate(-2deg);animation:wifi-card-in 640ms cubic-bezier(.22,1,.28,1) 80ms forwards}
+.wifi-qr-canvas{display:block;width:420px;height:420px;border-radius:20px;background:#fff;padding:16px;box-sizing:border-box;box-shadow:0 8px 32px rgba(6,10,12,.24)}
+.wifi-qr-title{margin:0;font-size:40px;line-height:48px;font-weight:600;letter-spacing:-.6px;color:#f6f1e7;text-shadow:0 2px 12px rgba(6,10,12,.36)}
+.wifi-qr-ssid{margin:0;font-size:30px;line-height:38px;font-weight:500;letter-spacing:-.2px;color:rgba(246,241,231,.84);text-shadow:0 1px 8px rgba(6,10,12,.32);max-width:520px;text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+@keyframes wifi-shade-in{from{opacity:0}to{opacity:1}}
+@keyframes wifi-card-in{from{opacity:0;transform:scale(.86) rotate(-2deg)}to{opacity:1;transform:scale(1) rotate(0deg)}}
+@media(prefers-reduced-motion:reduce){.stage.is-wifi-qr .scene{transition-duration:120ms}.wifi-qr-shade,.wifi-qr-card{animation-duration:160ms;animation-delay:0s}}
+.wifi-field-panel{position:absolute;left:112px;top:152px;right:112px;bottom:48px;display:flex;flex-direction:column;gap:20px}
+.wifi-field-panel .s-title{position:static;left:auto;top:auto;margin:0;font-size:48px;line-height:56px;letter-spacing:-1.2px}
+.wifi-field-value{margin:0;font-size:34px;line-height:44px;font-weight:500;letter-spacing:.02em;color:var(--ink);word-break:break-all;min-height:44px;flex:none}
+.wifi-char-row{display:flex;flex-wrap:wrap;gap:8px;margin:0;max-width:none;flex:1;align-content:flex-start;overflow:auto;padding:4px 0}
+.wifi-char-row .btn{min-width:44px;height:48px;padding:0 12px;font-size:26px;line-height:32px;border-radius:14px}
+.wifi-field-actions{display:flex;flex-wrap:wrap;gap:12px;flex:none;margin-top:8px}
+.wifi-field-actions .btn{min-width:160px;height:56px;font-size:28px;border-radius:18px}
 
 /* Selected fonts affect Home only. Settings, editors and status retain Manrope. */
 .home{font-synthesis:none}

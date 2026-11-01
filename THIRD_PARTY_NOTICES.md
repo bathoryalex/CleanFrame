@@ -28,6 +28,12 @@ The fifteen photo pages were individually checked on 20 October 2026. Each displ
 
 Photographers retain their rights. Wallpapers, thumbnails, panel backgrounds and material fields derive from the credited photographs and retain their terms. The Unsplash licence permits copying, modification and distribution subject to its restrictions, including on selling unmodified images and building a competing image service.
 
+## JavaScript libraries (runtime)
+
+| Material | Terms and source record |
+| --- | --- |
+| QR Code Generator for JavaScript (Kazuhiko Arase) | MIT; vendored as `app/assets/qrcode.js` for the Wi‑Fi QR overlay. Original: [d-project QR Code](http://www.d-project.com/). “QR Code” is a registered trademark of DENSO WAVE INCORPORATED. |
+
 ## Development dependencies and exports
 
 Development dependencies retain the licences in their npm packages. They are not copied into the TV JavaScript runtime.
