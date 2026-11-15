@@ -83,6 +83,7 @@ window.CleanFrameI18n = {
     'Focus': 'Kijelölés',
     'Language and clock': 'Nyelv és óra',
     'Wifi QR code settings': 'Wi‑Fi QR-kód beállításai',
+    'Wifi QR code': 'Wi‑Fi QR-kód',
     'Not set': 'Nincs beállítva',
     '{0} app': '{0} app',
     '{0} apps': '{0} app',

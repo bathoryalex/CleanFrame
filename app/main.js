@@ -4,7 +4,7 @@
 
   /* ---------- Bundled data ---------- */
   var ASSETS = 'assets/', ICONS = ASSETS + 'icons/', WP = ASSETS + 'wallpapers/';
-  var APP_VERSION = '0.9.0';
+  var APP_VERSION = '0.9.1';
   var CAP = 9, SCRIM_Y = 560;
   var DOCK_MODES = { both: { tw: 288, th: 200, pitch: 296 }, text: { tw: 288, th: 104, pitch: 296 }, icons: { tw: 176, th: 144, pitch: 184 } };
   var GRID_ROW = 240, GRID_COL = 344, COLS = 5;
@@ -1004,7 +1004,7 @@
       { id: 'focus', icon: 'focus', label: T('Focus'), value: T(VALUE_NAMES[S.c.focus]) + (materialApplies() ? ', ' + T(VALUE_NAMES[S.c.material]) : '') },
       { id: 'editor', icon: 'apps', label: T('Apps on Home'), value: T(n === 1 ? '{0} app' : '{0} apps', n) },
       { id: 'region', icon: 'clock', label: T('Language and clock'), value: PREF_NAMES[S.c.lang] + ', ' + T(PREF_NAMES[S.c.clock]) + (S.c.clockPos === 'corner' ? '' : ', ' + T(PREF_NAMES[S.c.clockPos])) },
-      { id: 'wifiqr', icon: 'wifi', label: T('Wifi QR code settings'), value: wifiReady() ? S.c.wifiSsid : T('Not set') },
+      { id: 'wifiqr', icon: 'wifi', label: T('Wifi QR code'), value: wifiReady() ? S.c.wifiSsid : T('Not set') },
       { id: 'samsung', icon: 'home', label: T('Samsung Home'), value: T('Leave Frame Home'), direct: true }];
   }
   function settingsIds() { return settingsRows().map(function (r) { return r.id; }); }
