@@ -1,14 +1,44 @@
 # CleanFrame (Frame Home)
 
-> Personal fork of [nthnclrk/CleanFrame](https://github.com/nthnclrk/CleanFrame) — [bathoryalex/CleanFrame](https://github.com/bathoryalex/CleanFrame). **Work in progress.** See [FORK.md](FORK.md) and [docs/alex-tv-setup.md](docs/alex-tv-setup.md) for this installation.
+> Personal fork of [nthnclrk/CleanFrame](https://github.com/nthnclrk/CleanFrame) — [bathoryalex/CleanFrame](https://github.com/bathoryalex/CleanFrame). See [FORK.md](FORK.md) and [docs/alex-tv-setup.md](docs/alex-tv-setup.md) for this installation.
 
-A quieter home screen for Samsung TVs. Your apps, a photograph and the time, with an interface made for the TV remote.
+A quieter home screen for Samsung TVs. Your apps, a photograph, the time and the weather, with an interface made for the TV remote.
 
-![Frame Home on Samsung TV — custom dock and wallpaper](docs/images/frame-home-dock.jpg)
+![Frame Home: large centred clock with date and weather above the dock](docs/images/frame-home-home.jpg)
 
-This repo uses [Nathan Clark's CleanFrame](https://github.com/nthnclrk/CleanFrame) as a base and changes it to suit my Samsung TV (**Frame Home**, custom app identity). Fork work includes my own Home row (Xbox and Switch on HDMI, Nuvio, YouTube, Spotify, HBO Max, SmartThings, Internet), colour and minimal icon styles, extra wallpapers, a home-screen **Wi‑Fi QR** shortcut, a Hungarian interface, a 24/12-hour clock and the local weather. It is still evolving; upstream remains the better reference for a general-purpose project.
+This repo uses [Nathan Clark's CleanFrame](https://github.com/nthnclrk/CleanFrame) as a base and changes it to suit my Samsung TV (**Frame Home**, its own app identity). It is still evolving; upstream remains the better reference for a general-purpose project.
 
 **Use it at your own risk.** Setup scripts, certificates and TV notes here match my machine and firmware. Fork again, start with the browser preview, and adapt before you install on your own hardware. Native Home/startup changes need particular care; the setup guide covers the risks and recovery steps.
+
+| Settings | List layout |
+| --- | --- |
+| ![Settings as a grid of cards](docs/images/frame-home-settings.jpg) | ![List layout with the clock, date and weather at the top right](docs/images/frame-home-list.jpg) |
+
+## What it does
+
+- **Home row.** Xbox and Nintendo Switch on HDMI, Nuvio, YouTube, Spotify, HBO Max, SmartThings and Internet by default. Choose and reorder up to nine apps, or add any installed app.
+- **Layouts.** List or Dock, with icons, names or both, and colour or minimal (white) icons. When the apps do not fit, the Dock pages through whole tiles with arrows at the sides.
+- **Clock, date and weather.** 24- or 12-hour clock, in the corner or large in the centre. An optional date ("15 November", or "November 15" in Hungarian). Weather from [Open-Meteo](https://open-meteo.com): an icon, the temperature and today's high and low.
+- **Backgrounds.** A photograph, light or dark. Seventeen bundled wallpapers with pre-rendered glass, optional rotation, and **Your picture**: send any photo from your phone and it becomes the background (see below).
+- **Wi‑Fi QR.** A Home control that shows a QR code so guests can join your Wi‑Fi. The network name and password are entered on the TV and never leave it.
+- **Settings.** A 4 x 2 grid of cards, made for arrow keys. Each group (Background, Layout, Typography, Focus, Apps on Home, Language and clock, Wi‑Fi QR) shows its choices beside a live Home preview. The last card opens Samsung's Home screen.
+- **English or Hungarian** interface, switchable at any time.
+
+The glass and blur are rendered ahead of time. The TV loads the finished images and uses transforms and opacity for focus feedback; nothing is blurred live while you navigate.
+
+## Your picture
+
+Settings → Background → **Picture from phone** shows a QR code for a private [ntfy.sh](https://ntfy.sh) channel that the TV creates for itself.
+
+1. Scan the code with your phone. The ntfy web page for the channel opens.
+2. Tap **^** beside the message field (or *Publish notification*), choose **Attach local file** and pick a photo. On Android you can also share a photo to the ntfy app.
+3. Send it. Within a few seconds the TV downloads the photo, crops it to 16:9, prepares the same glass materials a bundled wallpaper has, stores it, and makes it the background.
+
+The TV keeps listening while it is on, so the QR screen can be closed; a new photo replaces the previous one. JPG, PNG, WebP and other formats the TV's browser can open work; HEIC does not. The photo passes through the public ntfy.sh server on a channel name that cannot be guessed and is deleted there after a few hours; the TV keeps its own copy. The relay host is set in [`app/fork.js`](app/fork.js).
+
+## Configure
+
+[`app/fork.js`](app/fork.js) is the one place for this installation's settings: the Home row (with HDMI inputs and alternative app IDs), the app's own ID, the weather location and the picture relay. Interface text lives in `app/main.js` with Hungarian translations in [`app/assets/i18n.js`](app/assets/i18n.js).
 
 ## Try the interface
 
@@ -24,20 +54,6 @@ npm run dev:public
 Open [localhost:4795/home/](http://localhost:4795/home/). Use the arrow keys, Enter and Escape, or click the controls. App launches and Samsung screens require a TV; the preview reports that limitation when you select them.
 
 The public preview uses the included Manrope, Geist and Newsreader fonts.
-
-## What you can change
-
-- Choose a List or Dock layout, with icons, names or both.
-- Use a photograph, light or dark background, with a 24- or 12-hour clock in the corner or large in the centre, and optional weather (icon, temperature, today's high and low).
-- Adjust typography, focus and glass materials through the same Settings interface.
-- Choose and reorder Home apps; discover installed apps on the TV.
-- Use the interface in English or Hungarian.
-- Show a QR code that lets guests join your Wi‑Fi; the network details are entered on the TV and stay there.
-- Select from seventeen wallpapers, or send your own photo from your phone (Settings → Background → Picture from phone), and save your preferences locally.
-
-The Home shortcuts, this installation's app identity and the weather location are configured in [`app/fork.js`](app/fork.js).
-
-The glass and blur are rendered ahead of time. The TV loads the finished images and uses transforms and opacity for focus feedback.
 
 ## Use a coding agent
 
@@ -81,7 +97,7 @@ npm run check:public
 npm run export:public
 ```
 
-The browser checks use isolated Chromium profiles and a loopback preview. They never contact a TV. The public export creates `dist/CleanFrame-public-unsigned.wgt`, with public fonts and notices. It needs your own identity and signing before installation. It does not certify asset redistribution rights or device compatibility.
+The browser checks use isolated Chromium profiles and a loopback preview. They never contact a TV, and the weather and picture relays are answered locally. To use an already installed Chromium, set `CLEANFRAME_CHROMIUM` to its executable. The public export creates `dist/CleanFrame-public-unsigned.wgt`, with public fonts and notices. It needs your own identity and signing before installation. It does not certify asset redistribution rights or device compatibility.
 
 | Location | Purpose |
 | --- | --- |
