@@ -105,7 +105,8 @@ async function page(options = {}) {
   await current.route('https://ntfy.sh/**', route => {
     const url = route.request().url(), relay = current.__relay;
     if (url.includes('/file/')) return relay ? route.fulfill({ contentType: 'image/jpeg', headers: { 'Access-Control-Allow-Origin': '*' }, body: readFileSync(root + relay.image) }) : route.fulfill({ status: 404 });
-    const body = relay && relay.ready() ? JSON.stringify({ id: relay.id, time: 1, event: 'message', topic: 't', message: 'photo', attachment: { name: relay.name || 'IMG_0001.jpg', type: relay.type || 'image/jpeg', size: 1, url: 'https://ntfy.sh/file/' + relay.id + '.jpg' } }) + '\n' : '';
+    const open = url.includes('poll=1') ? '' : JSON.stringify({ event: 'open' }) + '\n';
+    const body = open + (relay && relay.ready() ? JSON.stringify({ id: relay.id, time: 1, event: 'message', topic: 't', message: 'photo', attachment: { name: relay.name || 'IMG_0001.jpg', type: relay.type || 'image/jpeg', size: 1, url: 'https://ntfy.sh/file/' + relay.id + '.jpg' } }) + '\n' : '');
     return route.fulfill({ contentType: 'application/x-ndjson', headers: { 'Access-Control-Allow-Origin': '*' }, body });
   });
   // The weather caption is optional; answer it locally so checks never leave the machine.
@@ -443,6 +444,16 @@ try {
     current.__relay = null;
     await current.reload(); await ready();
     check('The picture is restored after a restart', (await state()).wall === 'custom' && await current.evaluate(() => /^blob:/.test(document.getElementById('photo').src) && document.getElementById('photo').naturalWidth === 1920));
+  });
+  await run('Your picture arrives after the screen is closed', async () => {
+    await page(); await group('background');
+    await act('background.custom');
+    await current.waitForFunction(() => /Waiting|Várakozás/.test(document.querySelector('.phone-status').textContent));
+    await nav('ok');
+    check('Closing returns to Background', (await state()).settingsGroup === 'background');
+    current.__relay = { id: 'Bg12Cd34Ef56', image: 'app/assets/wallpapers/golden.jpg', ready: () => true };
+    await current.waitForFunction(() => ShoreQA.state().wall === 'custom' && ShoreQA.ready(), null, { timeout: 30000 });
+    check('The TV keeps listening and applies the picture', (await state()).relaySince === 'Bg12Cd34Ef56');
   });
   await run('Your picture ignores files that are not pictures', async () => {
     await page(); await group('background');

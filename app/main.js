@@ -4,7 +4,7 @@
 
   /* ---------- Bundled data ---------- */
   var ASSETS = 'assets/', ICONS = ASSETS + 'icons/', WP = ASSETS + 'wallpapers/';
-  var APP_VERSION = '0.8.1';
+  var APP_VERSION = '0.8.2';
   var CAP = 9, SCRIM_Y = 560;
   var DOCK_MODES = { both: { tw: 288, th: 200, pitch: 296 }, text: { tw: 288, th: 104, pitch: 296 }, icons: { tw: 176, th: 144, pitch: 184 } };
   var GRID_ROW = 240, GRID_COL = 344, COLS = 5;
@@ -41,7 +41,7 @@
   var KEY = 'cleanframe.home.v1', storageOk = true, catalog = { loading: false, loaded: false, error: null, request: 0, revision: 0 };
   /* Your picture: one wallpaper slot that a phone fills through an ntfy.sh topic (assets/custom-wallpaper.js). */
   var CUSTOM = 'custom', FCW = window.FrameCustomWallpaper, RELAY = (window.FrameFork && window.FrameFork.relay) || 'https://ntfy.sh';
-  var custom = { urls: null, stamp: 0, phase: 'waiting', name: '', timer: 0, busy: false, qr: '' };
+  var custom = { urls: null, stamp: 0, phase: 'idle', name: '', busy: false, queued: null, qr: '', link: 'idle', detail: '', relay: null };
   function addCustomWall(tone) {
     var w = wall(CUSTOM);
     if (!w) { w = { id: CUSTOM, name: 'Your picture', ut: { tr: 'light', br: 'light' }, frostVeil: .2 }; WALLS.push(w); }
@@ -1194,42 +1194,56 @@
   }
   function openPhone() {
     if (!S.c.relayTopic && !savePrefs({ relayTopic: FCW.randomTopic(), relayAt: Math.floor(Date.now() / 1000) - 60, relaySince: '' }, 'Picture channel')) return;
-    custom.phase = 'waiting'; custom.name = '';
+    if (!custom.busy) { custom.phase = 'idle'; custom.name = ''; }
     push({ id: 'phone', f: { b: 0 } });
-    pollPhone();
+    startRelay();
   }
-  function closePhone() { clearTimeout(custom.timer); custom.timer = 0; pop(); }
-  function phoneView() { return top().id === 'phone'; }
-  function pollPhone() {
-    clearTimeout(custom.timer); custom.timer = 0;
-    if (!phoneView() || custom.busy) return;
-    FCW.poll(RELAY, S.c.relayTopic, relaySince(), function (err, result) {
-      if (!phoneView() || custom.busy) return;
-      if (err) custom.phase = 'offline';
-      else if (result.message) receivePicture(result.message);
-      else if (custom.phase === 'offline') custom.phase = 'waiting';
-      if (!custom.busy) custom.timer = setTimeout(pollPhone, 3000);
-      render();
+  function closePhone() { pop(); }
+  /* Once a channel exists the TV keeps listening while it is in use, so a photo sent after
+     the QR screen closes still arrives. Hidden apps disconnect and replay on return. */
+  function startRelay() {
+    if (!FCW || !S.c.relayTopic || custom.relay || document.hidden) return;
+    custom.link = 'connecting'; custom.detail = '';
+    custom.relay = FCW.listen(RELAY, S.c.relayTopic, relaySince, {
+      state: function (state, detail) { custom.link = state; custom.detail = detail || ''; if (top().id === 'phone') render(); },
+      message: function (m) {
+        if (!safeId(m.id) || m.id === S.c.relaySince) return;
+        if (m.attachment && m.attachment.url) custom.queued = m;
+        else savePrefs({ relaySince: m.id }, 'Channel message');
+        drainPictures();
+      }
     });
+  }
+  function stopRelay() { if (custom.relay) { custom.relay.stop(); custom.relay = null; custom.link = 'idle'; } }
+  function drainPictures() {
+    // A replay can hold several photos; only the newest one is prepared.
+    var m = custom.queued;
+    if (!m || custom.busy) return;
+    custom.queued = null;
+    receivePicture(m);
+  }
+  function pictureFailed(phase, detail) {
+    custom.busy = false; custom.phase = phase; custom.detail = detail || '';
+    render(); drainPictures();
   }
   function receivePicture(message) {
     var attachment = message.attachment;
-    savePrefs({ relaySince: safeId(message.id) ? message.id : S.c.relaySince }, 'Picture received');
-    if (!FCW.isImage(attachment)) { custom.phase = 'notimage'; return; }
-    custom.busy = true; custom.phase = 'downloading'; custom.name = String(attachment.name || '').slice(0, 80);
+    savePrefs({ relaySince: message.id }, 'Picture received');
+    if (!FCW.isImage(attachment)) { custom.phase = 'notimage'; render(); return; }
+    custom.busy = true; custom.phase = 'downloading'; custom.name = String(attachment.name || '').slice(0, 80); render();
     FCW.download(attachment.url, function (err, image) {
-      if (err) { custom.busy = false; custom.phase = 'unreadable'; render(); pollPhone(); return; }
+      if (err) { pictureFailed(err.code === 'decode' ? 'unreadable' : 'unreachable', err.detail); return; }
       custom.phase = 'processing'; render();
       // Let the status paint before the one-time image work starts.
       setTimeout(function () {
         FCW.processImage(image, function (failure, record) {
-          if (failure) { custom.busy = false; custom.phase = 'unreadable'; render(); pollPhone(); return; }
+          if (failure) { pictureFailed('unreadable'); return; }
           FCW.save(record, function (stored) {
             installCustom(record);
             savePrefs({ customAt: record.stamp, customTone: record.tone }, 'Your picture');
             custom.busy = false; custom.phase = stored ? 'done' : 'unsaved';
             setLook({ bg: 'photo', wall: CUSTOM }, { row: 'bg', reload: true });
-            render(); pollPhone();
+            render(); drainPictures();
           });
         });
       }, 60);
@@ -1945,6 +1959,7 @@
       return '<div class="phone-panel"><h2 class="s-title">' + T('Your picture') + '</h2>'
         + '<div class="phone-body"><div class="phone-qr-card"><canvas class="phone-qr" width="360" height="360" data-slot="qr"></canvas><p class="phone-url" data-slot="url"></p></div>'
         + '<div class="phone-copy"><ol class="phone-steps"><li>' + T('Scan the code with your phone.') + '</li><li>' + T('On the page that opens, tap ^ beside the message field, then “Attach local file” and choose a photo.') + '</li><li>' + T('Send it. The TV sets it as your background in a few seconds.') + '</li></ol>'
+        + '<p class="phone-hint">' + T('You can close this screen: the TV keeps listening while it is on.') + '</p>'
         + '<p class="phone-status" data-slot="status" aria-live="polite"></p><p class="phone-note">' + T('The photo passes through ntfy.sh on a private channel and is deleted there after a few hours. The TV keeps its own copy.') + '</p>'
         + '<div class="phone-acts" data-slot="acts"></div></div></div></div>';
     },
@@ -2050,14 +2065,15 @@
       }).join(''));
     },
     phone: function (t, el) {
-      var url = RELAY + '/' + S.c.relayTopic, text = {
-        waiting: T('Waiting for a photo…'), offline: T('Can’t reach ntfy.sh. Trying again…'), notimage: T('That file isn’t a picture. Send a JPG or PNG.'),
-        downloading: T('Receiving {0}…', custom.name || T('photo')), processing: T('Preparing your background…'),
-        unreadable: T('Couldn’t open that picture. Send a JPG or PNG.'), done: T('Done. Your picture is the background now.'), unsaved: T('Done for now, but the TV couldn’t store it for next time.')
-      }[custom.phase];
+      var url = RELAY + '/' + S.c.relayTopic, phase = custom.phase !== 'idle' ? custom.phase : custom.link === 'retry' ? 'offline' : custom.link === 'open' ? 'waiting' : 'connecting', text = {
+        connecting: T('Connecting to ntfy.sh…'), waiting: T('Waiting for a photo…'), offline: T('Can’t reach ntfy.sh ({0}). Trying again…', custom.detail || '?'),
+        notimage: T('That file isn’t a picture. Send a JPG or PNG.'), downloading: T('Receiving {0}…', custom.name || T('photo')), processing: T('Preparing your background…'),
+        unreadable: T('Couldn’t open that picture. Send a JPG or PNG.'), unreachable: T('Couldn’t download the photo ({0}). Send it again.', custom.detail || '?'),
+        done: T('Done. Your picture is the background now.'), unsaved: T('Done for now, but the TV couldn’t store it for next time.')
+      }[phase];
       if (custom.qr !== url && window.qrcode) { drawQr(el.qr, url); custom.qr = url; }
       setHTML(el.url, esc(url.replace(/^https:\/\//, '')));
-      setHTML(el.status, '<span class="phone-dot is-' + custom.phase + '"></span>' + esc(text));
+      setHTML(el.status, '<span class="phone-dot is-' + phase + '"></span>' + esc(text));
       setHTML(el.acts, '<button type="button" tabindex="-1" class="btn is-focus" data-z="act" data-i="0" data-action="phone.done"><span>' + T(custom.phase === 'done' ? 'Done' : 'Close') + '</span></button>');
     },
     wifitype: function (t, el) {
@@ -2312,10 +2328,10 @@
   document.addEventListener('visibilitychange', function () {
     heldKeys = {};
     if (document.hidden) {
-      pauseRotation(); clearTimeout(clockTimer);
+      pauseRotation(); clearTimeout(clockTimer); stopRelay();
       if (S.hdmiInApp) { S.hdmiInApp = false; if (FrameDevice.hideHdmiView) FrameDevice.hideHdmiView(); }
     }
-    else { release(); after(); updateClock(); focusStage(); }
+    else { release(); after(); updateClock(); focusStage(); startRelay(); }
   });
   window.addEventListener('resize', fit);
   if (wifiQrEl) wifiQrEl.addEventListener('click', function () {
@@ -2375,5 +2391,5 @@
     norm(); render(); fit(); focusStage(); updateClock(); syncRotation();
     refreshWeather(function () { render(); syncRotation(); });
   }
-  if (FCW && S.c.customAt) loadCustom(start); else start();
+  if (FCW && S.c.customAt) loadCustom(function () { start(); startRelay(); }); else { start(); startRelay(); }
 })();

@@ -156,40 +156,85 @@
     for (j = 0; j < 20; j++) out += chars.charAt(bytes[j] % chars.length);
     return out;
   }
-  /* Newest image attachment published after `since` (a message ID or unix seconds). */
-  function poll(relay, topic, since, done) {
-    var xhr = new XMLHttpRequest(), finished = false;
-    function finish(err, value) { if (!finished) { finished = true; done(err, value); } }
-    xhr.timeout = 10000;
-    xhr.open('GET', relay + '/' + encodeURIComponent(topic) + '/json?poll=1&since=' + encodeURIComponent(since), true);
-    xhr.onload = function () {
-      var lines, j, m, latest = null, last = null;
-      if (xhr.status < 200 || xhr.status >= 300) { finish({ code: 'relay' }); return; }
-      lines = String(xhr.responseText || '').split('\n');
-      for (j = 0; j < lines.length; j++) {
-        if (!lines[j]) continue;
-        try { m = JSON.parse(lines[j]); } catch (e) { continue; }
-        if (m.event !== 'message' || m.id === since) continue;
-        last = m.id;
-        if (m.attachment && m.attachment.url) latest = m;
+  /* Listen to the channel. One streaming request stays open (ntfy.sh allows about one request
+     every five seconds per visitor, so frequent polling gets refused); old messages since
+     getSince() are replayed on each connection. If the stream never opens, poll every 15 s. */
+  function listen(relay, topic, getSince, on) {
+    var xhr = null, timer = 0, openTimer = 0, renewTimer = 0, stopped = false, failures = 0, streaming = true, opened = false, offset = 0;
+    function address(poll) { return relay + '/' + encodeURIComponent(topic) + '/json?' + (poll ? 'poll=1&' : '') + 'since=' + encodeURIComponent(getSince()); }
+    function lines(text) {
+      var end = text.lastIndexOf('\n'), parts, j, m;
+      if (end < offset) return;
+      parts = text.slice(offset, end).split('\n'); offset = end + 1;
+      for (j = 0; j < parts.length; j++) {
+        if (!parts[j]) continue;
+        try { m = JSON.parse(parts[j]); } catch (e) { continue; }
+        if (m.event === 'open') ready();
+        else if (m.event === 'message') on.message(m);
       }
-      finish(null, { message: latest, lastId: last });
-    };
-    xhr.onerror = xhr.ontimeout = function () { finish({ code: 'relay' }); };
-    try { xhr.send(); } catch (e) { finish({ code: 'relay' }); }
+    }
+    function ready() { if (!opened) { opened = true; failures = 0; clearTimeout(openTimer); on.state('open'); } }
+    function cleanup() {
+      clearTimeout(openTimer); clearTimeout(renewTimer);
+      if (xhr) { var old = xhr; xhr = null; old.onprogress = old.onload = old.onerror = old.ontimeout = null; try { old.abort(); } catch (e) { /* closed */ } }
+    }
+    function schedule(delay) { clearTimeout(timer); if (!stopped) timer = setTimeout(connect, delay); }
+    function fail(detail) {
+      cleanup(); failures++; opened = false;
+      on.state('retry', detail);
+      schedule(Math.min(60000, 5000 * Math.pow(2, Math.min(failures - 1, 4))));
+    }
+    function connect() {
+      var poll = !streaming, req;
+      cleanup(); if (stopped) return;
+      offset = 0; opened = false; req = xhr = new XMLHttpRequest();
+      try { req.open('GET', address(poll), true); } catch (e) { fail('open'); return; }
+      if (poll) req.timeout = 15000;
+      req.onprogress = function () { if (req === xhr) lines(String(req.responseText || '')); };
+      req.onload = function () {
+        if (req !== xhr) return;
+        if (req.status < 200 || req.status >= 300) { fail('HTTP ' + req.status); return; }
+        lines(String(req.responseText || '') + '\n');
+        if (poll) { ready(); opened = false; schedule(15000); } else schedule(1000);
+      };
+      req.onerror = function () { if (req === xhr) fail(req.status ? 'HTTP ' + req.status : 'network'); };
+      req.ontimeout = function () { if (req === xhr) fail('timeout'); };
+      if (!poll) {
+        // ntfy starts every stream with an "open" event; a buffering network never shows it.
+        openTimer = setTimeout(function () { if (req === xhr && !opened) { streaming = false; connect(); } }, 15000);
+        renewTimer = setTimeout(function () { if (req === xhr) connect(); }, 600000);
+      }
+      try { req.send(); } catch (e) { fail('send'); }
+    }
+    connect();
+    return { stop: function () { stopped = true; clearTimeout(timer); cleanup(); } };
   }
   function isImage(attachment) {
     return /^image\//i.test(attachment.type || '') || /\.(jpe?g|png|webp|gif|bmp)$/i.test(attachment.name || '');
   }
-  /* The relay serves files with CORS, so the decoded picture can be read back from canvas. */
+  /* The relay serves files with CORS, so the decoded picture can be read back from canvas.
+     If the direct image request fails, fetch the bytes and decode them from a local blob. */
   function download(url, done) {
-    var image = new Image(), finished = false, timer = setTimeout(function () { finish({ code: 'download' }); }, 60000);
-    function finish(err) { if (finished) return; finished = true; clearTimeout(timer); done(err, err ? null : image); }
-    image.crossOrigin = 'anonymous';
-    image.onload = function () { finish(image.naturalWidth ? null : { code: 'decode' }); };
-    image.onerror = function () { finish({ code: 'decode' }); };
-    image.src = url;
+    var finished = false, timer = setTimeout(function () { finish({ code: 'download', detail: 'timeout' }); }, 90000);
+    function finish(err, image) { if (finished) return; finished = true; clearTimeout(timer); done(err, err ? null : image); }
+    function decode(src, crossOrigin, fail) {
+      var image = new Image();
+      if (crossOrigin) image.crossOrigin = 'anonymous';
+      image.onload = function () { if (image.naturalWidth) finish(null, image); else fail(); };
+      image.onerror = fail;
+      image.src = src;
+    }
+    decode(url, true, function () {
+      var xhr = new XMLHttpRequest();
+      try { xhr.open('GET', url, true); xhr.responseType = 'blob'; } catch (e) { finish({ code: 'download', detail: 'open' }); return; }
+      xhr.onload = function () {
+        if (xhr.status < 200 || xhr.status >= 300 || !xhr.response) { finish({ code: 'download', detail: 'HTTP ' + xhr.status }); return; }
+        decode(URL.createObjectURL(xhr.response), false, function () { finish({ code: 'decode' }); });
+      };
+      xhr.onerror = function () { finish({ code: 'download', detail: 'network' }); };
+      try { xhr.send(); } catch (e) { finish({ code: 'download', detail: 'send' }); }
+    });
   }
 
-  window.FrameCustomWallpaper = { processImage: processImage, save: save, load: load, urls: urls, randomTopic: randomTopic, poll: poll, isImage: isImage, download: download };
+  window.FrameCustomWallpaper = { processImage: processImage, save: save, load: load, urls: urls, randomTopic: randomTopic, listen: listen, isImage: isImage, download: download };
 }());
