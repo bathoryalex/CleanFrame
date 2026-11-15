@@ -27,3 +27,7 @@ PP*.woff2
 /explorations/
 /docs/research/
 /docs/articles/
+
+# .NET build output of the native Home helper
+/scripts/native-home/bin/
+/scripts/native-home/obj/

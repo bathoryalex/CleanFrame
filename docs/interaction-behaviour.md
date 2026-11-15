@@ -12,7 +12,7 @@
 
 ## Settings and appearance
 
-Settings opens a grouped overview: Background, Layout, Typography, Focus, Apps on Home and Samsung. OK opens a group. Appearance groups use a two-pane screen with visible choices on the left and the committed Home preview on the right.
+Settings opens a grouped overview: Background, Layout, Typography, Focus, Apps on Home, Language and clock, Wifi QR code settings and Samsung. OK opens a group. Appearance groups use a two-pane screen with visible choices on the left and the committed Home preview on the right.
 
 | Group | Choices |
 | --- | --- |
@@ -21,6 +21,7 @@ Settings opens a grouped overview: Background, Layout, Typography, Focus, Apps o
 | Typography | Manrope, Neue Montreal, Mori, Pangram Sans, Geist and Newsreader, when available |
 | Focus | Type or Glass; Soft, Frost or Clear tint material |
 | Apps on Home | Membership and arrangement editor |
+| Language and clock | English or Magyar; 24-hour or 12-hour clock; weather Off, Temperature, or With high and low |
 | Wifi QR code settings | Network name, password and security for the home-screen QR code |
 | Samsung | Samsung Home and TV settings |
 
@@ -82,6 +83,10 @@ The native Home operation and startup configuration from 19 October remain separ
 
 ## Clock and rendering
 
-Both layouts show the TV's local time in 12-hour format, without AM/PM or seconds. It updates at the minute boundary and on return to the launcher. No date or clock panel is shown.
+Both layouts show the TV's local time in 24-hour format by default, or 12-hour with AM/PM (Hungarian: de./du. before the time). It updates at the minute boundary and on return to the launcher. No date or clock panel is shown.
+
+Beside the clock, the weather for the place in `app/fork.js` comes from Open-Meteo (no key) and is cached for an hour: a line icon, the current temperature and, by default, today's high and low. If the request fails, the clock is shown alone.
+
+Language applies at once to every screen. A missing translation falls back to the English text. App names stay as installed.
 
 Photographic materials and blurred panel backgrounds are generated before packaging and stay aligned with the full-screen image. Photo colour and contrast metadata are also prepared offline. Navigation does not sample image pixels, run an optics engine or apply live backdrop blur. Flat backgrounds use matching light or dark panel colours. Focus feedback uses transforms and opacity; reduced motion removes animated scaling and movement while retaining opacity feedback.

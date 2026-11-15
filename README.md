@@ -6,7 +6,7 @@ A quieter home screen for Samsung TVs. Your apps, a photograph and the time, wit
 
 ![Frame Home on Samsung TV — custom dock and wallpaper](docs/images/frame-home-dock.jpg)
 
-This repo uses [Nathan Clark's CleanFrame](https://github.com/nthnclrk/CleanFrame) as a base and changes it to suit my Samsung TV (**Frame Home**, custom app identity). Recent fork work includes dock icon tuning, extra wallpapers, a home-screen **Wi‑Fi QR** shortcut with settings, and other tweaks I want on my set. It is still evolving; upstream remains the better reference for a general-purpose project.
+This repo uses [Nathan Clark's CleanFrame](https://github.com/nthnclrk/CleanFrame) as a base and changes it to suit my Samsung TV (**Frame Home**, custom app identity). Fork work includes my own Home row (Xbox and Switch on HDMI, Nuvio, YouTube, Spotify, HBO Max, SmartThings, Internet), colour and minimal icon styles, extra wallpapers, a home-screen **Wi‑Fi QR** shortcut, a Hungarian interface, a 24/12-hour clock and the local weather. It is still evolving; upstream remains the better reference for a general-purpose project.
 
 **Use it at your own risk.** Setup scripts, certificates and TV notes here match my machine and firmware. Fork again, start with the browser preview, and adapt before you install on your own hardware. Native Home/startup changes need particular care; the setup guide covers the risks and recovery steps.
 
@@ -28,10 +28,14 @@ The public preview uses the included Manrope, Geist and Newsreader fonts.
 ## What you can change
 
 - Choose a List or Dock layout, with icons, names or both.
-- Use a photograph, light or dark background, with a simple 12-hour clock.
+- Use a photograph, light or dark background, with a 24- or 12-hour clock and optional weather (icon, temperature, today's high and low).
 - Adjust typography, focus and glass materials through the same Settings interface.
 - Choose and reorder Home apps; discover installed apps on the TV.
-- Select from fifteen wallpapers and save your preferences locally.
+- Use the interface in English or Hungarian.
+- Show a QR code that lets guests join your Wi‑Fi; the network details are entered on the TV and stay there.
+- Select from seventeen wallpapers and save your preferences locally.
+
+The Home shortcuts, this installation's app identity and the weather location are configured in [`app/fork.js`](app/fork.js).
 
 The glass and blur are rendered ahead of time. The TV loads the finished images and uses transforms and opacity for focus feedback.
 
@@ -59,13 +63,13 @@ The signing and TV scripts are specific to my setup. Your agent will need to ada
 
 | Area | Evidence and limits |
 | --- | --- |
-| Reference hardware | Samsung QA55LS03DAWXXY / LS03D, firmware 2130.0, Tizen 9.0, 32-bit ARM |
-| App installation | Signed installation and launch commands succeeded through 0.6.1. Latest rendering and remote feel still need physical observation. |
-| App launch and Home | Netflix/YouTube launch and physical Home from Netflix were confirmed on the reference setup. |
-| Still open | Normal power-on after streaming/Art Mode, corrected Smart Hub escape and native Art Mode destinations need definite physical checks. |
+| My TV | Samsung UE75U8072, Tizen 9 |
+| App installation | Frame Home (`AlexFrmH01.FrameHome`) is signed with my own certificates and installed on that TV. |
+| HDMI and apps | Xbox and Switch tiles switch the HDMI input and open Samsung's TV viewer; streaming tiles launch their installed apps. |
+| Still open | Remote Home routing and power-on behaviour depend on the optional native Home step; see [docs/alex-native-home.md](docs/alex-native-home.md). |
 | Other TVs | No compatibility claim. This is Tizen source; Android TV, Google TV, LG webOS and Roku need their own implementations. |
 
-The detailed [device record](docs/tv-status.md) separates observed results from SDK responses. Native Home/startup uses undocumented, guarded helpers; it is optional and can fail after firmware changes. Keep a recovery baseline before attempting that work. The app can be opened manually without it.
+The [device record](docs/tv-status.md) lists what is known about this TV. Native Home/startup uses undocumented, guarded helpers; it is optional and can fail after firmware changes. Keep a recovery baseline before attempting that work. The app can be opened manually without it.
 
 ## Develop and check
 

@@ -15,13 +15,13 @@ Personal fork defaults for Alex’s Samsung TV. Upstream reference: [CleanFrame]
 | SmartThings | SmartThings |
 | Internet | Samsung browser |
 
-If Xbox or Switch are on different HDMI numbers, change the `hdmi-N` ids and `appId` values in `PRIMARY_APPS` inside `app/main.js` to match **Settings → Connection → External device manager** on the TV.
+If Xbox or Switch are on different HDMI numbers, change the `hdmi-N` ids and `appId` values in the `apps` list of `app/fork.js` to match **Settings → Connection → External device manager** on the TV.
 
 HDMI tiles switch the port with `tizen.tvwindow`, then open Samsung’s **`org.tizen.tv-viewer`** (same as the build that worked on this TV). If the viewer cannot open, the input is shown inside CleanFrame and **Back** returns to your home row. From the TV viewer, use **Samsung Home** in settings to escape until Home is routed to CleanFrame.
 
 **Settings → Layout → Icon style** switches between **Color** (bundled logos in `app/assets/icons/color/`) and **Minimal** (white SVG marks, with custom PNGs for Nuvio, HBO Max, Internet and SmartThings in `app/assets/icons/minimal/`).
 
-Fork branding for the browser tab and preview label lives in `app/fork.js` (`displayName: 'Frame Home'`). The local preview also mocks your home app list when Tizen APIs are unavailable.
+`app/fork.js` is the single place for this installation's settings: the Home row, the app's own ID (`selfAppId`), the weather location and the display name (`Frame Home`). The local preview lists the same Home apps when Tizen APIs are unavailable.
 
 ## Nuvio Legacy app ID
 
@@ -32,7 +32,7 @@ From [nuvio-native-legacy](https://github.com/iqui27/nuvio-native-legacy):
 | Native `.tpk` (recommended on Tizen 8–9, including this TV) | `NuvioTV002.Nuvio` |
 | WebAssembly `.wgt` (Tizen 5.5+) | `NuvioTV002.NuvioNative` |
 
-This build launches **`NuvioTV002.Nuvio`**. If you installed the `.wgt` instead, change the `nuvio` entry in `PRIMARY_APPS` to use `NuvioTV002.NuvioNative`.
+This build launches **`NuvioTV002.Nuvio`**. If you installed the `.wgt` instead, swap `appId` and `altAppIds` in the `nuvio` entry of `app/fork.js`.
 
 Nuvio ships **unsigned**; you sign it with your own Samsung distributor certificate (DUID of this TV). See the Nuvio repo install section and [agent-tv-setup-guide.md](agent-tv-setup-guide.md) for CleanFrame.
 
@@ -55,4 +55,4 @@ Generate your own author/distributor certificates; do not reuse the upstream mai
 
 ## When a shortcut fails
 
-Use Tizen Studio **Installed Web App List** on the connected TV and copy the **App ID - WAS** value into the matching `appId` in `PRIMARY_APPS`, or remove the tile and re-add it from **Arrange** after discovery.
+Use Tizen Studio **Installed Web App List** on the connected TV and copy the **App ID - WAS** value into the matching `appId` in `app/fork.js`, or remove the tile and re-add it from **Arrange** after discovery.

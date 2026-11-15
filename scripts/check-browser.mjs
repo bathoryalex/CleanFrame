@@ -100,6 +100,9 @@ async function page(options = {}) {
     if (expected.some(s => request.url().includes(s))) report.expectedNetworkFailures.push(failure);
     else if (failure.error !== 'net::ERR_ABORTED') report.pageErrors.push(failure);
   });
+  // The weather caption is optional; answer it locally so checks never leave the machine.
+  await current.route('https://api.open-meteo.com/**', route => route.fulfill({ contentType: 'application/json',
+    body: JSON.stringify({ current: { temperature_2m: 12, weather_code: 2, is_day: 1 }, daily: { temperature_2m_max: [15], temperature_2m_min: [7] } }) }));
   await current.addInitScript(installHarness, { mock: true, catalog: CATALOG, minuteMs: 60000, seed: baseline(), ...options });
   await current.goto(preview.baseURL + '/home/');
   await ready();
@@ -357,8 +360,8 @@ try {
   });
   await run('Settings overview and visible choices', async () => {
     await page(); await scene('settings');
-    const expected = ['settings.group.background', 'settings.group.layout', 'settings.group.typography', 'settings.group.focus', 'settings.editor', 'settings.group.samsung'];
-    check('Overview has all six settings groups', same((await call('actions')).filter(a => expected.includes(a)).sort(), expected.slice().sort()));
+    const expected = ['settings.group.background', 'settings.group.layout', 'settings.group.typography', 'settings.group.focus', 'settings.editor', 'settings.group.region', 'settings.group.samsung'];
+    check('Overview has all seven settings groups', same((await call('actions')).filter(a => expected.includes(a)).sort(), expected.slice().sort()));
     const specs = {
       background: { bg: ['dark', 'light', 'photo'] },
       layout: { layout: ['list', 'dock'], apps: ['icons', 'both', 'text'], controls: ['icons', 'both', 'text'] },
@@ -388,6 +391,25 @@ try {
     await group('samsung');
     const samsungActions = await call('actions');
     check('Samsung group shows both native actions', samsungActions.includes('samsung.home') && samsungActions.includes('samsung.settings'));
+  });
+  await run('Language, clock and weather preferences', async () => {
+    await page(); await group('region');
+    const actions = await call('actions');
+    check('Region group offers every choice', ['choice.lang.en', 'choice.lang.hu', 'choice.clock.24', 'choice.clock.12', 'choice.weather.off', 'choice.weather.now', 'choice.weather.day'].every(a => actions.includes(a)), actions);
+    await act('choice.lang.hu');
+    check('Hungarian is saved and applied at once', (await state()).lang === 'hu' && await current.evaluate(() => document.documentElement.lang === 'hu' && document.getElementById('appearanceTitle').textContent === 'Nyelv és óra'));
+    await act('choice.clock.12');
+    const clock = await current.evaluate(() => document.querySelector('#caption .clock').textContent);
+    check('12-hour clock shows the Hungarian period first', /^(de\.|du\.)\d{1,2}:\d{2}$/.test(clock) && Number(clock.replace(/^\D+/, '').split(':')[0]) <= 12, clock);
+    await current.waitForFunction(() => !!document.querySelector('#caption .weather .wx-range'));
+    check('Weather shows icon, temperature and range', await current.evaluate(() => { const w = document.querySelector('#caption .weather'); return !!w.querySelector('.wx-icon') && w.querySelector('.wx-temp').textContent === '12°' && w.querySelector('.wx-range').textContent === '15° / 7°'; }));
+    await act('choice.weather.off');
+    check('Weather can be hidden', await current.evaluate(() => !document.querySelector('#caption .weather')));
+    await scene('home');
+    check('Home controls follow the language', await current.evaluate(() => [...document.querySelectorAll('#utils .u-label')].map(e => e.textContent).join('|') === 'Wi‑Fi|Összes app|Beállítások'));
+    await current.reload(); await ready();
+    const after = await state();
+    check('Preferences survive a restart', after.lang === 'hu' && after.clock === '12' && after.weather === 'off', after);
   });
   await run('Settings focus never changes the applied Home', async () => {
     await page();

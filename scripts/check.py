@@ -20,7 +20,7 @@ for tag in ['content', 'icon']:
     node = manifest.find('w:' + tag, ns)
     assert node is not None and (app / node.get('src', '')).is_file(), 'Missing ' + tag + ' file'
 assert all((app / name).is_file() for name in ['main.js', 'style.css'])
-for reference in ['assets/wallpapers/catalog.js', 'assets/adaptive-ink.js', 'assets/font-catalog.js']:
+for reference in ['assets/wallpapers/catalog.js', 'assets/adaptive-ink.js', 'assets/font-catalog.js', 'assets/i18n.js']:
     assert (app / reference).is_file(), 'Missing runtime catalogue: ' + reference
 for filename in ['index.html']:
     source = (app / filename).read_text()
@@ -48,10 +48,10 @@ for icon in ['xbox', 'nintendoswitch', 'nuvio', 'youtube', 'spotify', 'hbomax', 
     assert (app / ('assets/icons/' + icon + '.svg')).is_file(), 'Missing icon: ' + icon
 for icon in ['youtube', 'spotify', 'hbomax', 'nintendoswitch', 'smartthings', 'browser']:
     assert (app / ('assets/icons/color/' + icon + '.svg')).is_file(), 'Missing color icon: ' + icon
-for icon in ['xbox_2', 'nuvio2']:
+for icon in ['xbox', 'nuvio']:
     assert (app / ('assets/icons/color/' + icon + '.png')).is_file(), 'Missing color icon: ' + icon
 for icon in ['nuvio', 'hbomax', 'browser', 'smartthings']:
-    assert (app / ('assets/icons/minimal/' + icon + '.png')).is_file(), 'Missing minimal icon: ' + icon
+    assert (app / ('assets/icons/minimal/' + icon + '.svg')).is_file(), 'Missing minimal icon: ' + icon
 assert (app / 'fork.js').is_file(), 'Missing fork branding file'
 index_html = (app / 'index.html').read_text()
 assert 'fork.js' in index_html, 'index.html must load fork.js before device.js'

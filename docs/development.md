@@ -8,12 +8,14 @@ Start with Node.js 22+ and Python 3.10+, then `npm ci`. These are the supported 
 
 `npm run dev:public` serves the same interface using only the bundled public fonts, even when paid Pangram files exist locally. For a contributor's fresh clone, use the README and `docs/for-agents.md`; the signing/device setup below describes the reference machine and needs adaptation for another owner.
 
-All UI assets, public fonts and the fifteen wallpapers are bundled. This private build also includes the three locally installed Pangram families through an ignored build overlay; their binaries are not in the public source tree. Glass materials and blurred panel backgrounds are rendered ahead of time; see app/assets/wallpapers/README.md.
+All UI assets, public fonts and the wallpapers are bundled. This private build also includes the three locally installed Pangram families through an ignored build overlay; their binaries are not in the public source tree. Glass materials and blurred panel backgrounds are rendered ahead of time; see app/assets/wallpapers/README.md.
 
 ## Runtime map and compatibility
 
-- `app/index.html` loads the device adapter, gallery/font/palette catalogues, `assets/icons/metrics.js` and `main.js`, with `style.css`.
-- `main.js` owns the List and Dock layouts, panel stack, focus, preferences and wallpaper timers. `device.js` owns installed-app discovery and Tizen calls. Keep device details in that adapter.
+- `app/index.html` loads `fork.js`, the device adapter, gallery/font/palette catalogues, translations, `assets/icons/metrics.js` and `main.js`, with `style.css`.
+- `fork.js` is this installation's configuration: Home shortcuts (with HDMI inputs and alternative app IDs), the app's own ID and the weather location. `main.js` and `device.js` both read it.
+- `main.js` owns the List and Dock layouts, panel stack, focus, preferences, clock, weather and wallpaper timers. `device.js` owns installed-app discovery and Tizen calls. Keep device details in that adapter.
+- `assets/i18n.js` holds the Hungarian text, keyed by the English strings that `main.js` and `device.js` pass to `T()`.
 - The logical stage is 1920 x 1080, scaled uniformly to the viewport. Check at 1920 x 1080 and 1280 x 720. Glass geometry and cached materials must stay aligned.
 - Preferences use localStorage key `cleanframe.home.v1`, with a fallback read from `cleanframe.shore.v1`. Legacy fields are `dock`, `wallpaper`, `mode`, `lastApp` and `theme`. The 0.6 migration preserves app order, wallpaper, rotation and selection. Legacy `list` becomes Dark / List / Type; `shore` and `grid` become Photo / Dock / Glass. Appearance axes are stored separately. A saved dynamic app keeps its real app ID and name; discovery refreshes the installed catalogue. Keep migration checks when changing this format.
 - `window.ShoreQA.state()` and `.where()` expose state and focus for browser tests. `minuteMs` can shorten rotation intervals in an isolated browser test.
@@ -67,7 +69,7 @@ For developer access, connect the TV and Mac to the same network, enable Develop
 
 ## Native Home and recovery
 
-Native Home/startup was configured separately from the app installer. Physical Home from Netflix is confirmed. The one-shot helper runs as the SDK user. See scripts/native-home/README.md and docs/tv-status.md for the tested firmware and pending visual checks.
+Native Home/startup is configured separately from the app installer; see docs/alex-native-home.md. The one-shot helper runs as the SDK user. See scripts/native-home/README.md and docs/tv-status.md for firmware notes and pending checks.
 
 Query with `python3 scripts/native-home/run.py query`. Restore the saved pre-integration Home/startup values with `python3 scripts/native-home/run.py restore`. The private baseline is `.local/native-home/original.json`; preserve it and do not replace it with the applied state. The legacy `.local/native-home/run.py` command is also retained. Restore before uninstalling CleanFrame or changing its stable app identity.
 
