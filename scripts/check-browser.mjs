@@ -104,7 +104,7 @@ async function page(options = {}) {
   current.__relay = null;
   await current.route('https://ntfy.sh/**', route => {
     const url = route.request().url(), relay = current.__relay;
-    if (url.includes('/file/')) return relay ? route.fulfill({ contentType: 'image/jpeg', headers: { 'Access-Control-Allow-Origin': '*' }, body: readFileSync(root + relay.image) }) : route.fulfill({ status: 404 });
+    if (url.includes('/file/')) return relay ? route.fulfill({ contentType: relay.type || 'image/jpeg', headers: { 'Access-Control-Allow-Origin': '*' }, body: readFileSync(root + relay.image) }) : route.fulfill({ status: 404 });
     const open = url.includes('poll=1') ? '' : JSON.stringify({ event: 'open' }) + '\n';
     const body = open + (relay && relay.ready() ? JSON.stringify({ id: relay.id, time: 1, event: 'message', topic: 't', message: 'photo', attachment: { name: relay.name || 'IMG_0001.jpg', type: relay.type || 'image/jpeg', size: 1, url: 'https://ntfy.sh/file/' + relay.id + '.jpg' } }) + '\n' : '');
     return route.fulfill({ contentType: 'application/x-ndjson', headers: { 'Access-Control-Allow-Origin': '*' }, body });
@@ -456,6 +456,25 @@ try {
     current.__relay = { id: 'Bg12Cd34Ef56', image: 'app/assets/wallpapers/golden.jpg', ready: () => true };
     await current.waitForFunction(() => ShoreQA.state().wall === 'custom' && ShoreQA.ready(), null, { timeout: 30000 });
     check('The TV keeps listening and applies the picture', (await state()).relaySince === 'Bg12Cd34Ef56');
+  });
+  await run('Your picture plays a short video', async () => {
+    await page(); await group('background');
+    current.__relay = { id: 'Vd12Cd34Ef56', image: 'scripts/fixtures/loop.mp4', type: 'video/mp4', name: 'aurora.mp4', ready: () => true };
+    await act('background.custom');
+    await current.waitForFunction(() => ShoreQA.state().wall === 'custom' && ShoreQA.ready(), null, { timeout: 30000 });
+    check('The first frame becomes the photo and glass', await current.evaluate(() => { const photo = document.getElementById('photo'), mat = document.getElementById('matImg'); return /^blob:/.test(photo.src) && photo.naturalWidth === 1920 && /^blob:/.test(mat.src) && mat.naturalWidth > 0; }));
+    check('The video waits while a sheet covers Home', await current.evaluate(() => { const v = document.getElementById('photoVideo'); return /^blob:/.test(v.src) && v.paused; }));
+    await nav('ok'); await scene('home');
+    await current.waitForFunction(() => { const v = document.getElementById('photoVideo'); return !v.paused && v.loop && v.muted && /is-playing/.test(v.className); }, null, { timeout: 10000 });
+    check('On Home the video loops muted over the photo', true);
+    await scene('settings');
+    check('Opening Settings pauses it', await current.evaluate(() => document.getElementById('photoVideo').paused));
+    current.__relay = null;
+    await current.reload(); await ready();
+    await current.waitForFunction(() => { const v = document.getElementById('photoVideo'); return /^blob:/.test(v.src) && !v.paused; }, null, { timeout: 10000 });
+    check('The video is restored after a restart', (await state()).wall === 'custom');
+    await look({ wall: 'misty' });
+    check('Another wallpaper releases the video', await current.evaluate(() => !document.getElementById('photoVideo').getAttribute('src')));
   });
   await run('Your picture ignores files that are not pictures', async () => {
     await page(); await group('background');

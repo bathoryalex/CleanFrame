@@ -66,8 +66,9 @@
     var files = {}, photo, half, tone, scale, fr;
     steps([
       function (next) {
-        photo = canvas(W, H); scale = Math.max(W / image.naturalWidth, H / image.naturalHeight);
-        photo.getContext('2d').drawImage(image, (W - image.naturalWidth * scale) / 2, (H - image.naturalHeight * scale) / 2, image.naturalWidth * scale, image.naturalHeight * scale);
+        var iw = image.naturalWidth || image.videoWidth || image.width, ih = image.naturalHeight || image.videoHeight || image.height;
+        photo = canvas(W, H); scale = Math.max(W / iw, H / ih);
+        photo.getContext('2d').drawImage(image, (W - iw * scale) / 2, (H - ih * scale) / 2, iw * scale, ih * scale);
         half = canvas(HW, HH); half.getContext('2d').drawImage(photo, 0, 0, HW, HH);
         // Light pictures get the darker top shade the bundled light photos use.
         var d = half.getContext('2d').getImageData(0, 0, HW, 180).data, sum = 0, j;
@@ -209,6 +210,34 @@
     connect();
     return { stop: function () { stopped = true; clearTimeout(timer); cleanup(); } };
   }
+  function isVideo(attachment) {
+    return /^video\//i.test(attachment.type || '') || /\.(mp4|m4v|webm|mov)$/i.test(attachment.name || '');
+  }
+  /* A short looping video: keep the file, and take its first frame for the photo and glass. */
+  function downloadVideo(url, done) {
+    var xhr = new XMLHttpRequest(), finished = false, timer = setTimeout(function () { finish({ code: 'download', detail: 'timeout' }); }, 120000);
+    function finish(err, value) { if (finished) return; finished = true; clearTimeout(timer); done(err, value); }
+    try { xhr.open('GET', url, true); xhr.responseType = 'blob'; } catch (e) { finish({ code: 'download', detail: 'open' }); return; }
+    xhr.onload = function () {
+      var blob = xhr.response, video, src;
+      if (xhr.status < 200 || xhr.status >= 300 || !blob) { finish({ code: 'download', detail: 'HTTP ' + xhr.status }); return; }
+      video = document.createElement('video'); src = URL.createObjectURL(blob);
+      video.muted = true; video.preload = 'auto'; video.setAttribute('playsinline', '');
+      video.onloadeddata = function () { try { video.currentTime = Math.min(.05, (video.duration || 1) / 2); } catch (e) { grab(); } };
+      video.onseeked = grab;
+      video.onerror = function () { URL.revokeObjectURL(src); finish({ code: 'decode' }); };
+      function grab() {
+        var frame;
+        if (finished || !video.videoWidth) return;
+        frame = canvas(video.videoWidth, video.videoHeight); frame.getContext('2d').drawImage(video, 0, 0);
+        video.removeAttribute('src'); video.load(); URL.revokeObjectURL(src);
+        finish(null, { frame: frame, blob: blob });
+      }
+      video.src = src;
+    };
+    xhr.onerror = function () { finish({ code: 'download', detail: 'network' }); };
+    try { xhr.send(); } catch (e) { finish({ code: 'download', detail: 'send' }); }
+  }
   function isImage(attachment) {
     return /^image\//i.test(attachment.type || '') || /\.(jpe?g|png|webp|gif|bmp)$/i.test(attachment.name || '');
   }
@@ -236,5 +265,5 @@
     });
   }
 
-  window.FrameCustomWallpaper = { processImage: processImage, save: save, load: load, urls: urls, randomTopic: randomTopic, listen: listen, isImage: isImage, download: download };
+  window.FrameCustomWallpaper = { processImage: processImage, save: save, load: load, urls: urls, randomTopic: randomTopic, listen: listen, isImage: isImage, isVideo: isVideo, download: download, downloadVideo: downloadVideo };
 }());

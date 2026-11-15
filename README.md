@@ -19,7 +19,7 @@ This repo uses [Nathan Clark's CleanFrame](https://github.com/nthnclrk/CleanFram
 - **Home row.** Xbox and Nintendo Switch on HDMI, Nuvio, YouTube, Spotify, HBO Max, SmartThings and Internet by default. Choose and reorder up to nine apps, or add any installed app.
 - **Layouts.** List or Dock, with icons, names or both, and colour or minimal (white) icons. When the apps do not fit, the Dock pages through whole tiles with arrows at the sides.
 - **Clock, date and weather.** 24- or 12-hour clock, in the corner or large in the centre. An optional date ("15 November", or "November 15" in Hungarian). Weather from [Open-Meteo](https://open-meteo.com): an icon, the temperature and today's high and low.
-- **Backgrounds.** A photograph, light or dark. Seventeen bundled wallpapers with pre-rendered glass, optional rotation, and **Your picture**: send any photo from your phone and it becomes the background (see below).
+- **Backgrounds.** A photograph, light or dark. Seventeen bundled wallpapers with pre-rendered glass, optional rotation, and **Your picture**: send any photo or short looping video from your phone and it becomes the background (see below).
 - **Wi‑Fi QR.** A Home control that shows a QR code so guests can join your Wi‑Fi. The network name and password are entered on the TV and never leave it.
 - **Settings.** A 4 x 2 grid of cards, made for arrow keys. Each group (Background, Layout, Typography, Focus, Apps on Home, Language and clock, Wi‑Fi QR) shows its choices beside a live Home preview. The last card opens Samsung's Home screen.
 - **English or Hungarian** interface, switchable at any time.
@@ -31,10 +31,12 @@ The glass and blur are rendered ahead of time. The TV loads the finished images 
 Settings → Background → **Picture from phone** shows a QR code for a private [ntfy.sh](https://ntfy.sh) channel that the TV creates for itself.
 
 1. Scan the code with your phone. The ntfy web page for the channel opens.
-2. Tap **^** beside the message field (or *Publish notification*), choose **Attach local file** and pick a photo. On Android you can also share a photo to the ntfy app.
+2. Tap **^** beside the message field (or *Publish notification*), choose **Attach local file** and pick a photo or a short video. On Android you can also share a photo to the ntfy app.
 3. Send it. Within a few seconds the TV downloads the photo, crops it to 16:9, prepares the same glass materials a bundled wallpaper has, stores it, and makes it the background.
 
-The TV keeps listening while it is on, so the QR screen can be closed; a new photo replaces the previous one. JPG, PNG, WebP and other formats the TV's browser can open work; HEIC does not. The photo passes through the public ntfy.sh server on a channel name that cannot be guessed and is deleted there after a few hours; the TV keeps its own copy. The relay host is set in [`app/fork.js`](app/fork.js).
+The TV keeps listening while it is on, so the QR screen can be closed; a new photo replaces the previous one. JPG, PNG, WebP and other formats the TV's browser can open work; HEIC does not.
+
+A **video** (MP4 with H.264 works best; ntfy.sh accepts up to 15 MB) plays muted and looped behind Home, over a photo and glass made from its first frame. It pauses while Settings or another panel covers Home and when the app is in the background. To turn a still picture with glowing light, such as an aurora, into a gently moving loop, run `python3 scripts/animate-glow.py photo.jpg loop.mp4` (needs NumPy, Pillow and ffmpeg) and send the result. The photo passes through the public ntfy.sh server on a channel name that cannot be guessed and is deleted there after a few hours; the TV keeps its own copy. The relay host is set in [`app/fork.js`](app/fork.js).
 
 ## Configure
 

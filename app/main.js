@@ -4,7 +4,7 @@
 
   /* ---------- Bundled data ---------- */
   var ASSETS = 'assets/', ICONS = ASSETS + 'icons/', WP = ASSETS + 'wallpapers/';
-  var APP_VERSION = '0.9.2';
+  var APP_VERSION = '0.10.0';
   var CAP = 9, SCRIM_Y = 560;
   var DOCK_MODES = { both: { tw: 288, th: 200, pitch: 296 }, text: { tw: 288, th: 104, pitch: 296 }, icons: { tw: 176, th: 144, pitch: 184 } };
   var GRID_ROW = 240, GRID_COL = 344, COLS = 5;
@@ -1233,15 +1233,17 @@
   function receivePicture(message) {
     var attachment = message.attachment;
     savePrefs({ relaySince: message.id }, 'Picture received');
-    if (!FCW.isImage(attachment)) { custom.phase = 'notimage'; render(); return; }
+    var video = FCW.isVideo(attachment);
+    if (!video && !FCW.isImage(attachment)) { custom.phase = 'notimage'; render(); return; }
     custom.busy = true; custom.phase = 'downloading'; custom.name = String(attachment.name || '').slice(0, 80); render();
-    FCW.download(attachment.url, function (err, image) {
+    (video ? FCW.downloadVideo : FCW.download)(attachment.url, function (err, got) {
       if (err) { pictureFailed(err.code === 'decode' ? 'unreadable' : 'unreachable', err.detail); return; }
       custom.phase = 'processing'; render();
       // Let the status paint before the one-time image work starts.
       setTimeout(function () {
-        FCW.processImage(image, function (failure, record) {
+        FCW.processImage(video ? got.frame : got, function (failure, record) {
           if (failure) { pictureFailed('unreadable'); return; }
+          if (video) record.files.video = got.blob;
           FCW.save(record, function (stored) {
             installCustom(record);
             savePrefs({ customAt: record.stamp, customTone: record.tone }, 'Your picture');
@@ -1253,6 +1255,22 @@
       }, 60);
     });
   }
+  /* A video picture plays muted and looped over its first-frame photo, only while Home or a
+     Settings preview shows it and the app is visible; otherwise it is paused or released. */
+  var photoVideo = document.getElementById('photoVideo');
+  function syncVideo() {
+    var url = custom.urls && custom.urls.video, t = top(), visible = !document.hidden && !V[t.id].sheet && t.id !== 'wifiqr',
+      wanted = !!url && S.c.bg === 'photo' && !!S.shown && S.shown.wall === CUSTOM;
+    if (!photoVideo) return;
+    if (!wanted) {
+      if (photoVideo._src) { photoVideo.pause(); photoVideo.removeAttribute('src'); photoVideo.load(); photoVideo._src = ''; photoVideo.className = 'photo photo-video'; }
+      return;
+    }
+    if (photoVideo._src !== url) { photoVideo._src = url; photoVideo.className = 'photo photo-video'; photoVideo.src = url; }
+    if (visible && photoVideo.paused) { try { var played = photoVideo.play(); if (played && played.catch) played.catch(function () { /* stays on the photo */ }); } catch (e) { /* photo stays */ } }
+    else if (!visible && !photoVideo.paused) photoVideo.pause();
+  }
+  if (photoVideo) photoVideo.addEventListener('playing', function () { photoVideo.className = 'photo photo-video is-playing'; });
   function installCustom(record) {
     var old = custom.urls;
     custom.urls = FCW.urls(record); custom.stamp = record.stamp;
@@ -1384,6 +1402,7 @@
     renderAppearance(t);
     renderWifiOverlay(t);
     renderFocusStatus(t);
+    syncVideo();
   }
 
   function drawQr(target, payload) {
@@ -1972,7 +1991,7 @@
     phone: function () {
       return '<div class="phone-panel"><h2 class="s-title">' + T('Your picture') + '</h2>'
         + '<div class="phone-body"><div class="phone-qr-card"><canvas class="phone-qr" width="360" height="360" data-slot="qr"></canvas><p class="phone-url" data-slot="url"></p></div>'
-        + '<div class="phone-copy"><ol class="phone-steps"><li>' + T('Scan the code with your phone.') + '</li><li>' + T('On the page that opens, tap ^ beside the message field, then “Attach local file” and choose a photo.') + '</li><li>' + T('Send it. The TV sets it as your background in a few seconds.') + '</li></ol>'
+        + '<div class="phone-copy"><ol class="phone-steps"><li>' + T('Scan the code with your phone.') + '</li><li>' + T('On the page that opens, tap ^ beside the message field, then “Attach local file” and choose a photo or a short video.') + '</li><li>' + T('Send it. The TV sets it as your background in a few seconds.') + '</li></ol>'
         + '<p class="phone-hint">' + T('You can close this screen: the TV keeps listening while it is on.') + '</p>'
         + '<p class="phone-status" data-slot="status" aria-live="polite"></p><p class="phone-note">' + T('The photo passes through ntfy.sh on a private channel and is deleted there after a few hours. The TV keeps its own copy.') + '</p>'
         + '<div class="phone-acts" data-slot="acts"></div></div></div></div>';
@@ -2088,8 +2107,8 @@
     phone: function (t, el) {
       var url = RELAY + '/' + S.c.relayTopic, phase = custom.phase !== 'idle' ? custom.phase : custom.link === 'retry' ? 'offline' : custom.link === 'open' ? 'waiting' : 'connecting', text = {
         connecting: T('Connecting to ntfy.sh…'), waiting: T('Waiting for a photo…'), offline: T('Can’t reach ntfy.sh ({0}). Trying again…', custom.detail || '?'),
-        notimage: T('That file isn’t a picture. Send a JPG or PNG.'), downloading: T('Receiving {0}…', custom.name || T('photo')), processing: T('Preparing your background…'),
-        unreadable: T('Couldn’t open that picture. Send a JPG or PNG.'), unreachable: T('Couldn’t download the photo ({0}). Send it again.', custom.detail || '?'),
+        notimage: T('That file isn’t a picture or a video. Send a JPG, PNG or MP4.'), downloading: T('Receiving {0}…', custom.name || T('photo')), processing: T('Preparing your background…'),
+        unreadable: T('Couldn’t open that file. Send a JPG, PNG or MP4.'), unreachable: T('Couldn’t download the photo ({0}). Send it again.', custom.detail || '?'),
         done: T('Done. Your picture is the background now.'), unsaved: T('Done for now, but the TV couldn’t store it for next time.')
       }[phase];
       // The sheet is rebuilt on every visit, so the drawn code belongs to the canvas, not the session.
@@ -2350,7 +2369,7 @@
   document.addEventListener('visibilitychange', function () {
     heldKeys = {};
     if (document.hidden) {
-      pauseRotation(); clearTimeout(clockTimer); stopRelay();
+      pauseRotation(); clearTimeout(clockTimer); stopRelay(); syncVideo();
       if (S.hdmiInApp) { S.hdmiInApp = false; if (FrameDevice.hideHdmiView) FrameDevice.hideHdmiView(); }
     }
     else { release(); after(); updateClock(); focusStage(); startRelay(); }
