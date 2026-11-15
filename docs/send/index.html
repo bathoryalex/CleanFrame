@@ -81,7 +81,7 @@
       preparing: 'Előkészítés…', ready: 'Kész a küldésre', photoSize: 'Fotó · {0} × {1} · {2}', videoSize: 'Videó · {0}',
       tooLong: 'Ez a videó {0} másodperces. Legfeljebb 30 másodperces lehet, különben túl rossz lenne a minősége.',
       noEncoder: 'Ez a telefon nem tudja tömöríteni a videót (Android Chrome vagy iOS 16.4 kell). Küldj legfeljebb 1,9 MB-os videót.',
-      compressing: 'Videó tömörítése… {0}%', compressed: 'Videó · {0} mp · {1} → {2}', tooBigAfter: 'A videót nem sikerült 1,9 MB alá tömöríteni. Próbálj rövidebbet.',
+      compressing: 'Videó tömörítése… {0}%', compressingAgain: 'Még túl nagy, {1}. kör kisebb méretben… {0}%', compressed: 'Videó · {0} mp · {1} → {2}', tooBigAfter: 'A videót nem sikerült 1,9 MB alá tömöríteni. Próbálj rövidebbet.',
       unreadable: 'Ezt a fájlt a telefon nem tudja megnyitni. Válassz JPG, PNG vagy MP4 fájlt.',
       sending: 'Küldés… {0}%', sent: 'Elküldve. A TV néhány másodpercen belül beállítja háttérnek.', again: 'Újabb küldése',
       failed: 'Nem sikerült elküldeni ({0}). Próbáld újra.', notMedia: 'Ez nem kép és nem videó.'
@@ -91,7 +91,7 @@
     preparing: 'Preparing…', ready: 'Ready to send', photoSize: 'Photo · {0} × {1} · {2}', videoSize: 'Video · {0}',
     tooLong: 'This video is {0} seconds long. It can be at most 30 seconds, or the quality would be too poor.',
     noEncoder: 'This phone cannot compress videos (Android Chrome or iOS 16.4 is needed). Send a video of at most 1.9 MB.',
-    compressing: 'Compressing video… {0}%', compressed: 'Video · {0} s · {1} → {2}', tooBigAfter: 'The video could not be compressed under 1.9 MB. Try a shorter one.',
+    compressing: 'Compressing video… {0}%', compressingAgain: 'Still too big, pass {1} at a smaller size… {0}%', compressed: 'Video · {0} s · {1} → {2}', tooBigAfter: 'The video could not be compressed under 1.9 MB. Try a shorter one.',
     unreadable: 'This phone cannot open that file. Choose a JPG, PNG or MP4.',
     sending: 'Sending… {0}%', sent: 'Sent. The TV sets it as the background in a few seconds.', again: 'Send another',
     failed: 'Could not send ({0}). Please try again.', notMedia: 'That is not a picture or a video.'
@@ -147,47 +147,64 @@
     x.drawImage(video, (w - video.videoWidth * s) / 2, (h - video.videoHeight * s) / 2, video.videoWidth * s, video.videoHeight * s);
     return toBlob(canvas, .82);
   }
-  async function encoderCodec(width, height, bitrate) {
-    var codecs = ['avc1.640028', 'avc1.4d401f', 'avc1.42001f'];
+  async function encoderConfig(width, height, bitrate, mode) {
+    var codecs = ['avc1.640028', 'avc1.4d401f', 'avc1.42001f'], config;
     for (var i = 0; i < codecs.length; i++) {
-      try { if ((await VideoEncoder.isConfigSupported({ codec: codecs[i], width: width, height: height, bitrate: bitrate, framerate: 30, avc: { format: 'avc' } })).supported) return codecs[i]; } catch (e) { /* next */ }
+      config = { codec: codecs[i], width: width, height: height, bitrate: bitrate, framerate: 30, avc: { format: 'avc' }, bitrateMode: mode, latencyMode: 'quality' };
+      try { if ((await VideoEncoder.isConfigSupported(config)).supported) return config; } catch (e) { /* next */ }
     }
     return null;
   }
-  async function compress(video, duration, progress) {
-    var W = 1280, H = 720, budget = LIMIT * .88;
-    if (!window.VideoEncoder || !window.VideoFrame || !window.Mp4Muxer || !('requestVideoFrameCallback' in HTMLVideoElement.prototype)) throw new Error('no-encoder');
-    for (var attempt = 0; attempt < 3; attempt++) {
-      var bitrate = Math.max(100000, Math.min(4000000, Math.floor(budget * 8 / duration))), codec = await encoderCodec(W, H, bitrate);
-      if (!codec) throw new Error('no-encoder');
-      var muxer = new Mp4Muxer.Muxer({ target: new Mp4Muxer.ArrayBufferTarget(), video: { codec: 'avc', width: W, height: H, frameRate: 30 }, fastStart: 'in-memory', firstTimestampBehavior: 'offset' });
-      var failure = null, encoder = new VideoEncoder({ output: function (chunk, meta) { muxer.addVideoChunk(chunk, meta); }, error: function (e) { failure = e; } });
-      encoder.configure({ codec: codec, width: W, height: H, bitrate: bitrate, framerate: 30, avc: { format: 'avc' }, bitrateMode: 'variable', latencyMode: 'quality' });
-      var canvas = document.createElement('canvas'), x = canvas.getContext('2d'), s = Math.max(W / video.videoWidth, H / video.videoHeight);
-      canvas.width = W; canvas.height = H;
-      video.pause(); video.loop = false; video.currentTime = 0; await once(video, 'seeked');
-      await new Promise(function (done, fail) {
-        var frames = 0, last = -1;
-        function onFrame(now, meta) {
-          if (failure) { fail(failure); return; }
-          var ts = Math.round(meta.mediaTime * 1e6);
-          if (ts > last) {
-            x.drawImage(video, (W - video.videoWidth * s) / 2, (H - video.videoHeight * s) / 2, video.videoWidth * s, video.videoHeight * s);
-            var frame = new VideoFrame(canvas, { timestamp: ts });
-            encoder.encode(frame, { keyFrame: frames % 60 === 0 }); frame.close(); frames++; last = ts;
-            progress(Math.min(1, meta.mediaTime / duration));
-          }
-          if (!video.ended) video.requestVideoFrameCallback(onFrame);
+  /* One pass: play the clip once and encode at most 30 frames a second (phone clips are often
+     60 fps; feeding them all to a 30 fps encoder doubles the size). The pass stops as soon as the
+     output passes the limit and reports the size the whole clip would have had. */
+  async function encodePass(video, duration, W, H, config, progress) {
+    var muxer = new Mp4Muxer.Muxer({ target: new Mp4Muxer.ArrayBufferTarget(), video: { codec: 'avc', width: W, height: H, frameRate: 30 }, fastStart: 'in-memory', firstTimestampBehavior: 'offset' });
+    var failure = null, bytes = 0, fraction = 0, over = false;
+    var encoder = new VideoEncoder({ output: function (chunk, meta) { bytes += chunk.byteLength; if (bytes > LIMIT * .97) over = true; muxer.addVideoChunk(chunk, meta); }, error: function (e) { failure = e; } });
+    encoder.configure(config);
+    var canvas = document.createElement('canvas'), x = canvas.getContext('2d'), s = Math.max(W / video.videoWidth, H / video.videoHeight);
+    canvas.width = W; canvas.height = H;
+    video.pause(); video.loop = false; video.currentTime = 0; await once(video, 'seeked');
+    await new Promise(function (done, fail) {
+      var frames = 0, last = -1e9, finished = false;
+      function finish() { if (!finished) { finished = true; video.pause(); setTimeout(done, 50); } }
+      function onFrame(now, meta) {
+        if (finished) return;
+        if (failure) { finished = true; fail(failure); return; }
+        if (over) { finish(); return; }
+        var ts = Math.round(meta.mediaTime * 1e6);
+        if (ts - last >= 30000) {
+          x.drawImage(video, (W - video.videoWidth * s) / 2, (H - video.videoHeight * s) / 2, video.videoWidth * s, video.videoHeight * s);
+          var frame = new VideoFrame(canvas, { timestamp: ts });
+          encoder.encode(frame, { keyFrame: frames % 60 === 0 }); frame.close(); frames++; last = ts;
+          fraction = Math.min(1, meta.mediaTime / duration); progress(fraction);
         }
-        video.requestVideoFrameCallback(onFrame);
-        video.addEventListener('ended', function () { setTimeout(done, 50); }, { once: true });
-        video.play().catch(fail);
-      });
-      await encoder.flush(); encoder.close(); muxer.finalize();
-      if (failure) throw failure;
-      var buffer = muxer.target.buffer;
-      if (buffer.byteLength <= LIMIT) return new Blob([buffer], { type: 'video/mp4' });
-      budget *= .78;
+        if (!video.ended) video.requestVideoFrameCallback(onFrame);
+      }
+      video.requestVideoFrameCallback(onFrame);
+      video.addEventListener('ended', finish, { once: true });
+      video.play().catch(fail);
+    });
+    if (over) { try { encoder.close(); } catch (e) { /* closed */ } return { blob: null, projected: bytes / Math.max(.05, fraction) }; }
+    await encoder.flush(); encoder.close(); muxer.finalize();
+    if (failure) throw failure;
+    var buffer = muxer.target.buffer;
+    return buffer.byteLength <= LIMIT ? { blob: new Blob([buffer], { type: 'video/mp4' }) } : { blob: null, projected: buffer.byteLength };
+  }
+  /* Up to five passes. Each failed pass lowers the bitrate by how far it overshot and steps the
+     picture down (720p, 720p, 540p, 480p, 360p): phone encoders often ignore very low bitrates
+     at a large size. Constant bitrate is tried from the second pass, which they follow better. */
+  async function compress(video, duration, progress) {
+    var sizes = [[1280, 720], [1280, 720], [960, 540], [854, 480], [640, 360]], budget = LIMIT * .85, result, config, bitrate;
+    if (!window.VideoEncoder || !window.VideoFrame || !window.Mp4Muxer || !('requestVideoFrameCallback' in HTMLVideoElement.prototype)) throw new Error('no-encoder');
+    for (var attempt = 0; attempt < sizes.length; attempt++) {
+      bitrate = Math.max(60000, Math.min(4000000, Math.floor(budget * 8 / duration)));
+      config = attempt > 0 && await encoderConfig(sizes[attempt][0], sizes[attempt][1], bitrate, 'constant') || await encoderConfig(sizes[attempt][0], sizes[attempt][1], bitrate, 'variable');
+      if (!config) { if (attempt === 0) throw new Error('no-encoder'); continue; }
+      result = await encodePass(video, duration, sizes[attempt][0], sizes[attempt][1], config, function (f) { progress(f, attempt + 1); });
+      if (result.blob) return result.blob;
+      budget = budget * Math.min(.8, LIMIT / result.projected * .9);
     }
     throw new Error('size-after');
   }
@@ -197,7 +214,7 @@
     if (file.size > LIMIT) {
       if (!isFinite(duration) || duration <= 0) throw new Error('unreadable');
       if (duration > 30.5) throw new Error('too-long:' + Math.round(duration));
-      out = await compress(video, duration, function (f) { say(t('compressing', Math.round(f * 100))); });
+      out = await compress(video, duration, function (f, pass) { say(t(pass > 1 ? 'compressingAgain' : 'compressing', Math.round(f * 100), pass)); });
       meta.textContent = t('compressed', Math.round(duration), mb(file.size), mb(out.size));
     } else meta.textContent = t('videoSize', mb(file.size));
     video.loop = true; video.currentTime = 0; video.play().catch(function () {});
