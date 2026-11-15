@@ -39,3 +39,7 @@ Photographers retain their rights. Wallpapers, thumbnails, panel backgrounds and
 Development dependencies retain the licences in their npm packages. They are not copied into the TV JavaScript runtime.
 
 `npm run export:public` excludes private fonts and includes this notice and the root MIT licence. Preserve the included font and icon licence texts. Review [public release preparation](docs/public-release.md) before publishing a repository or download.
+
+## mp4-muxer
+
+`docs/send/mp4-muxer.js` is [mp4-muxer](https://github.com/Vanilagy/mp4-muxer) 5.2.2 by Vanilagy, vendored unchanged under the MIT licence in `docs/send/mp4-muxer-LICENSE.txt`. It is used only by the phone send page, not by the TV app.

@@ -529,13 +529,29 @@ try {
       await phone.click('#send'); await phone.waitForFunction(() => /Sent|Elküldve/.test(document.getElementById('status').textContent));
       check('A large photo is resized to a JPEG under 1.9 MB', puts.length === 1 && puts[0].method === 'PUT' && puts[0].jpeg && puts[0].size <= 1900000 && /\/framehome-abcdefghijk234567890$/.test(puts[0].url) && puts[0].filename === 'IMG_0001.jpg', puts);
       puts.length = 0;
-      await phone.setInputFiles('#file', { name: 'long.mp4', mimeType: 'video/mp4', buffer: Buffer.alloc(2000000) });
-      await phone.waitForFunction(() => /1,9 MB|1.9 MB/.test(document.getElementById('status').textContent));
-      check('A video over 1.9 MB is refused before sending', puts.length === 0 && await phone.evaluate(() => document.getElementById('send').disabled));
+      await phone.setInputFiles('#file', { name: 'broken.mp4', mimeType: 'video/mp4', buffer: Buffer.alloc(2000000) });
+      await phone.waitForFunction(() => /cannot open|nem tudja megnyitni/.test(document.getElementById('status').textContent));
+      check('A file that is not a playable video is refused before sending', puts.length === 0 && await phone.evaluate(() => document.getElementById('send').disabled));
       await phone.setInputFiles('#file', root + 'scripts/fixtures/loop.mp4');
       await phone.waitForFunction(() => !document.getElementById('send').disabled, null, { timeout: 30000 });
       await phone.click('#send'); await phone.waitForFunction(() => /Sent|Elküldve/.test(document.getElementById('status').textContent));
       check('A video goes after a tagged still of its first frame', puts.length === 2 && puts[0].tags === 'frame-home-still' && puts[0].jpeg && puts[1].filename === 'loop.mp4' && puts[1].tags === '', puts);
+    } finally { await phone.close(); }
+  });
+  await run('Send page compresses a video over the limit into an MP4', async () => {
+    const phone = await preview.browser.newPage({ viewport: { width: 390, height: 844 } });
+    const puts = [];
+    // A 250 kB limit forces the two-second 2 Mbit/s fixture (about 0.5 MB) through the encoder.
+    await phone.addInitScript(() => { window.__frameHomeLimit = 250000; });
+    await phone.route('https://ntfy.sh/**', async route => { const r = route.request(), d = r.postDataBuffer() || Buffer.alloc(0); puts.push({ filename: r.headers()['filename'], tags: r.headers()['tags'] || '', size: d.length, mp4: d.slice(4, 8).toString() === 'ftyp' }); await route.fulfill({ status: 200, headers: { 'Access-Control-Allow-Origin': '*' }, body: '{}' }); });
+    try {
+      await phone.goto('file://' + root + 'docs/send/index.html#framehome-abcdefghijk234567890');
+      await phone.setInputFiles('#file', root + 'scripts/fixtures/big.mp4');
+      await phone.waitForFunction(() => !document.getElementById('send').disabled || /cannot|nem tudja|could not/i.test(document.getElementById('status').textContent), null, { timeout: 60000 });
+      const metaText = await phone.textContent('#meta');
+      check('The page re-encodes a too-large video', /→/.test(metaText), metaText);
+      await phone.click('#send'); await phone.waitForFunction(() => /Sent|Elküldve/.test(document.getElementById('status').textContent));
+      check('The compressed video is an MP4 within the limit, after its still', puts.length === 2 && puts[0].tags === 'frame-home-still' && puts[1].mp4 && puts[1].size <= 250000 && puts[1].filename === 'big.mp4', puts);
     } finally { await phone.close(); }
   });
   await run('Your picture ignores files that are not pictures', async () => {

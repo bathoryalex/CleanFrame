@@ -64,21 +64,24 @@
   </section>
 
   <p class="missing card" data-t="missing">Open this page by scanning the QR code on the TV: Settings → Background → Picture from phone.</p>
-  <p class="note" data-t="privacy">The file goes through ntfy.sh on your TV's private channel and is deleted there after a few hours. Photos are resized on this phone first; files can be at most 1.9 MB.</p>
+  <p class="note" data-t="privacy">The file goes through ntfy.sh on your TV's private channel and is deleted there after a few hours. Photos and larger videos (up to 30 s) are compressed on this phone to at most 1.9 MB first.</p>
 </main>
+<script src="mp4-muxer.js"></script>
 <script>
 (function () {
   'use strict';
-  var LIMIT = 1900000, RELAY = 'https://ntfy.sh', STILL_TAG = 'frame-home-still';
+  var LIMIT = window.__frameHomeLimit || 1900000, RELAY = 'https://ntfy.sh', STILL_TAG = 'frame-home-still';
   var TEXT = {
     en: {},
     hu: {
       title: 'Küldés a Frame Home-ra', subtitle: 'Fotó vagy rövid videó a TV hátterének',
       empty: 'A TV a kép középső, 16:9-es részét mutatja.', pick: 'Fotó vagy videó kiválasztása', send: 'Küldés a TV-re',
       missing: 'Ezt az oldalt a TV-n lévő QR-kóddal nyisd meg: Beállítások → Háttér → Kép küldése telefonról.',
-      privacy: 'A fájl az ntfy.sh-n, a TV privát csatornáján keresztül érkezik, és ott néhány óra múlva törlődik. A fotókat ez a telefon előbb lekicsinyíti; a fájl legfeljebb 1,9 MB lehet.',
+      privacy: 'A fájl az ntfy.sh-n, a TV privát csatornáján keresztül érkezik, és ott néhány óra múlva törlődik. A fotókat és a nagyobb videókat (legfeljebb 30 mp) ez a telefon előbb 1,9 MB alá tömöríti.',
       preparing: 'Előkészítés…', ready: 'Kész a küldésre', photoSize: 'Fotó · {0} × {1} · {2}', videoSize: 'Videó · {0}',
-      tooBig: 'Ez a videó {0}. Legfeljebb 1,9 MB lehet: rövidítsd vagy tömörítsd, és próbáld újra.',
+      tooLong: 'Ez a videó {0} másodperces. Legfeljebb 30 másodperces lehet, különben túl rossz lenne a minősége.',
+      noEncoder: 'Ez a telefon nem tudja tömöríteni a videót (Android Chrome vagy iOS 16.4 kell). Küldj legfeljebb 1,9 MB-os videót.',
+      compressing: 'Videó tömörítése… {0}%', compressed: 'Videó · {0} mp · {1} → {2}', tooBigAfter: 'A videót nem sikerült 1,9 MB alá tömöríteni. Próbálj rövidebbet.',
       unreadable: 'Ezt a fájlt a telefon nem tudja megnyitni. Válassz JPG, PNG vagy MP4 fájlt.',
       sending: 'Küldés… {0}%', sent: 'Elküldve. A TV néhány másodpercen belül beállítja háttérnek.', again: 'Újabb küldése',
       failed: 'Nem sikerült elküldeni ({0}). Próbáld újra.', notMedia: 'Ez nem kép és nem videó.'
@@ -86,7 +89,9 @@
   };
   var EN = {
     preparing: 'Preparing…', ready: 'Ready to send', photoSize: 'Photo · {0} × {1} · {2}', videoSize: 'Video · {0}',
-    tooBig: 'This video is {0}. It can be at most 1.9 MB: trim or compress it and try again.',
+    tooLong: 'This video is {0} seconds long. It can be at most 30 seconds, or the quality would be too poor.',
+    noEncoder: 'This phone cannot compress videos (Android Chrome or iOS 16.4 is needed). Send a video of at most 1.9 MB.',
+    compressing: 'Compressing video… {0}%', compressed: 'Video · {0} s · {1} → {2}', tooBigAfter: 'The video could not be compressed under 1.9 MB. Try a shorter one.',
     unreadable: 'This phone cannot open that file. Choose a JPG, PNG or MP4.',
     sending: 'Sending… {0}%', sent: 'Sent. The TV sets it as the background in a few seconds.', again: 'Send another',
     failed: 'Could not send ({0}). Please try again.', notMedia: 'That is not a picture or a video.'
@@ -131,18 +136,72 @@
     meta.textContent = t('photoSize', canvas.width, canvas.height, mb(blob.size));
     return { file: blob, name: (file.name || 'photo').replace(/\.[^.]+$/, '') + '.jpg', still: null };
   }
-  /* Videos are sent as they are (a phone cannot re-encode them), with a still of the first frame:
+  /* Videos up to 1.9 MB go as they are. Larger ones are re-encoded here with WebCodecs into a
+     720p H.264 MP4 (no sound: the TV plays it muted), at a bitrate that fits the limit, while the
+     clip plays once in the preview. A still of the first frame always goes first, because
      Samsung TVs cannot read frames back from a playing video. */
-  async function prepareVideo(file) {
-    if (file.size > LIMIT) throw new Error('video-size');
-    var url = URL.createObjectURL(file), video = await load(url, true), w = 1280, h = 720, canvas = document.createElement('canvas'), x;
-    canvas.width = w; canvas.height = h; x = canvas.getContext('2d');
-    var s = Math.max(w / video.videoWidth, h / video.videoHeight);
+  function once(target, name) { return new Promise(function (done, fail) { target.addEventListener(name, done, { once: true }); target.addEventListener('error', fail, { once: true }); }); }
+  async function stillOf(video) {
+    var canvas = document.createElement('canvas'), w = 1280, h = 720, x, s;
+    canvas.width = w; canvas.height = h; x = canvas.getContext('2d'); s = Math.max(w / video.videoWidth, h / video.videoHeight);
     x.drawImage(video, (w - video.videoWidth * s) / 2, (h - video.videoHeight * s) / 2, video.videoWidth * s, video.videoHeight * s);
-    var still = await toBlob(canvas, .82);
-    video.loop = true; video.play().catch(function () {}); show(video);
-    meta.textContent = t('videoSize', mb(file.size));
-    return { file: file, name: file.name || 'video.mp4', still: still };
+    return toBlob(canvas, .82);
+  }
+  async function encoderCodec(width, height, bitrate) {
+    var codecs = ['avc1.640028', 'avc1.4d401f', 'avc1.42001f'];
+    for (var i = 0; i < codecs.length; i++) {
+      try { if ((await VideoEncoder.isConfigSupported({ codec: codecs[i], width: width, height: height, bitrate: bitrate, framerate: 30, avc: { format: 'avc' } })).supported) return codecs[i]; } catch (e) { /* next */ }
+    }
+    return null;
+  }
+  async function compress(video, duration, progress) {
+    var W = 1280, H = 720, budget = LIMIT * .88;
+    if (!window.VideoEncoder || !window.VideoFrame || !window.Mp4Muxer || !('requestVideoFrameCallback' in HTMLVideoElement.prototype)) throw new Error('no-encoder');
+    for (var attempt = 0; attempt < 3; attempt++) {
+      var bitrate = Math.max(100000, Math.min(4000000, Math.floor(budget * 8 / duration))), codec = await encoderCodec(W, H, bitrate);
+      if (!codec) throw new Error('no-encoder');
+      var muxer = new Mp4Muxer.Muxer({ target: new Mp4Muxer.ArrayBufferTarget(), video: { codec: 'avc', width: W, height: H, frameRate: 30 }, fastStart: 'in-memory', firstTimestampBehavior: 'offset' });
+      var failure = null, encoder = new VideoEncoder({ output: function (chunk, meta) { muxer.addVideoChunk(chunk, meta); }, error: function (e) { failure = e; } });
+      encoder.configure({ codec: codec, width: W, height: H, bitrate: bitrate, framerate: 30, avc: { format: 'avc' }, bitrateMode: 'variable', latencyMode: 'quality' });
+      var canvas = document.createElement('canvas'), x = canvas.getContext('2d'), s = Math.max(W / video.videoWidth, H / video.videoHeight);
+      canvas.width = W; canvas.height = H;
+      video.pause(); video.loop = false; video.currentTime = 0; await once(video, 'seeked');
+      await new Promise(function (done, fail) {
+        var frames = 0, last = -1;
+        function onFrame(now, meta) {
+          if (failure) { fail(failure); return; }
+          var ts = Math.round(meta.mediaTime * 1e6);
+          if (ts > last) {
+            x.drawImage(video, (W - video.videoWidth * s) / 2, (H - video.videoHeight * s) / 2, video.videoWidth * s, video.videoHeight * s);
+            var frame = new VideoFrame(canvas, { timestamp: ts });
+            encoder.encode(frame, { keyFrame: frames % 60 === 0 }); frame.close(); frames++; last = ts;
+            progress(Math.min(1, meta.mediaTime / duration));
+          }
+          if (!video.ended) video.requestVideoFrameCallback(onFrame);
+        }
+        video.requestVideoFrameCallback(onFrame);
+        video.addEventListener('ended', function () { setTimeout(done, 50); }, { once: true });
+        video.play().catch(fail);
+      });
+      await encoder.flush(); encoder.close(); muxer.finalize();
+      if (failure) throw failure;
+      var buffer = muxer.target.buffer;
+      if (buffer.byteLength <= LIMIT) return new Blob([buffer], { type: 'video/mp4' });
+      budget *= .78;
+    }
+    throw new Error('size-after');
+  }
+  async function prepareVideo(file) {
+    var url = URL.createObjectURL(file), video = await load(url, true), still = await stillOf(video), duration = video.duration, out = file;
+    show(video);
+    if (file.size > LIMIT) {
+      if (!isFinite(duration) || duration <= 0) throw new Error('unreadable');
+      if (duration > 30.5) throw new Error('too-long:' + Math.round(duration));
+      out = await compress(video, duration, function (f) { say(t('compressing', Math.round(f * 100))); });
+      meta.textContent = t('compressed', Math.round(duration), mb(file.size), mb(out.size));
+    } else meta.textContent = t('videoSize', mb(file.size));
+    video.loop = true; video.currentTime = 0; video.play().catch(function () {});
+    return { file: out, name: out === file ? file.name || 'video.mp4' : (file.name || 'video').replace(/\.[^.]+$/, '') + '.mp4', still: still };
   }
   input.addEventListener('change', async function () {
     var file = input.files && input.files[0];
@@ -155,7 +214,8 @@
       else throw new Error('type');
       send.disabled = false; send.textContent = TEXT[lang] && TEXT[lang].send || 'Send to TV'; say(t('ready'));
     } catch (e) {
-      say(e.message === 'video-size' ? t('tooBig', mb(file.size)) : e.message === 'type' ? t('notMedia') : t('unreadable'), 'warn');
+      var m = String(e && e.message || '');
+      say(m.indexOf('too-long:') === 0 ? t('tooLong', m.slice(9)) : m === 'no-encoder' ? t('noEncoder') : m === 'size-after' ? t('tooBigAfter') : m === 'type' ? t('notMedia') : t('unreadable'), 'warn');
     }
   });
   function put(blob, name, tags, progress) {
