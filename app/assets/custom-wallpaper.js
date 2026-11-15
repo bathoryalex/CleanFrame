@@ -216,7 +216,8 @@
   /* A cover image stored in the MP4 (moov/udta/meta/ilst/covr/data), as written by
      scripts/animate-glow.py or by ffmpeg -disposition attached_pic. */
   function coverImage(buffer) {
-    var b = new Uint8Array(buffer), n = b.length - 24, i, size, type;
+    // Cover art sits in the header; looking at the first 3 MB keeps large files quick.
+    var b = new Uint8Array(buffer), n = Math.min(b.length - 24, 3000000), i, size, type;
     for (i = 4; i < n; i++) {
       if (b[i] !== 0x63 || b[i + 1] !== 0x6f || b[i + 2] !== 0x76 || b[i + 3] !== 0x72) continue;            // covr
       if (b[i + 8] !== 0x64 || b[i + 9] !== 0x61 || b[i + 10] !== 0x74 || b[i + 11] !== 0x61) continue;      // data
@@ -235,24 +236,49 @@
   /* A short looping video: keep the file, and find a still for the photo and glass. Samsung TVs
      play video on a hardware plane, so drawing a video frame on canvas returns black there; the
      embedded cover comes first, a canvas grab second, and `frame: null` means neither worked. */
-  function downloadVideo(url, done) {
-    var xhr = new XMLHttpRequest(), finished = false, timer = setTimeout(function () { finish({ code: 'download', detail: 'timeout' }); }, 120000);
+  function fetchBuffer(url, done) {
+    var xhr = new XMLHttpRequest(), finished = false, timer = setTimeout(function () { try { xhr.abort(); } catch (e) { /* gone */ } finish({ code: 'download', detail: 'timeout' }); }, 120000);
     function finish(err, value) { if (finished) return; finished = true; clearTimeout(timer); done(err, value); }
     try { xhr.open('GET', url, true); xhr.responseType = 'arraybuffer'; } catch (e) { finish({ code: 'download', detail: 'open' }); return; }
     xhr.onload = function () {
-      var buffer = xhr.response, blob, cover, still;
-      if (xhr.status < 200 || xhr.status >= 300 || !buffer) { finish({ code: 'download', detail: 'HTTP ' + xhr.status }); return; }
-      blob = new Blob([buffer], { type: xhr.getResponseHeader('Content-Type') || 'video/mp4' });
-      cover = coverImage(buffer);
-      if (cover) {
-        still = new Image();
-        still.onload = function () { finish(null, { frame: still, blob: blob, source: 'cover' }); };
-        still.onerror = function () { grabFrame(blob); };
-        still.src = URL.createObjectURL(cover);
-      } else grabFrame(blob);
+      if (xhr.status < 200 || xhr.status >= 300 || !xhr.response) finish({ code: 'download', detail: 'HTTP ' + xhr.status });
+      else finish(null, xhr.response);
     };
     xhr.onerror = function () { finish({ code: 'download', detail: 'network' }); };
     try { xhr.send(); } catch (e) { finish({ code: 'download', detail: 'send' }); }
+  }
+  /* A file the send page split into parts (ntfy.sh takes 2 MB per attachment): fetch them in
+     order and join them back into the original bytes. */
+  function downloadParts(urls, progress, done) {
+    var buffers = [], i = 0;
+    (function next() {
+      var total = 0, out, at = 0, j;
+      if (i < urls.length) {
+        fetchBuffer(urls[i], function (err, buffer) {
+          if (err) { done(err); return; }
+          buffers.push(buffer); i++; progress(i / urls.length); next();
+        });
+        return;
+      }
+      for (j = 0; j < buffers.length; j++) total += buffers[j].byteLength;
+      out = new Uint8Array(total);
+      for (j = 0; j < buffers.length; j++) { out.set(new Uint8Array(buffers[j]), at); at += buffers[j].byteLength; }
+      done(null, out.buffer);
+    }());
+  }
+  function downloadVideo(url, done) {
+    fetchBuffer(url, function (err, buffer) { if (err) done(err); else videoFromBuffer(buffer, done); });
+  }
+  function videoFromBuffer(buffer, done) {
+    var finished = false, timer = setTimeout(function () { finish({ code: 'decode' }); }, 60000);
+    var blob = new Blob([buffer], { type: 'video/mp4' }), cover = coverImage(buffer), still;
+    function finish(err, value) { if (finished) return; finished = true; clearTimeout(timer); done(err, value); }
+    if (cover) {
+      still = new Image();
+      still.onload = function () { finish(null, { frame: still, blob: blob, source: 'cover' }); };
+      still.onerror = function () { grabFrame(blob); };
+      still.src = URL.createObjectURL(cover);
+    } else grabFrame(blob);
     function grabFrame(blob) {
       var video = document.createElement('video'), src = URL.createObjectURL(blob), tries = 0;
       video.muted = true; video.preload = 'auto'; video.setAttribute('playsinline', '');
@@ -299,5 +325,5 @@
     });
   }
 
-  window.FrameCustomWallpaper = { processImage: processImage, save: save, load: load, urls: urls, randomTopic: randomTopic, listen: listen, isImage: isImage, isVideo: isVideo, download: download, downloadVideo: downloadVideo };
+  window.FrameCustomWallpaper = { processImage: processImage, save: save, load: load, urls: urls, randomTopic: randomTopic, listen: listen, isImage: isImage, isVideo: isVideo, download: download, downloadVideo: downloadVideo, downloadParts: downloadParts, videoFromBuffer: videoFromBuffer };
 }());

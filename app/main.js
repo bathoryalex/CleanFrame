@@ -4,7 +4,7 @@
 
   /* ---------- Bundled data ---------- */
   var ASSETS = 'assets/', ICONS = ASSETS + 'icons/', WP = ASSETS + 'wallpapers/';
-  var APP_VERSION = '0.11.0';
+  var APP_VERSION = '0.12.0';
   var CAP = 9, SCRIM_Y = 560;
   var DOCK_MODES = { both: { tw: 288, th: 200, pitch: 296 }, text: { tw: 288, th: 104, pitch: 296 }, icons: { tw: 176, th: 144, pitch: 184 } };
   var GRID_ROW = 240, GRID_COL = 344, COLS = 5;
@@ -40,8 +40,8 @@
   ];
   var KEY = 'cleanframe.home.v1', storageOk = true, catalog = { loading: false, loaded: false, error: null, request: 0, revision: 0 };
   /* Your picture: one wallpaper slot that a phone fills through an ntfy.sh topic (assets/custom-wallpaper.js). */
-  var CUSTOM = 'custom', STILL_TAG = 'frame-home-still', SEND_PAGE = window.FrameFork && window.FrameFork.sendPage || '', FCW = window.FrameCustomWallpaper, RELAY = (window.FrameFork && window.FrameFork.relay) || 'https://ntfy.sh';
-  var custom = { urls: null, stamp: 0, phase: 'idle', name: '', busy: false, queued: null, seen: {}, stillMsg: null, link: 'idle', detail: '', relay: null };
+  var CUSTOM = 'custom', STILL_TAG = 'frame-home-still', PART_TAG = 'frame-home-part', SEND_PAGE = window.FrameFork && window.FrameFork.sendPage || '', FCW = window.FrameCustomWallpaper, RELAY = (window.FrameFork && window.FrameFork.relay) || 'https://ntfy.sh';
+  var custom = { urls: null, stamp: 0, phase: 'idle', name: '', busy: false, queued: null, seen: {}, sets: {}, percent: 0, stillMsg: null, link: 'idle', detail: '', relay: null };
   function addCustomWall(tone) {
     var w = wall(CUSTOM);
     if (!w) { w = { id: CUSTOM, name: 'Your picture', ut: { tr: 'light', br: 'light' }, frostVeil: .2 }; WALLS.push(w); }
@@ -1216,11 +1216,34 @@
         custom.seen[m.id] = true;
         // The send page puts a still of a video first, tagged, because the TV cannot read video frames.
         if (m.attachment && m.attachment.url && m.tags && m.tags.indexOf(STILL_TAG) >= 0) { custom.stillMsg = m; savePrefs({ relaySince: m.id }, 'Video still'); return; }
+        // A larger video arrives as numbered parts; it is queued once every part is here.
+        var part = partOf(m), set;
+        if (part) {
+          set = custom.sets[part.uid] || (custom.sets[part.uid] = { n: part.n, urls: [], got: 0 });
+          if (!set.urls[part.i]) { set.urls[part.i] = m.attachment.url; set.got++; }
+          if (set.got === set.n) {
+            custom.sets = {};
+            custom.queued = { id: m.id, time: m.time, parts: set.urls, attachment: { name: String(m.title || 'video.mp4').slice(0, 80), type: 'video/mp4' } };
+            drainPictures();
+          }
+          return;
+        }
         if (m.attachment && m.attachment.url) custom.queued = m;
         else savePrefs({ relaySince: m.id }, 'Channel message');
         drainPictures();
       }
     });
+  }
+  function partOf(m) {
+    var tags = m.tags || [], out = { uid: '', i: -1, n: 0 }, j, tag;
+    if (tags.indexOf(PART_TAG) < 0 || !m.attachment || !m.attachment.url) return null;
+    for (j = 0; j < tags.length; j++) {
+      tag = String(tags[j]);
+      if (/^u-[a-z0-9]{6,20}$/.test(tag)) out.uid = tag.slice(2);
+      else if (/^i-\d{1,2}$/.test(tag)) out.i = +tag.slice(2);
+      else if (/^n-\d{1,2}$/.test(tag)) out.n = +tag.slice(2);
+    }
+    return out.uid && out.n >= 1 && out.n <= 12 && out.i >= 0 && out.i < out.n ? out : null;
   }
   function stopRelay() { if (custom.relay) { custom.relay.stop(); custom.relay = null; custom.link = 'idle'; } }
   function drainPictures() {
@@ -1237,10 +1260,10 @@
   function receivePicture(message) {
     var attachment = message.attachment;
     savePrefs({ relaySince: message.id }, 'Picture received');
-    var video = FCW.isVideo(attachment);
+    var video = !!message.parts || FCW.isVideo(attachment);
     if (!video && !FCW.isImage(attachment)) { custom.phase = 'notimage'; render(); return; }
-    custom.busy = true; custom.phase = 'downloading'; custom.name = String(attachment.name || '').slice(0, 80); render();
-    (video ? FCW.downloadVideo : FCW.download)(attachment.url, function (err, got) {
+    custom.busy = true; custom.phase = 'downloading'; custom.percent = 0; custom.name = String(attachment.name || '').slice(0, 80); render();
+    var fetched = function (err, got) {
       if (err) { pictureFailed(err.code === 'decode' ? 'unreadable' : 'unreachable', err.detail); return; }
       var still = video && got.source !== 'cover' && custom.stillMsg && Math.abs((custom.stillMsg.time || 0) - (message.time || 0)) < 900 ? custom.stillMsg : null;
       custom.stillMsg = null;
@@ -1264,7 +1287,9 @@
           });
         }, 60);
       }
-    });
+    };
+    if (message.parts) FCW.downloadParts(message.parts, function (f) { custom.percent = Math.round(f * 100); render(); }, function (err, buffer) { if (err) fetched(err); else FCW.videoFromBuffer(buffer, fetched); });
+    else (video ? FCW.downloadVideo : FCW.download)(attachment.url, fetched);
   }
   /* A video picture plays muted and looped over its first-frame photo, only while Home or a
      Settings preview shows it and the app is visible; otherwise it is paused or released. */
@@ -2125,7 +2150,7 @@
     phone: function (t, el) {
       var url = SEND_PAGE ? SEND_PAGE + '#' + S.c.relayTopic : RELAY + '/' + S.c.relayTopic, phase = custom.phase !== 'idle' ? custom.phase : custom.link === 'retry' ? 'offline' : custom.link === 'open' ? 'waiting' : 'connecting', text = {
         connecting: T('Connecting to ntfy.sh…'), waiting: T('Waiting for a photo…'), offline: T('Can’t reach ntfy.sh ({0}). Trying again…', custom.detail || '?'),
-        notimage: T('That file isn’t a picture or a video. Send a JPG, PNG or MP4.'), downloading: T('Receiving {0}…', custom.name || T('photo')), processing: T('Preparing your background…'),
+        notimage: T('That file isn’t a picture or a video. Send a JPG, PNG or MP4.'), downloading: T('Receiving {0}…', (custom.name || T('photo')) + (custom.percent ? ' · ' + custom.percent + '%' : '')), processing: T('Preparing your background…'),
         unreadable: T('Couldn’t open that file. Send a JPG, PNG or MP4.'), unreachable: T('Couldn’t download the photo ({0}). Send it again.', custom.detail || '?'),
         done: T('Done. Your picture is the background now.'), nostill: T('Done. The TV couldn’t take a still from this video, so the glass uses a neutral tint.'), unsaved: T('Done for now, but the TV couldn’t store it for next time.')
       }[phase];

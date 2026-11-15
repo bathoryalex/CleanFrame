@@ -64,34 +64,39 @@
   </section>
 
   <p class="missing card" data-t="missing">Open this page by scanning the QR code on the TV: Settings → Background → Picture from phone.</p>
-  <p class="note" data-t="privacy">The file goes through ntfy.sh on your TV's private channel and is deleted there after a few hours. Photos and larger videos (up to 30 s) are compressed on this phone to at most 1.9 MB first.</p>
+  <p class="note" data-t="privacy">The file goes through ntfy.sh on your TV's private channel and is deleted there after a few hours. Photos are resized on this phone first. Videos up to 16 MB go in original quality, in parts; larger ones (up to 60 s) are compressed on this phone at good quality.</p>
 </main>
 <script src="mp4-muxer.js"></script>
 <script>
 (function () {
   'use strict';
-  var LIMIT = window.__frameHomeLimit || 1900000, RELAY = 'https://ntfy.sh', STILL_TAG = 'frame-home-still';
+  // ntfy.sh takes 2 MB per attachment without an account, so larger videos travel in parts that
+  // the TV joins again. TOTAL keeps one video within the relay's per-visitor storage.
+  var LIMIT = window.__frameHomeLimit || 1900000, TOTAL = window.__frameHomeTotal || 16000000, MIN_RATE = window.__frameHomeMinRate || 1500000;
+  var RELAY = 'https://ntfy.sh', STILL_TAG = 'frame-home-still', PART_TAG = 'frame-home-part';
   var TEXT = {
     en: {},
     hu: {
       title: 'Küldés a Frame Home-ra', subtitle: 'Fotó vagy rövid videó a TV hátterének',
       empty: 'A TV a kép középső, 16:9-es részét mutatja.', pick: 'Fotó vagy videó kiválasztása', send: 'Küldés a TV-re',
       missing: 'Ezt az oldalt a TV-n lévő QR-kóddal nyisd meg: Beállítások → Háttér → Kép küldése telefonról.',
-      privacy: 'A fájl az ntfy.sh-n, a TV privát csatornáján keresztül érkezik, és ott néhány óra múlva törlődik. A fotókat és a nagyobb videókat (legfeljebb 30 mp) ez a telefon előbb 1,9 MB alá tömöríti.',
-      preparing: 'Előkészítés…', ready: 'Kész a küldésre', photoSize: 'Fotó · {0} × {1} · {2}', videoSize: 'Videó · {0}',
-      tooLong: 'Ez a videó {0} másodperces. Legfeljebb 30 másodperces lehet, különben túl rossz lenne a minősége.',
-      noEncoder: 'Ez a telefon nem tudja tömöríteni a videót (Android Chrome vagy iOS 16.4 kell). Küldj legfeljebb 1,9 MB-os videót.',
-      compressing: 'Videó tömörítése… {0}%', compressingAgain: 'Még túl nagy, {1}. kör kisebb méretben… {0}%', compressed: 'Videó · {0} mp · {1} → {2}', tooBigAfter: 'A videót nem sikerült 1,9 MB alá tömöríteni. Próbálj rövidebbet.',
+      privacy: 'A fájl az ntfy.sh-n, a TV privát csatornáján keresztül érkezik, és ott néhány óra múlva törlődik. A fotókat ez a telefon előbb lekicsinyíti. A videók 16 MB-ig eredeti minőségben mennek át, több részben; a nagyobbakat (legfeljebb 60 mp) a telefon jó minőségben tömöríti.',
+      preparing: 'Előkészítés…', ready: 'Kész a küldésre', photoSize: 'Fotó · {0} × {1} · {2}',
+      tooLong: 'Ez a videó {0} másodperces. Legfeljebb 60 másodperces lehet, különben romlana a minősége.',
+      noEncoder: 'Ez a telefon nem tudja tömöríteni a videót (Android Chrome vagy iOS 16.4 kell). Küldj legfeljebb 16 MB-os videót.',
+      compressing: 'Videó tömörítése… {0}%', compressingAgain: 'Még túl nagy, {1}. kör… {0}%', compressed: 'Videó · {0} mp · {1} → {2} · {3}p', tooBigAfter: 'Ezt a videót nem lehet jó minőségben 16 MB alá tömöríteni. Próbálj rövidebbet.',
+      videoSize: 'Videó · {0} · eredeti minőség', quota: 'Az ntfy.sh most nem fogad több fájlt (tárhely- vagy forgalmi korlát). Próbáld újra néhány óra múlva.',
       unreadable: 'Ezt a fájlt a telefon nem tudja megnyitni. Válassz JPG, PNG vagy MP4 fájlt.',
       sending: 'Küldés… {0}%', sent: 'Elküldve. A TV néhány másodpercen belül beállítja háttérnek.', again: 'Újabb küldése',
       failed: 'Nem sikerült elküldeni ({0}). Próbáld újra.', notMedia: 'Ez nem kép és nem videó.'
     }
   };
   var EN = {
-    preparing: 'Preparing…', ready: 'Ready to send', photoSize: 'Photo · {0} × {1} · {2}', videoSize: 'Video · {0}',
-    tooLong: 'This video is {0} seconds long. It can be at most 30 seconds, or the quality would be too poor.',
-    noEncoder: 'This phone cannot compress videos (Android Chrome or iOS 16.4 is needed). Send a video of at most 1.9 MB.',
-    compressing: 'Compressing video… {0}%', compressingAgain: 'Still too big, pass {1} at a smaller size… {0}%', compressed: 'Video · {0} s · {1} → {2}', tooBigAfter: 'The video could not be compressed under 1.9 MB. Try a shorter one.',
+    preparing: 'Preparing…', ready: 'Ready to send', photoSize: 'Photo · {0} × {1} · {2}', videoSize: 'Video · {0} · original quality',
+    tooLong: 'This video is {0} seconds long. It can be at most 60 seconds, or the quality would suffer.',
+    noEncoder: 'This phone cannot compress videos (Android Chrome or iOS 16.4 is needed). Send a video of at most 16 MB.',
+    compressing: 'Compressing video… {0}%', compressingAgain: 'Still too big, pass {1}… {0}%', compressed: 'Video · {0} s · {1} → {2} · {3}p', tooBigAfter: 'This video cannot be kept under 16 MB at good quality. Try a shorter one.',
+    quota: 'ntfy.sh is not accepting more files right now (storage or traffic limit). Try again in a few hours.',
     unreadable: 'This phone cannot open that file. Choose a JPG, PNG or MP4.',
     sending: 'Sending… {0}%', sent: 'Sent. The TV sets it as the background in a few seconds.', again: 'Send another',
     failed: 'Could not send ({0}). Please try again.', notMedia: 'That is not a picture or a video.'
@@ -158,10 +163,10 @@
   /* One pass: play the clip once and encode at most 30 frames a second (phone clips are often
      60 fps; feeding them all to a 30 fps encoder doubles the size). The pass stops as soon as the
      output passes the limit and reports the size the whole clip would have had. */
-  async function encodePass(video, duration, W, H, config, progress) {
+  async function encodePass(video, duration, W, H, config, cap, progress) {
     var muxer = new Mp4Muxer.Muxer({ target: new Mp4Muxer.ArrayBufferTarget(), video: { codec: 'avc', width: W, height: H, frameRate: 30 }, fastStart: 'in-memory', firstTimestampBehavior: 'offset' });
     var failure = null, bytes = 0, fraction = 0, over = false;
-    var encoder = new VideoEncoder({ output: function (chunk, meta) { bytes += chunk.byteLength; if (bytes > LIMIT * .97) over = true; muxer.addVideoChunk(chunk, meta); }, error: function (e) { failure = e; } });
+    var encoder = new VideoEncoder({ output: function (chunk, meta) { bytes += chunk.byteLength; if (bytes > cap * .97) over = true; muxer.addVideoChunk(chunk, meta); }, error: function (e) { failure = e; } });
     encoder.configure(config);
     var canvas = document.createElement('canvas'), x = canvas.getContext('2d'), s = Math.max(W / video.videoWidth, H / video.videoHeight);
     canvas.width = W; canvas.height = H;
@@ -190,32 +195,37 @@
     await encoder.flush(); encoder.close(); muxer.finalize();
     if (failure) throw failure;
     var buffer = muxer.target.buffer;
-    return buffer.byteLength <= LIMIT ? { blob: new Blob([buffer], { type: 'video/mp4' }) } : { blob: null, projected: buffer.byteLength };
+    return buffer.byteLength <= cap ? { blob: new Blob([buffer], { type: 'video/mp4' }) } : { blob: null, projected: buffer.byteLength };
   }
-  /* Up to five passes. Each failed pass lowers the bitrate by how far it overshot and steps the
-     picture down (720p, 720p, 540p, 480p, 360p): phone encoders often ignore very low bitrates
-     at a large size. Constant bitrate is tried from the second pass, which they follow better. */
+  /* Only videos over TOTAL are re-encoded, and never into a poor picture: 1080p when the clip is
+     short enough for at least 3.5 Mbit/s, otherwise 720p, and not below MIN_RATE. A pass that
+     overshoots is repeated at a bitrate lowered by the overshoot; if the quality floor cannot be
+     kept the page says so instead of sending a blocky video. */
   async function compress(video, duration, progress) {
-    var sizes = [[1280, 720], [1280, 720], [960, 540], [854, 480], [640, 360]], budget = LIMIT * .85, result, config, bitrate;
+    var target = TOTAL * .8, large = Math.min(video.videoWidth, video.videoHeight) >= 1000, bitrate, dims, config, result;
     if (!window.VideoEncoder || !window.VideoFrame || !window.Mp4Muxer || !('requestVideoFrameCallback' in HTMLVideoElement.prototype)) throw new Error('no-encoder');
-    for (var attempt = 0; attempt < sizes.length; attempt++) {
-      bitrate = Math.max(60000, Math.min(4000000, Math.floor(budget * 8 / duration)));
-      config = attempt > 0 && await encoderConfig(sizes[attempt][0], sizes[attempt][1], bitrate, 'constant') || await encoderConfig(sizes[attempt][0], sizes[attempt][1], bitrate, 'variable');
-      if (!config) { if (attempt === 0) throw new Error('no-encoder'); continue; }
-      result = await encodePass(video, duration, sizes[attempt][0], sizes[attempt][1], config, function (f) { progress(f, attempt + 1); });
-      if (result.blob) return result.blob;
-      budget = budget * Math.min(.8, LIMIT / result.projected * .9);
+    for (var attempt = 0; attempt < 4; attempt++) {
+      bitrate = Math.min(8000000, Math.floor(target * 8 / duration));
+      if (bitrate < MIN_RATE) throw new Error('size-after');
+      dims = large && bitrate >= 3500000 ? [1920, 1080] : [1280, 720];
+      config = attempt > 0 && await encoderConfig(dims[0], dims[1], bitrate, 'constant') || await encoderConfig(dims[0], dims[1], bitrate, 'variable');
+      if (!config && dims[0] === 1920) { dims = [1280, 720]; config = await encoderConfig(1280, 720, bitrate, 'variable'); }
+      if (!config) throw new Error('no-encoder');
+      result = await encodePass(video, duration, dims[0], dims[1], config, TOTAL, function (f) { progress(f, attempt + 1); });
+      if (result.blob) return { blob: result.blob, height: dims[1] };
+      target = target * Math.min(.8, TOTAL / result.projected * .9);
     }
     throw new Error('size-after');
   }
   async function prepareVideo(file) {
-    var url = URL.createObjectURL(file), video = await load(url, true), still = await stillOf(video), duration = video.duration, out = file;
+    var url = URL.createObjectURL(file), video = await load(url, true), still = await stillOf(video), duration = video.duration, out = file, made;
     show(video);
-    if (file.size > LIMIT) {
+    if (file.size > TOTAL) {
       if (!isFinite(duration) || duration <= 0) throw new Error('unreadable');
-      if (duration > 30.5) throw new Error('too-long:' + Math.round(duration));
-      out = await compress(video, duration, function (f, pass) { say(t(pass > 1 ? 'compressingAgain' : 'compressing', Math.round(f * 100), pass)); });
-      meta.textContent = t('compressed', Math.round(duration), mb(file.size), mb(out.size));
+      if (duration > 60.5) throw new Error('too-long:' + Math.round(duration));
+      made = await compress(video, duration, function (f, pass) { say(t(pass > 1 ? 'compressingAgain' : 'compressing', Math.round(f * 100), pass)); });
+      out = made.blob;
+      meta.textContent = t('compressed', Math.round(duration), mb(file.size), mb(out.size), made.height);
     } else meta.textContent = t('videoSize', mb(file.size));
     video.loop = true; video.currentTime = 0; video.play().catch(function () {});
     return { file: out, name: out === file ? file.name || 'video.mp4' : (file.name || 'video').replace(/\.[^.]+$/, '') + '.mp4', still: still };
@@ -235,30 +245,43 @@
       say(m.indexOf('too-long:') === 0 ? t('tooLong', m.slice(9)) : m === 'no-encoder' ? t('noEncoder') : m === 'size-after' ? t('tooBigAfter') : m === 'type' ? t('notMedia') : t('unreadable'), 'warn');
     }
   });
-  function put(blob, name, tags, progress) {
+  function ascii(name) { return String(name || 'file').replace(/[^A-Za-z0-9._-]+/g, '_').slice(-60); }
+  function put(blob, name, tags, title, progress) {
     return new Promise(function (done, fail) {
       var xhr = new XMLHttpRequest();
       xhr.open('PUT', RELAY + '/' + encodeURIComponent(topic));
-      xhr.setRequestHeader('Filename', name);
+      xhr.setRequestHeader('Filename', ascii(name));
       if (tags) xhr.setRequestHeader('Tags', tags);
+      if (title) xhr.setRequestHeader('Title', ascii(title));
       xhr.upload.onprogress = function (e) { if (e.lengthComputable && progress) progress(e.loaded / e.total); };
       xhr.onload = function () { if (xhr.status >= 200 && xhr.status < 300) done(); else fail(new Error('HTTP ' + xhr.status)); };
       xhr.onerror = function () { fail(new Error('network')); };
       xhr.send(blob);
     });
   }
+  /* One attachment when it fits; otherwise numbered parts the TV joins in order. */
+  function partsOf(file, name) {
+    var list = [], n = Math.ceil(file.size / LIMIT), uid = '', i;
+    if (n <= 1) return [{ blob: file, name: name, tags: '', title: '' }];
+    for (i = 0; i < 10; i++) uid += 'abcdefghijkmnopqrstuvwxyz23456789'.charAt(Math.floor(Math.random() * 33));
+    for (i = 0; i < n; i++) list.push({ blob: file.slice(i * LIMIT, Math.min(file.size, (i + 1) * LIMIT)), name: uid + '-' + i + '.part', tags: [PART_TAG, 'u-' + uid, 'i-' + i, 'n-' + n].join(','), title: name });
+    return list;
+  }
   send.addEventListener('click', async function () {
     if (!ready) return;
     if (send.textContent === t('again')) { input.value = ''; input.click(); return; }
-    var total = ready.file.size + (ready.still ? ready.still.size : 0), done = 0;
+    var parts = partsOf(ready.file, ready.name), total = ready.file.size + (ready.still ? ready.still.size : 0), done = 0, i;
     send.disabled = true; bar.style.display = 'block';
-    function progress(part, size) { return function (f) { var p = Math.round((done + f * size) / total * 100); bar.firstChild.style.width = p + '%'; say(t('sending', p)); }; }
+    function progress(size) { return function (f) { var p = Math.round((done + f * size) / total * 100); bar.firstChild.style.width = p + '%'; say(t('sending', p)); }; }
     try {
-      if (ready.still) { await put(ready.still, 'still.jpg', STILL_TAG, progress(0, ready.still.size)); done += ready.still.size; }
-      await put(ready.file, ready.name, '', progress(0, ready.file.size));
+      if (ready.still) { await put(ready.still, 'still.jpg', STILL_TAG, '', progress(ready.still.size)); done += ready.still.size; }
+      for (i = 0; i < parts.length; i++) { await put(parts[i].blob, parts[i].name, parts[i].tags, parts[i].title, progress(parts[i].blob.size)); done += parts[i].blob.size; }
       bar.firstChild.style.width = '100%'; say(t('sent'), 'ok');
       send.textContent = t('again'); send.disabled = false;
-    } catch (e) { say(t('failed', e.message), 'warn'); send.disabled = false; }
+    } catch (e) {
+      var m = String(e && e.message || '');
+      say(/HTTP (413|429|507)/.test(m) ? t('quota') : t('failed', m), 'warn'); send.disabled = false;
+    }
   });
 }());
 </script>

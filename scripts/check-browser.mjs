@@ -105,9 +105,9 @@ async function page(options = {}) {
   await current.route('https://ntfy.sh/**', route => {
     const url = route.request().url(), relay = current.__relay;
     const list = relay ? relay.messages || [{ id: relay.id, image: relay.image, type: relay.type, name: relay.name }] : [];
-    if (url.includes('/file/')) { const m = list.find(x => url.includes('/file/' + x.id + '.')); return m ? route.fulfill({ contentType: m.type || 'image/jpeg', headers: { 'Access-Control-Allow-Origin': '*' }, body: readFileSync(root + m.image) }) : route.fulfill({ status: 404 }); }
+    if (url.includes('/file/')) { const m = list.find(x => url.includes('/file/' + x.id + '.')); return m ? route.fulfill({ contentType: m.type || 'image/jpeg', headers: { 'Access-Control-Allow-Origin': '*' }, body: m.slice ? readFileSync(root + m.image).subarray(m.slice[0], m.slice[1]) : readFileSync(root + m.image) }) : route.fulfill({ status: 404 }); }
     const open = url.includes('poll=1') ? '' : JSON.stringify({ event: 'open' }) + '\n';
-    const body = open + (relay && relay.ready() ? list.map(m => JSON.stringify({ id: m.id, time: 1, event: 'message', topic: 't', message: 'photo', tags: m.tags, attachment: { name: m.name || 'IMG_0001.jpg', type: m.type || 'image/jpeg', size: 1, url: 'https://ntfy.sh/file/' + m.id + '.jpg' } }) + '\n').join('') : '');
+    const body = open + (relay && relay.ready() ? list.map(m => JSON.stringify({ id: m.id, time: 1, event: 'message', topic: 't', message: 'photo', tags: m.tags, title: m.title, attachment: { name: m.name || 'IMG_0001.jpg', type: m.type || 'image/jpeg', size: 1, url: 'https://ntfy.sh/file/' + m.id + '.jpg' } }) + '\n').join('') : '');
     return route.fulfill({ contentType: 'application/x-ndjson', headers: { 'Access-Control-Allow-Origin': '*' }, body });
   });
   // The weather caption is optional; answer it locally so checks never leave the machine.
@@ -538,21 +538,57 @@ try {
       check('A video goes after a tagged still of its first frame', puts.length === 2 && puts[0].tags === 'frame-home-still' && puts[0].jpeg && puts[1].filename === 'loop.mp4' && puts[1].tags === '', puts);
     } finally { await phone.close(); }
   });
-  await run('Send page compresses a video over the limit into an MP4', async () => {
+  await run('Send page sends a larger video unchanged, in parts', async () => {
     const phone = await preview.browser.newPage({ viewport: { width: 390, height: 844 } });
     const puts = [];
-    // A 250 kB limit forces the two-second 2 Mbit/s fixture (about 0.5 MB) through the encoder.
-    await phone.addInitScript(() => { window.__frameHomeLimit = 250000; });
-    await phone.route('https://ntfy.sh/**', async route => { const r = route.request(), d = r.postDataBuffer() || Buffer.alloc(0); puts.push({ filename: r.headers()['filename'], tags: r.headers()['tags'] || '', size: d.length, mp4: d.slice(4, 8).toString() === 'ftyp' }); await route.fulfill({ status: 200, headers: { 'Access-Control-Allow-Origin': '*' }, body: '{}' }); });
+    // A 200 kB part size splits the 483 kB fixture into three parts.
+    await phone.addInitScript(() => { window.__frameHomeLimit = 200000; });
+    await phone.route('https://ntfy.sh/**', async route => { const r = route.request(); puts.push({ filename: r.headers()['filename'], tags: r.headers()['tags'] || '', title: r.headers()['title'] || '', data: r.postDataBuffer() || Buffer.alloc(0) }); await route.fulfill({ status: 200, headers: { 'Access-Control-Allow-Origin': '*' }, body: '{}' }); });
     try {
       await phone.goto('file://' + root + 'docs/send/index.html#framehome-abcdefghijk234567890');
       await phone.setInputFiles('#file', root + 'scripts/fixtures/big.mp4');
-      await phone.waitForFunction(() => !document.getElementById('send').disabled || /cannot|nem tudja|could not/i.test(document.getElementById('status').textContent), null, { timeout: 60000 });
-      const metaText = await phone.textContent('#meta');
-      check('The page re-encodes a too-large video', /→/.test(metaText), metaText);
+      await phone.waitForFunction(() => !document.getElementById('send').disabled, null, { timeout: 30000 });
+      check('A video within the total goes in original quality', /original|eredeti/.test(await phone.textContent('#meta')), await phone.textContent('#meta'));
       await phone.click('#send'); await phone.waitForFunction(() => /Sent|Elküldve/.test(document.getElementById('status').textContent));
-      check('The compressed video is an MP4 within the limit, after its still', puts.length === 2 && puts[0].tags === 'frame-home-still' && puts[1].mp4 && puts[1].size <= 250000 && puts[1].filename === 'big.mp4', puts);
+      const parts = puts.slice(1), original = readFileSync(root + 'scripts/fixtures/big.mp4');
+      check('The still goes first, then three numbered parts', puts.length === 4 && puts[0].tags === 'frame-home-still' && parts.every((x, i) => new RegExp('^frame-home-part,u-[a-z0-9]{10},i-' + i + ',n-3$').test(x.tags) && x.data.length <= 200000 && x.title === 'big.mp4'), puts.map(x => [x.filename, x.tags, x.data.length]));
+      check('The parts join back into the original file', Buffer.concat(parts.map(x => x.data)).equals(original));
     } finally { await phone.close(); }
+  });
+  await run('Send page compresses only videos over the total, at good quality', async () => {
+    const phone = await preview.browser.newPage({ viewport: { width: 390, height: 844 } });
+    const puts = [];
+    // A 400 kB total forces the 483 kB fixture through the encoder; the bitrate floor is lowered to match.
+    await phone.addInitScript(() => { window.__frameHomeLimit = 200000; window.__frameHomeTotal = 400000; window.__frameHomeMinRate = 100000; });
+    await phone.route('https://ntfy.sh/**', async route => { const r = route.request(); puts.push({ tags: r.headers()['tags'] || '', data: r.postDataBuffer() || Buffer.alloc(0) }); await route.fulfill({ status: 200, headers: { 'Access-Control-Allow-Origin': '*' }, body: '{}' }); });
+    try {
+      await phone.goto('file://' + root + 'docs/send/index.html#framehome-abcdefghijk234567890');
+      await phone.setInputFiles('#file', root + 'scripts/fixtures/big.mp4');
+      await phone.waitForFunction(() => !document.getElementById('send').disabled || /cannot|nem|could not/i.test(document.getElementById('status').textContent), null, { timeout: 60000 });
+      const metaText = await phone.textContent('#meta');
+      check('The page re-encodes at 720p or better', /→.*(720|1080)p/.test(metaText), metaText + ' | ' + await phone.textContent('#status'));
+      await phone.click('#send'); await phone.waitForFunction(() => /Sent|Elküldve/.test(document.getElementById('status').textContent));
+      const video = Buffer.concat(puts.slice(1).map(x => x.data));
+      check('The result is an MP4 within the total', puts[0].tags === 'frame-home-still' && video.slice(4, 8).toString() === 'ftyp' && video.length <= 400000, puts.map(x => [x.tags, x.data.length]));
+      await phone.addInitScript(() => { window.__frameHomeMinRate = 50000000; });
+      await phone.reload(); await phone.setInputFiles('#file', root + 'scripts/fixtures/big.mp4');
+      await phone.waitForFunction(() => /good quality|jó minőségben/.test(document.getElementById('status').textContent), null, { timeout: 30000 });
+      check('When the quality floor cannot be kept the video is refused, not degraded', await phone.evaluate(() => document.getElementById('send').disabled));
+    } finally { await phone.close(); }
+  });
+  await run('Your picture joins a video sent in parts', async () => {
+    await page(); await group('background');
+    await current.evaluate(() => { const draw = CanvasRenderingContext2D.prototype.drawImage; CanvasRenderingContext2D.prototype.drawImage = function (source) { if (source instanceof HTMLVideoElement) { this.fillStyle = '#000'; this.fillRect(0, 0, this.canvas.width, this.canvas.height); return; } return draw.apply(this, arguments); }; });
+    const size = readFileSync(root + 'scripts/fixtures/loop-cover.mp4').length, cut = [0, 15000, 30000, size];
+    current.__relay = { ready: () => true, messages: [0, 1, 2].map(i => ({ id: 'Pt' + i + 'aCd34Ef56', image: 'scripts/fixtures/loop-cover.mp4', slice: [cut[i], cut[i + 1]], type: 'application/octet-stream', name: 'abcdefghij-' + i + '.part', title: 'holiday.mp4', tags: ['frame-home-part', 'u-abcdefghij', 'i-' + i, 'n-3'] })) };
+    await act('background.custom');
+    await current.waitForFunction(() => ShoreQA.state().wall === 'custom' && ShoreQA.ready(), null, { timeout: 30000 });
+    await current.waitForFunction(() => /Done|Kész/.test(document.querySelector('.phone-status').textContent));
+    const red = await current.evaluate(() => { const im = document.getElementById('photo'), c = document.createElement('canvas'); c.width = 16; c.height = 9; const x = c.getContext('2d'); x.drawImage(im, 0, 0, 16, 9); const d = x.getImageData(0, 0, 16, 9).data; let r = 0, g = 0; for (let i = 0; i < d.length; i += 4) { r += d[i]; g += d[i + 1]; } return r > g * 3; });
+    check('The joined file is the original video with its cover', red && (await state()).relaySince === 'Pt2aCd34Ef56');
+    await nav('ok'); await scene('home');
+    await current.waitForFunction(() => { const v = document.getElementById('photoVideo'); return !v.paused && /is-playing/.test(v.className); }, null, { timeout: 10000 });
+    check('The joined video plays on Home', true);
   });
   await run('Your picture ignores files that are not pictures', async () => {
     await page(); await group('background');
