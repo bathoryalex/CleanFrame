@@ -476,6 +476,27 @@ try {
     await look({ wall: 'misty' });
     check('Another wallpaper releases the video', await current.evaluate(() => !document.getElementById('photoVideo').getAttribute('src')));
   });
+  await run('Your picture uses the cover of a video when the TV cannot read frames', async () => {
+    await page(); await group('background');
+    // Samsung TVs draw video on a hardware plane: a canvas copy of a frame is black.
+    await current.evaluate(() => { const draw = CanvasRenderingContext2D.prototype.drawImage; CanvasRenderingContext2D.prototype.drawImage = function (source) { if (source instanceof HTMLVideoElement) { this.fillStyle = '#000'; this.fillRect(0, 0, this.canvas.width, this.canvas.height); return; } return draw.apply(this, arguments); }; });
+    current.__relay = { id: 'Cv12Cd34Ef56', image: 'scripts/fixtures/loop-cover.mp4', type: 'video/mp4', name: 'aurora.mp4', ready: () => true };
+    await act('background.custom');
+    await current.waitForFunction(() => ShoreQA.state().wall === 'custom' && ShoreQA.ready(), null, { timeout: 30000 });
+    const red = await current.evaluate(() => { const im = document.getElementById('photo'), c = document.createElement('canvas'); c.width = 16; c.height = 9; const x = c.getContext('2d'); x.drawImage(im, 0, 0, 16, 9); const d = x.getImageData(0, 0, 16, 9).data; let r = 0, g = 0; for (let i = 0; i < d.length; i += 4) { r += d[i]; g += d[i + 1]; } return r > g * 3; });
+    check('The embedded cover becomes the photo, not a black frame', red);
+    await current.waitForFunction(() => /Done|Kész/.test(document.querySelector('.phone-status').textContent));
+  });
+  await run('Your picture keeps neutral glass when a video has no readable still', async () => {
+    await page(); await group('background');
+    await current.evaluate(() => { const draw = CanvasRenderingContext2D.prototype.drawImage; CanvasRenderingContext2D.prototype.drawImage = function (source) { if (source instanceof HTMLVideoElement) { this.fillStyle = '#000'; this.fillRect(0, 0, this.canvas.width, this.canvas.height); return; } return draw.apply(this, arguments); }; });
+    current.__relay = { id: 'Ns12Cd34Ef56', image: 'scripts/fixtures/loop.mp4', type: 'video/mp4', name: 'clip.mp4', ready: () => true };
+    await act('background.custom');
+    await current.waitForFunction(() => ShoreQA.state().wall === 'custom' && ShoreQA.ready(), null, { timeout: 30000 });
+    await current.waitForFunction(() => /neutral|semleges/.test(document.querySelector('.phone-status').textContent), null, { timeout: 10000 });
+    const lit = await current.evaluate(() => { const im = document.getElementById('matImg'), c = document.createElement('canvas'); c.width = 16; c.height = 9; const x = c.getContext('2d'); x.drawImage(im, 0, 0, 16, 9); const d = x.getImageData(0, 0, 16, 9).data; let s = 0; for (let i = 0; i < d.length; i += 4) s += d[i] + d[i + 1] + d[i + 2]; return s / (d.length / 4 * 3); });
+    check('The glass is a neutral tint, not black', lit > 8, lit);
+  });
   await run('Your picture ignores files that are not pictures', async () => {
     await page(); await group('background');
     current.__relay = { id: 'Zz98Yy76Xx54', image: 'app/assets/wallpapers/golden.jpg', type: 'application/pdf', name: 'tickets.pdf', ready: () => true };

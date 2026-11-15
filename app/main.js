@@ -4,7 +4,7 @@
 
   /* ---------- Bundled data ---------- */
   var ASSETS = 'assets/', ICONS = ASSETS + 'icons/', WP = ASSETS + 'wallpapers/';
-  var APP_VERSION = '0.10.0';
+  var APP_VERSION = '0.10.1';
   var CAP = 9, SCRIM_Y = 560;
   var DOCK_MODES = { both: { tw: 288, th: 200, pitch: 296 }, text: { tw: 288, th: 104, pitch: 296 }, icons: { tw: 176, th: 144, pitch: 184 } };
   var GRID_ROW = 240, GRID_COL = 344, COLS = 5;
@@ -1241,13 +1241,14 @@
       custom.phase = 'processing'; render();
       // Let the status paint before the one-time image work starts.
       setTimeout(function () {
-        FCW.processImage(video ? got.frame : got, function (failure, record) {
+        FCW.processImage(video ? got.frame || neutralFrame() : got, function (failure, record) {
           if (failure) { pictureFailed('unreadable'); return; }
           if (video) record.files.video = got.blob;
+          custom.still = !video || !!got.frame;
           FCW.save(record, function (stored) {
             installCustom(record);
             savePrefs({ customAt: record.stamp, customTone: record.tone }, 'Your picture');
-            custom.busy = false; custom.phase = stored ? 'done' : 'unsaved';
+            custom.busy = false; custom.phase = !stored ? 'unsaved' : custom.still ? 'done' : 'nostill';
             setLook({ bg: 'photo', wall: CUSTOM }, { row: 'bg', reload: true });
             render(); drainPictures();
           });
@@ -1271,6 +1272,13 @@
     else if (!visible && !photoVideo.paused) photoVideo.pause();
   }
   if (photoVideo) photoVideo.addEventListener('playing', function () { photoVideo.className = 'photo photo-video is-playing'; });
+  /* No still from the video: a quiet dark field keeps the glass and Settings neutral, not black. */
+  function neutralFrame() {
+    var c = document.createElement('canvas'), x = c.getContext('2d'), g;
+    c.width = 1920; c.height = 1080; g = x.createLinearGradient(0, 0, 0, 1080);
+    g.addColorStop(0, '#2a3439'); g.addColorStop(1, '#11171a'); x.fillStyle = g; x.fillRect(0, 0, 1920, 1080);
+    return c;
+  }
   function installCustom(record) {
     var old = custom.urls;
     custom.urls = FCW.urls(record); custom.stamp = record.stamp;
@@ -2109,7 +2117,7 @@
         connecting: T('Connecting to ntfy.sh…'), waiting: T('Waiting for a photo…'), offline: T('Can’t reach ntfy.sh ({0}). Trying again…', custom.detail || '?'),
         notimage: T('That file isn’t a picture or a video. Send a JPG, PNG or MP4.'), downloading: T('Receiving {0}…', custom.name || T('photo')), processing: T('Preparing your background…'),
         unreadable: T('Couldn’t open that file. Send a JPG, PNG or MP4.'), unreachable: T('Couldn’t download the photo ({0}). Send it again.', custom.detail || '?'),
-        done: T('Done. Your picture is the background now.'), unsaved: T('Done for now, but the TV couldn’t store it for next time.')
+        done: T('Done. Your picture is the background now.'), nostill: T('Done. The TV couldn’t take a still from this video, so the glass uses a neutral tint.'), unsaved: T('Done for now, but the TV couldn’t store it for next time.')
       }[phase];
       // The sheet is rebuilt on every visit, so the drawn code belongs to the canvas, not the session.
       if (el.qr._payload !== url && window.qrcode) { drawQr(el.qr, url); el.qr._payload = url; }

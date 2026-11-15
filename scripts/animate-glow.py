@@ -1,7 +1,8 @@
 """Make a seamless, gently moving loop from a still picture with glowing light (aurora, sky glow).
 
 The bright, soft parts sway and shimmer; dark silhouettes such as trees stay still. Every motion
-is periodic over the clip, so the last frame meets the first. Output is H.264 MP4 for the TV,
+is periodic over the clip, so the last frame meets the first. Output is H.264 MP4 for the TV with
+the first frame embedded as cover art (Samsung TVs cannot read a frame back from video),
 sized to stay under ntfy.sh's 2 MB attachment limit for a 12-second 1080p clip.
 Usage: python3 scripts/animate-glow.py photo.jpg loop.mp4 [seconds=12]
 Environment: CRF (quality, default 26; lower is larger), W/H (output size), DITHER (default 0.5).
@@ -36,7 +37,7 @@ g2 = wave(-430, 1800, 2.1)
 def comb(w, k, phi): s, c = w; return s * np.cos(k * phi) + c * np.sin(k * phi)
 p = subprocess.Popen(['ffmpeg', '-v', 'error', '-y', '-f', 'rawvideo', '-pix_fmt', 'rgb24', '-s', f'{W}x{H}', '-r', str(FPS), '-i', '-',
     '-c:v', 'libx264', '-preset', 'veryslow', '-crf', CRF, '-x264-params', 'aq-mode=3:aq-strength=1.1:deblock=1,1', '-pix_fmt', 'yuv420p', '-profile:v', 'high', '-level', '4.1',
-    '-g', str(FPS * 2), '-movflags', '+faststart', '-an', out], stdin=subprocess.PIPE)
+    '-g', str(FPS * 2), '-an', out + '.video.mp4'], stdin=subprocess.PIPE)
 rng = np.random.default_rng(7); dither = (rng.random((H, W, 3), np.float32) - .5) / 255.0
 for f in range(N):
     phi = 2 * np.pi * f / N
@@ -51,4 +52,12 @@ for f in range(N):
     p.stdin.write((np.clip(frame, 0, 1) * 255 + .5).astype(np.uint8).tobytes())
     if f % 60 == 0: print('frame', f, '/', N, flush=True)
 p.stdin.close(); p.wait()
-Image.fromarray((base * 255).astype(np.uint8)).save(out.rsplit('.', 1)[0] + '-poster.jpg', quality=90)
+# Samsung TVs cannot copy a video frame to canvas, so the first frame travels inside the file as
+# MP4 cover art; Frame Home builds the photo and glass from it.
+poster = out + '.poster.jpg'
+Image.fromarray((base * 255).astype(np.uint8)).resize((1280, 720), Image.LANCZOS).save(poster, quality=82)
+subprocess.run(['ffmpeg', '-v', 'error', '-y', '-i', out + '.video.mp4', '-i', poster, '-map', '0:v', '-map', '1', '-c', 'copy',
+    '-disposition:v:1', 'attached_pic', '-movflags', '+faststart', out], check=True)
+import os
+os.remove(out + '.video.mp4'); os.remove(poster)
+print('Wrote', out, os.path.getsize(out), 'bytes')
