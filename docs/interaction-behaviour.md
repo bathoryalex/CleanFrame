@@ -12,7 +12,7 @@
 
 ## Settings and appearance
 
-Settings opens a grouped overview: Background, Layout, Typography, Focus, Apps on Home, Language and clock and Wifi QR code settings, followed by a Samsung Home row that opens Samsung's Home screen directly. OK opens a group. Appearance groups use a two-pane screen with visible choices on the left and the committed Home preview on the right.
+Settings opens a grouped overview of large cards in a 4 x 2 grid (each arrow moves to the neighbouring card; the Background card shows the current wallpaper and Typography previews the chosen font): Background, Layout, Typography, Focus, Apps on Home, Language and clock and Wifi QR code settings, followed by a Samsung Home row that opens Samsung's Home screen directly. OK opens a group. Appearance groups use a two-pane screen with visible choices on the left and the committed Home preview on the right.
 
 | Group | Choices |
 | --- | --- |

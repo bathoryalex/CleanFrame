@@ -447,6 +447,9 @@ try {
     await current.waitForFunction(() => /Waiting|Várakozás/.test(document.querySelector('.phone-status').textContent));
     await nav('ok');
     check('Closing returns to Background', (await state()).settingsGroup === 'background');
+    await act('background.custom');
+    check('Reopening still shows the QR code', await current.evaluate(() => { const c = document.querySelector('.phone-qr'), d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data; let dark = 0; for (let i = 0; i < d.length; i += 4) if (d[i] < 64) dark++; return dark > 5000; }));
+    await nav('ok');
     current.__relay = { id: 'Bg12Cd34Ef56', image: 'app/assets/wallpapers/golden.jpg', ready: () => true };
     await current.waitForFunction(() => ShoreQA.state().wall === 'custom' && ShoreQA.ready(), null, { timeout: 30000 });
     check('The TV keeps listening and applies the picture', (await state()).relaySince === 'Bg12Cd34Ef56');

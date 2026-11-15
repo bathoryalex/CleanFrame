@@ -4,7 +4,7 @@
 
   /* ---------- Bundled data ---------- */
   var ASSETS = 'assets/', ICONS = ASSETS + 'icons/', WP = ASSETS + 'wallpapers/';
-  var APP_VERSION = '0.8.3';
+  var APP_VERSION = '0.9.0';
   var CAP = 9, SCRIM_Y = 560;
   var DOCK_MODES = { both: { tw: 288, th: 200, pitch: 296 }, text: { tw: 288, th: 104, pitch: 296 }, icons: { tw: 176, th: 144, pitch: 184 } };
   var GRID_ROW = 240, GRID_COL = 344, COLS = 5;
@@ -41,7 +41,7 @@
   var KEY = 'cleanframe.home.v1', storageOk = true, catalog = { loading: false, loaded: false, error: null, request: 0, revision: 0 };
   /* Your picture: one wallpaper slot that a phone fills through an ntfy.sh topic (assets/custom-wallpaper.js). */
   var CUSTOM = 'custom', FCW = window.FrameCustomWallpaper, RELAY = (window.FrameFork && window.FrameFork.relay) || 'https://ntfy.sh';
-  var custom = { urls: null, stamp: 0, phase: 'idle', name: '', busy: false, queued: null, qr: '', link: 'idle', detail: '', relay: null };
+  var custom = { urls: null, stamp: 0, phase: 'idle', name: '', busy: false, queued: null, link: 'idle', detail: '', relay: null };
   function addCustomWall(tone) {
     var w = wall(CUSTOM);
     if (!w) { w = { id: CUSTOM, name: 'Your picture', ut: { tr: 'light', br: 'light' }, frostVeil: .2 }; WALLS.push(w); }
@@ -86,7 +86,10 @@
     updown: '<path d="m7.5 9.5 4.5-4.5 4.5 4.5M7.5 14.5l4.5 4.5 4.5-4.5"/>',
     tv: '<rect x="3" y="4.5" width="18" height="12" rx="2"/><path d="M8.5 20h7"/>',
     warn: '<path d="M12 4 2.8 19.5h18.4Z"/><path d="M12 10v4.5M12 17.3v.1"/>',
-    phone: '<rect x="7" y="2.8" width="10" height="18.4" rx="2.2"/><path d="M10.8 18h2.4"/>'
+    phone: '<rect x="7" y="2.8" width="10" height="18.4" rx="2.2"/><path d="M10.8 18h2.4"/>',
+    layout: '<rect x="3" y="4" width="18" height="16" rx="2.5"/><rect x="6" y="13" width="3.4" height="3.6" rx=".9"/><rect x="10.3" y="13" width="3.4" height="3.6" rx=".9"/><rect x="14.6" y="13" width="3.4" height="3.6" rx=".9"/>',
+    focus: '<path d="M4 9V6.5A2.5 2.5 0 0 1 6.5 4H9M15 4h2.5A2.5 2.5 0 0 1 20 6.5V9M20 15v2.5a2.5 2.5 0 0 1-2.5 2.5H15M9 20H6.5A2.5 2.5 0 0 1 4 17.5V15"/><rect x="8.5" y="8.5" width="7" height="7" rx="1.6"/>',
+    clock: '<circle cx="12" cy="12" r="8.5"/><path d="M12 7.2V12l3.2 2"/>'
   };
 
   /* ---------- State ---------- */
@@ -995,23 +998,27 @@
   function mode() { for (var i = 0; i < MODES.length; i++) if (MODES[i].id === S.c.mode) return MODES[i]; return MODES[0]; }
   function settingsRows() {
     var n = S.c.home.length;
-    return [{ id: 'background', label: T('Background'), value: S.c.bg === 'photo' ? T(wall(S.c.wall).name) : T(VALUE_NAMES[S.c.bg]) },
-      { id: 'layout', label: T('Layout'), value: T(VALUE_NAMES[S.c.layout]) },
-      { id: 'typography', label: T('Typography'), value: FONTS[S.c.font].name },
-      { id: 'focus', label: T('Focus'), value: T(VALUE_NAMES[S.c.focus]) + (materialApplies() ? ', ' + T(VALUE_NAMES[S.c.material]) : '') },
-      { id: 'editor', label: T('Apps on Home'), value: T(n === 1 ? '{0} app' : '{0} apps', n) },
-      { id: 'region', label: T('Language and clock'), value: PREF_NAMES[S.c.lang] + ', ' + T(PREF_NAMES[S.c.clock]) + (S.c.clockPos === 'corner' ? '' : ', ' + T(PREF_NAMES[S.c.clockPos])) },
-      { id: 'wifiqr', label: T('Wifi QR code settings'), value: wifiReady() ? S.c.wifiSsid : T('Not set') },
-      { id: 'samsung', label: T('Samsung Home'), value: T('Open Samsung’s Home screen'), direct: true }];
+    return [{ id: 'background', icon: 'art', label: T('Background'), value: S.c.bg === 'photo' ? T(wall(S.c.wall).name) : T(VALUE_NAMES[S.c.bg]) },
+      { id: 'layout', icon: 'layout', label: T('Layout'), value: T(VALUE_NAMES[S.c.layout]) },
+      { id: 'typography', icon: 'type', label: T('Typography'), value: FONTS[S.c.font].name },
+      { id: 'focus', icon: 'focus', label: T('Focus'), value: T(VALUE_NAMES[S.c.focus]) + (materialApplies() ? ', ' + T(VALUE_NAMES[S.c.material]) : '') },
+      { id: 'editor', icon: 'apps', label: T('Apps on Home'), value: T(n === 1 ? '{0} app' : '{0} apps', n) },
+      { id: 'region', icon: 'clock', label: T('Language and clock'), value: PREF_NAMES[S.c.lang] + ', ' + T(PREF_NAMES[S.c.clock]) + (S.c.clockPos === 'corner' ? '' : ', ' + T(PREF_NAMES[S.c.clockPos])) },
+      { id: 'wifiqr', icon: 'wifi', label: T('Wifi QR code settings'), value: wifiReady() ? S.c.wifiSsid : T('Not set') },
+      { id: 'samsung', icon: 'home', label: T('Samsung Home'), value: T('Leave Frame Home'), direct: true }];
   }
   function settingsIds() { return settingsRows().map(function (r) { return r.id; }); }
+  var SETTINGS_COLS = 4;
   V.settings = {
     sheet: true,
     norm: function (t) { var ids = settingsIds(); if (ids.indexOf(t.f.id) < 0) t.f.id = ids[0]; },
     key: function (t, k) {
-      var ids = settingsIds(), i = Math.max(0, ids.indexOf(t.f.id));
-      if (k === 'up' && i > 0) i--;
-      else if (k === 'down' && i < ids.length - 1) i++;
+      var ids = settingsIds(), i = Math.max(0, ids.indexOf(t.f.id)), col = i % SETTINGS_COLS;
+      // A 4 x 2 card grid: each arrow moves to the neighbouring card.
+      if (k === 'left' && col > 0) i--;
+      else if (k === 'right' && col < SETTINGS_COLS - 1 && i < ids.length - 1) i++;
+      else if (k === 'up' && i >= SETTINGS_COLS) i -= SETTINGS_COLS;
+      else if (k === 'down' && i + SETTINGS_COLS < ids.length) i += SETTINGS_COLS;
       else if (k === 'back') { pop(); return; }
       t.f.id = ids[i]; S.settingsFocus = ids[i];
       if (k === 'ok') settingsOk(ids[i]);
@@ -1946,7 +1953,7 @@
         + '<div class="ed-home" data-slot="home"></div><div class="ed-order-break" data-slot="break">' + T('Then scroll') + '</div><div class="ed-other-view" data-slot="ov"><div class="ed-other" data-slot="other"></div></div><div class="ed-origin" data-slot="origin"></div>'
         + '<div class="row-cue editor-before" data-slot="otherBefore" aria-hidden="true">' + icon('up') + '</div><div class="row-cue editor-after" data-slot="otherAfter" aria-hidden="true">' + icon('down') + '</div>';
     },
-    settings: function () { return '<h2 class="s-title">' + T('Settings') + '</h2><div class="settings-overview" data-slot="list"></div><p class="settings-overview-hint"><span class="remote-key">OK</span><span data-slot="hint"></span></p>'; },
+    settings: function () { return '<h2 class="s-title">' + T('Settings') + '</h2><div class="settings-grid" data-slot="list"></div><p class="settings-overview-hint"><span class="remote-key">OK</span><span data-slot="hint"></span></p>'; },
     message: function (t) {
       var m = messageContent(t);
       return '<h2 class="msg-title">' + esc(T(m.title)) + '</h2><p class="msg-line">' + esc(T(m.line)) + '</p><p class="msg-note">' + esc(T(m.note)) + '</p><div class="msg-acts" data-slot="acts"></div>';
@@ -2051,7 +2058,13 @@
     settings: function (t, el) {
       var html = '';
       settingsRows().forEach(function (r) {
-        html += '<button type="button" tabindex="-1" class="settings-group' + (r.id === t.f.id ? ' is-focus' : '') + '" data-z="row" data-i="0" data-id="' + r.id + '" data-action="settings.' + (r.id === 'editor' ? 'editor' : r.direct ? 'samsung-home' : 'group.' + r.id) + '"><span class="settings-group-copy"><span class="settings-group-name">' + esc(r.label) + '</span><span class="settings-group-value">' + esc(r.value) + '</span></span>' + icon(r.direct ? 'home' : 'right') + '</button>';
+        var visual;
+        if (r.id === 'background') visual = S.c.bg === 'photo' ? '<img class="card-photo" src="' + esc(wallAsset(S.c.wall, 'thumb')) + '" alt="">' : '<span class="card-photo card-flat-' + S.c.bg + '"></span>';
+        else if (r.id === 'typography') visual = '<span class="card-chip card-type" style="font-family:\'' + FONTS[S.c.font].family + '\',Manrope,sans-serif">Aa</span>';
+        else visual = '<span class="card-chip">' + icon(r.icon) + '</span>';
+        html += '<button type="button" tabindex="-1" class="settings-card card-' + r.id + (r.id === t.f.id ? ' is-focus' : '') + (r.direct ? ' is-direct' : '') + '" data-z="row" data-i="0" data-id="' + r.id + '" data-action="settings.' + (r.id === 'editor' ? 'editor' : r.direct ? 'samsung-home' : 'group.' + r.id) + '" aria-label="' + esc(r.label + ', ' + r.value) + '">'
+          + '<span class="card-visual">' + visual + '</span><span class="card-copy"><span class="card-name">' + esc(r.label) + '</span><span class="card-value">' + esc(r.value) + '</span></span>'
+          + (r.direct ? '<span class="card-go">' + icon('right') + '</span>' : '') + '</button>';
       });
       setHTML(el.list, html);
       setHTML(el.hint, T(t.f.id === 'samsung' ? 'Open Samsung’s Home screen' : 'Open selected group'));
@@ -2068,7 +2081,8 @@
         unreadable: T('Couldn’t open that picture. Send a JPG or PNG.'), unreachable: T('Couldn’t download the photo ({0}). Send it again.', custom.detail || '?'),
         done: T('Done. Your picture is the background now.'), unsaved: T('Done for now, but the TV couldn’t store it for next time.')
       }[phase];
-      if (custom.qr !== url && window.qrcode) { drawQr(el.qr, url); custom.qr = url; }
+      // The sheet is rebuilt on every visit, so the drawn code belongs to the canvas, not the session.
+      if (el.qr._payload !== url && window.qrcode) { drawQr(el.qr, url); el.qr._payload = url; }
       setHTML(el.url, esc(url.replace(/^https:\/\//, '')));
       setHTML(el.status, '<span class="phone-dot is-' + phase + '"></span>' + esc(text));
       setHTML(el.acts, '<button type="button" tabindex="-1" class="btn is-focus" data-z="act" data-i="0" data-action="phone.done"><span>' + T(custom.phase === 'done' ? 'Done' : 'Close') + '</span></button>');

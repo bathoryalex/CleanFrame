@@ -305,19 +305,6 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000}
 .f-type .sheet .sc.is-lifted .panel-content,.f-type .sheet .er.is-lifted .panel-content{transform:none}
 
 /* Settings overview: each group carries one short, committed summary. */
-.settings-overview{position:absolute;left:112px;top:184px;width:1056px;bottom:80px;overflow:hidden}
-.settings-group{width:100%;height:112px;padding:12px 32px 12px 28px;border-radius:20px;display:flex;align-items:center;justify-content:space-between;gap:32px;color:var(--ink);transition:background-color 140ms linear,color 140ms linear}
-.settings-overview .settings-group{height:94px;padding:6px 32px 6px 28px}
-.settings-overview .settings-group-copy{gap:2px}
-.settings-overview .settings-group-name{font-size:38px;line-height:46px}
-.settings-group+.settings-group{margin-top:8px}
-.settings-overview .settings-group+.settings-group{margin-top:6px}
-.settings-group-copy{min-width:0;display:flex;flex-direction:column;gap:4px}
-.settings-group-name{font-size:40px;line-height:48px;font-weight:500;letter-spacing:-.6px}
-.settings-group-value{font-size:26px;line-height:34px;color:var(--mute);white-space:nowrap}
-.settings-group>.ico{width:30px;height:30px;color:var(--mute)}
-.settings-group.is-focus{background:var(--solid);color:var(--solid-ink)}
-.settings-group.is-focus .settings-group-value,.settings-group.is-focus>.ico{color:var(--solid-mute)}
 .settings-overview-hint{position:absolute;left:140px;bottom:36px;display:flex;align-items:center;gap:16px;font-size:26px;line-height:36px;color:var(--mute);pointer-events:none}
 .remote-key{display:inline-flex;align-items:center;justify-content:center;min-width:48px;height:34px;padding:0 10px;border:1.5px solid currentColor;border-radius:17px;font-size:21px;line-height:28px;font-weight:600;letter-spacing:0}
 .lay-note{position:absolute;left:140px;top:608px;max-width:1040px;font-size:30px;line-height:42px;font-weight:500;color:var(--mute)}
@@ -541,7 +528,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000}
 .settings-status{position:absolute;left:858px;top:842px;width:922px;font-size:26px;line-height:36px;color:var(--mute);pointer-events:auto}
 .settings-status .setting-error{max-width:840px;color:var(--warn)}
 .setting-choice.setting-retry{width:auto;min-height:60px;margin-top:16px;padding:10px 24px;font-size:28px;line-height:36px;border-radius:16px}
-.setting-choice:focus-visible,.settings-group:focus-visible{outline:2px solid currentColor;outline-offset:3px}
+.setting-choice:focus-visible,.settings-card:focus-visible{outline:2px solid currentColor;outline-offset:3px}
 .wallpaper-picker{top:260px}
 .wallpaper-list{position:relative;width:640px;height:552px;overflow:hidden}
 .wallpaper-rows{position:absolute;left:0;top:0;width:640px;transition:transform 160ms var(--ease)}
@@ -697,3 +684,28 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000}
 @media(prefers-reduced-motion:reduce){.phone-dot{animation:none!important}}
 .setting-phone{display:flex;align-items:center;justify-content:center;background:none!important}
 .setting-phone .ico{width:34px;height:34px;stroke-width:1.6}
+
+/* Settings overview: a 4 x 2 grid of large cards inside the TV safe area. Every arrow lands
+   on a neighbour; the focused card lifts with the solid plate used across the interface. */
+.settings-grid{position:absolute;left:140px;top:196px;width:1640px;display:grid;grid-template-columns:repeat(4,386px);grid-auto-rows:328px;gap:32px 32px}
+.settings-card{position:relative;display:flex;flex-direction:column;justify-content:space-between;padding:28px 28px 26px;border-radius:32px;background:rgba(255,255,255,.075);box-shadow:inset 0 1px 0 rgba(255,255,255,.10),inset 0 0 0 1px rgba(255,255,255,.05);color:var(--ink);overflow:hidden;transform:translateZ(0);transition:transform 180ms var(--ease),background-color 140ms linear,box-shadow 180ms var(--ease),color 140ms linear}
+.bg-light .settings-card{background:rgba(29,26,22,.05);box-shadow:inset 0 0 0 1px rgba(29,26,22,.06)}
+.settings-card.is-focus{background:var(--solid);color:var(--solid-ink);transform:scale(1.045);box-shadow:0 22px 56px rgba(4,8,10,.38)}
+.card-visual{display:block}
+.card-chip{display:flex;align-items:center;justify-content:center;width:88px;height:88px;border-radius:26px;background:rgba(255,255,255,.10)}
+.bg-light .card-chip{background:rgba(29,26,22,.07)}
+.settings-card.is-focus .card-chip{background:rgba(20,22,24,.08)}
+.bg-light .settings-card.is-focus .card-chip{background:rgba(242,239,232,.14)}
+.card-chip .ico{width:46px;height:46px;stroke-width:1.6}
+.card-type{font-size:44px;line-height:1;font-weight:500;letter-spacing:-1px}
+.card-photo{display:block;width:100%;height:120px;border-radius:20px;object-fit:cover;box-shadow:0 6px 18px rgba(4,8,10,.22)}
+.card-flat-light{background:#f2efe8;box-shadow:inset 0 0 0 1px rgba(29,26,22,.12)}
+.card-flat-dark{background:#15191b;box-shadow:inset 0 0 0 1px rgba(255,255,255,.10)}
+.card-copy{display:flex;flex-direction:column;gap:6px;min-width:0}
+.card-name{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;font-size:36px;line-height:42px;font-weight:500;letter-spacing:-.6px;overflow:hidden}
+.card-value{font-size:26px;line-height:34px;color:var(--mute);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.settings-card.is-focus .card-value{color:var(--solid-mute)}
+.card-go{position:absolute;right:26px;top:30px;opacity:.6}
+.card-go .ico{width:34px;height:34px}
+.settings-card.is-direct .card-chip{border-radius:50%}
+@media(prefers-reduced-motion:reduce){.settings-card{transition:background-color 120ms linear,color 120ms linear}.settings-card.is-focus{transform:none}}

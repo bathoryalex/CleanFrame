@@ -28,6 +28,7 @@ window.CleanFrameI18n = {
     'Open Samsung Home?': 'Megnyitod a Samsung kezdőképernyőjét?',
     'Stay': 'Maradok',
     'Samsung Home': 'Samsung Kezdőlap',
+    'Leave Frame Home': 'Kilépés a Frame Home-ból',
     'Back': 'Vissza',
     'Close': 'Bezárás',
     'Open Settings': 'Beállítások megnyitása',
