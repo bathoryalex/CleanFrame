@@ -16,7 +16,7 @@ Settings opens a grouped overview: Background, Layout, Typography, Focus, Apps o
 
 | Group | Choices |
 | --- | --- |
-| Background | Photo, Light, Dark; Wallpaper and Rotation when Photo is active |
+| Background | Photo, Light, Dark; Wallpaper and Rotation when Photo is active; Picture from phone |
 | Layout | List or Dock; independent Text, Icons or Both choices for apps and Home controls |
 | Typography | Manrope, Neue Montreal, Mori, Pangram Sans, Geist and Newsreader, when available |
 | Focus | Type or Glass; Soft, Frost or Clear tint material |
@@ -82,6 +82,10 @@ Launcher wallpaper is separate from native Art Mode. Runtime photos, materials a
 The native Home operation and startup configuration from 19 October remain separate from this app update. Home from Netflix was confirmed for that configuration; power-on after Netflix remains provisional. Streaming apps retain their own Back navigation. Netflix did not exit on repeated Back in the observed test, so there was no app-exit destination to verify. No global Back interception or key-filter hook was installed. See [TV status](tv-status.md) for device evidence; this behaviour specification is not an installation or visual-verification record for 0.6.0.
 
 ## Clock and rendering
+
+## Your picture
+
+Background → Picture from phone shows a QR code for a private ntfy.sh channel (`framehome-` plus 20 random characters, created on the TV and kept in its preferences). The phone opens the channel's web page, attaches a photo and sends it. While this screen is open the TV polls the channel every three seconds. When an image attachment arrives the TV downloads it, crops it to 16:9 from the centre, and once prepares the same files a bundled wallpaper has: photo, thumbnail, panel backdrop and the four glass materials (the recipe from `scripts/build-materials.mjs`, blurred layers at half resolution). The files are stored in IndexedDB and appear as "Your picture" at the end of the wallpaper list; a new photo replaces the previous one. Non-image files and pictures the TV cannot decode (for example HEIC) are reported and leave the background unchanged. The relay host is `relay` in `app/fork.js`.
 
 Both layouts show the TV's local time in 24-hour format by default, or 12-hour with AM/PM (Hungarian: de./du. before the time). It updates at the minute boundary and on return to the launcher. No date or clock panel is shown.
 

@@ -4,7 +4,7 @@
 
   /* ---------- Bundled data ---------- */
   var ASSETS = 'assets/', ICONS = ASSETS + 'icons/', WP = ASSETS + 'wallpapers/';
-  var APP_VERSION = '0.7.1';
+  var APP_VERSION = '0.8.0';
   var CAP = 9, SCRIM_Y = 560;
   var DOCK_MODES = { both: { tw: 288, th: 200, pitch: 296 }, text: { tw: 288, th: 104, pitch: 296 }, icons: { tw: 176, th: 144, pitch: 184 } };
   var GRID_ROW = 240, GRID_COL = 344, COLS = 5;
@@ -39,6 +39,16 @@
     { id: '60', name: 'Every hour', min: 60 }
   ];
   var KEY = 'cleanframe.home.v1', storageOk = true, catalog = { loading: false, loaded: false, error: null, request: 0, revision: 0 };
+  /* Your picture: one wallpaper slot that a phone fills through an ntfy.sh topic (assets/custom-wallpaper.js). */
+  var CUSTOM = 'custom', FCW = window.FrameCustomWallpaper, RELAY = (window.FrameFork && window.FrameFork.relay) || 'https://ntfy.sh';
+  var custom = { urls: null, stamp: 0, phase: 'waiting', name: '', timer: 0, busy: false, qr: '' };
+  function addCustomWall(tone) {
+    var w = wall(CUSTOM);
+    if (!w) { w = { id: CUSTOM, name: 'Your picture', ut: { tr: 'light', br: 'light' }, frostVeil: .2 }; WALLS.push(w); }
+    w.tone = tone === 'light' ? 'light' : 'dark';
+  }
+  // The slot joins the gallery before preferences are read, so a saved choice of it survives.
+  (function () { try { var saved = JSON.parse(localStorage.getItem(KEY) || 'null'); if (FCW && saved && saved.customAt) addCustomWall(saved.customTone); } catch (e) { /* none saved */ } }());
   var QA = window.ShoreQA = { minuteMs: window.ShoreQA && window.ShoreQA.minuteMs || 60000 };
   var FONTS = {
     manrope: { name: 'Manrope', family: 'Manrope', display: 600, ui: 500, clock: 500 },
@@ -75,7 +85,8 @@
     down: '<path d="m5 8.5 7 7 7-7"/>',
     updown: '<path d="m7.5 9.5 4.5-4.5 4.5 4.5M7.5 14.5l4.5 4.5 4.5-4.5"/>',
     tv: '<rect x="3" y="4.5" width="18" height="12" rx="2"/><path d="M8.5 20h7"/>',
-    warn: '<path d="M12 4 2.8 19.5h18.4Z"/><path d="M12 10v4.5M12 17.3v.1"/>'
+    warn: '<path d="M12 4 2.8 19.5h18.4Z"/><path d="M12 10v4.5M12 17.3v.1"/>',
+    phone: '<rect x="7" y="2.8" width="10" height="18.4" rx="2.2"/><path d="M10.8 18h2.4"/>'
   };
 
   /* ---------- State ---------- */
@@ -449,7 +460,9 @@
       wifiSsid: typeof s.wifiSsid === 'string' ? s.wifiSsid.slice(0, 32) : '',
       wifiPass: typeof s.wifiPass === 'string' ? s.wifiPass.slice(0, 63) : '',
       wifiSec: s.wifiSec === 'nopass' ? 'nopass' : 'WPA',
-      lang: pick(s.lang, PREF_VALUES.lang, 'en'), clock: pick(s.clock, PREF_VALUES.clock, '24'), clockPos: pick(s.clockPos, PREF_VALUES.clockPos, 'corner'), weather: pick(s.weather, PREF_VALUES.weather, 'day')
+      lang: pick(s.lang, PREF_VALUES.lang, 'en'), clock: pick(s.clock, PREF_VALUES.clock, '24'), clockPos: pick(s.clockPos, PREF_VALUES.clockPos, 'corner'), weather: pick(s.weather, PREF_VALUES.weather, 'day'),
+      customAt: typeof s.customAt === 'number' && wall(CUSTOM) ? s.customAt : 0, customTone: s.customTone === 'light' ? 'light' : 'dark',
+      relayTopic: safeId(s.relayTopic) ? s.relayTopic : '', relayAt: typeof s.relayAt === 'number' ? s.relayAt : 0, relaySince: safeId(s.relaySince) ? s.relaySince : ''
     };
   }
   function serialise(c) {
@@ -488,6 +501,7 @@
     c.home = home; c.recent = recent; c.lastApp = S.c.lastApp; c.mode = S.c.mode;
     c.wifiSsid = S.c.wifiSsid; c.wifiPass = S.c.wifiPass; c.wifiSec = S.c.wifiSec;
     c.lang = S.c.lang; c.clock = S.c.clock; c.clockPos = S.c.clockPos; c.weather = S.c.weather;
+    c.customAt = S.c.customAt; c.customTone = S.c.customTone; c.relayTopic = S.c.relayTopic; c.relayAt = S.c.relayAt; c.relaySince = S.c.relaySince;
     return c;
   }
   function snap() { return { home: S.c.home.slice(), recent: S.c.recent.slice() }; }
@@ -1018,7 +1032,8 @@
     function options(axis, values, disabled) { return values.map(function (value) { return choice(axis, value, disabled); }); }
     if (t.group === 'background') return [
       { id: 'bg', title: T('Background type'), items: options('bg', ['photo', 'light', 'dark']) },
-      { id: 'wall', title: T('Wallpaper'), items: [{ action: 'background.wallpaper', label: T(wall(S.c.wall).name), thumbnail: true, disabled: flat }] },
+      { id: 'wall', title: T('Wallpaper'), items: [{ action: 'background.wallpaper', label: T(wall(S.c.wall).name), thumbnail: true, disabled: flat }]
+        .concat(FCW ? [{ action: 'background.custom', label: T('Picture from phone'), phone: true }] : []) },
       { id: 'rotation', title: T('Rotation'), items: [{ action: 'background.rotation', label: T(mode().name), disabled: flat }], reason: flat ? T('Choose Photo to use wallpaper and rotation.') : '' }
     ];
     if (t.group === 'layout') return [
@@ -1110,6 +1125,7 @@
     else if (item.axis) { patch[item.axis] = item.value; setLook(patch, { row: item.axis }); }
     else if (item.action === 'background.wallpaper') openWallpaper();
     else if (item.action === 'background.rotation') openAppearance('rotation');
+    else if (item.action === 'background.custom') openPhone();
     else if (item.action === 'wifi.edit.ssid') openWifiField('ssid');
     else if (item.action === 'wifi.edit.pass') openWifiField('pass');
     else if (item.action === 'samsung.home') perform('Samsung Home', FrameDevice.home);
@@ -1168,6 +1184,77 @@
       }
     },
     point: function (t, z, i) { if (z === 'act') { t.f.b = i; this.key(t, 'ok'); } }
+  };
+  /* ---------- Your picture: receive a photo from a phone ---------- */
+  function relaySince() { return S.c.relaySince || String(S.c.relayAt || Math.floor(Date.now() / 1000) - 600); }
+  function savePrefs(patch, label) {
+    var c = next(S.c.home.slice(), S.c.recent.slice()), k;
+    for (k in patch) if (patch.hasOwnProperty(k)) c[k] = patch[k];
+    return write(c, label);
+  }
+  function openPhone() {
+    if (!S.c.relayTopic && !savePrefs({ relayTopic: FCW.randomTopic(), relayAt: Math.floor(Date.now() / 1000) - 60, relaySince: '' }, 'Picture channel')) return;
+    custom.phase = 'waiting'; custom.name = '';
+    push({ id: 'phone', f: { b: 0 } });
+    pollPhone();
+  }
+  function closePhone() { clearTimeout(custom.timer); custom.timer = 0; pop(); }
+  function phoneView() { return top().id === 'phone'; }
+  function pollPhone() {
+    clearTimeout(custom.timer); custom.timer = 0;
+    if (!phoneView() || custom.busy) return;
+    FCW.poll(RELAY, S.c.relayTopic, relaySince(), function (err, result) {
+      if (!phoneView() || custom.busy) return;
+      if (err) custom.phase = 'offline';
+      else if (result.message) receivePicture(result.message);
+      else if (custom.phase === 'offline') custom.phase = 'waiting';
+      if (!custom.busy) custom.timer = setTimeout(pollPhone, 3000);
+      render();
+    });
+  }
+  function receivePicture(message) {
+    var attachment = message.attachment;
+    savePrefs({ relaySince: safeId(message.id) ? message.id : S.c.relaySince }, 'Picture received');
+    if (!FCW.isImage(attachment)) { custom.phase = 'notimage'; return; }
+    custom.busy = true; custom.phase = 'downloading'; custom.name = String(attachment.name || '').slice(0, 80);
+    FCW.download(attachment.url, function (err, image) {
+      if (err) { custom.busy = false; custom.phase = 'unreadable'; render(); pollPhone(); return; }
+      custom.phase = 'processing'; render();
+      // Let the status paint before the one-time image work starts.
+      setTimeout(function () {
+        FCW.processImage(image, function (failure, record) {
+          if (failure) { custom.busy = false; custom.phase = 'unreadable'; render(); pollPhone(); return; }
+          FCW.save(record, function (stored) {
+            installCustom(record);
+            savePrefs({ customAt: record.stamp, customTone: record.tone }, 'Your picture');
+            custom.busy = false; custom.phase = stored ? 'done' : 'unsaved';
+            setLook({ bg: 'photo', wall: CUSTOM }, { row: 'bg', reload: true });
+            render(); pollPhone();
+          });
+        });
+      }, 60);
+    });
+  }
+  function installCustom(record) {
+    var old = custom.urls;
+    custom.urls = FCW.urls(record); custom.stamp = record.stamp;
+    addCustomWall(record.tone);
+    if (old) setTimeout(function () { Object.keys(old).forEach(function (k) { URL.revokeObjectURL(old[k]); }); }, 5000);
+  }
+  function loadCustom(done) {
+    var finished = false, timer = setTimeout(function () { finish(null); }, 4000);
+    function finish(record) {
+      if (finished) return; finished = true; clearTimeout(timer);
+      if (record) installCustom(record);
+      else if (S.c.wall === CUSTOM) S.c.wall = WALLS[0].id;
+      done();
+    }
+    FCW.load(finish);
+  }
+  V.phone = {
+    sheet: true,
+    key: function (t, k) { if (k === 'back' || k === 'ok') closePhone(); },
+    point: function (t, z) { if (z === 'act') closePhone(); }
   };
   V.wifiqr = {
     sheet: false,
@@ -1281,6 +1368,12 @@
     renderFocusStatus(t);
   }
 
+  function drawQr(target, payload) {
+    var qr = qrcode(0, 'M'), n, cell, ctx = target.getContext('2d'), size = target.width, r, c;
+    qr.addData(payload); qr.make(); n = qr.getModuleCount(); cell = size / (n + 8);
+    ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, size, size); ctx.fillStyle = '#0e0a06';
+    for (r = 0; r < n; r++) for (c = 0; c < n; c++) if (qr.isDark(r, c)) ctx.fillRect((c + 4) * cell, (r + 4) * cell, Math.ceil(cell), Math.ceil(cell));
+  }
   /* The QR code is drawn once per network payload, ahead of time, so opening the overlay
      only changes opacity and transform. */
   var wifiQrDrawn = '';
@@ -1732,9 +1825,10 @@
         + '<div class="setting-options"' + (section.items[0].axis ? ' role="radiogroup" aria-label="' + esc(section.title || T(LOOK_NAMES[section.id] || DETAIL_NAMES[t.group])) + '"' : '') + '>'
         + section.items.map(function (item) {
           var swatch = item.axis === 'bg', body = '';
+          if (item.phone) body += '<span class="setting-swatch setting-phone" aria-hidden="true">' + icon('phone') + '</span>';
           if (swatch || item.thumbnail) body += item.value === 'light' || item.value === 'dark'
             ? '<span class="setting-swatch swatch-' + item.value + '" aria-hidden="true"></span>'
-            : '<img class="setting-swatch" src="' + WP + S.c.wall + '-thumb.jpg" alt="">';
+            : '<img class="setting-swatch" src="' + esc(wallAsset(S.c.wall, 'thumb')) + '" alt="">';
           body += '<span class="setting-copy"><span class="setting-name">' + esc(item.label) + '</span>'
             + (item.description ? '<span class="setting-description">' + esc(item.description) + '</span>' : '') + '</span>';
           if (!item.axis) body += icon('right', 'setting-forward');
@@ -1748,7 +1842,7 @@
         + command({ action: 'settings.retry', label: T('Try again') }, '<span>' + T('Try again') + '</span>', 'setting-retry');
     }
     setHTML(appearanceStatus, status);
-    hint = selected.disabled ? '' : selected.action === 'settings.back' ? T('Return to {0}', T(t.group === 'rotation' ? 'Background' : 'Settings')) : T(selected.action === 'settings.retry' ? 'Retry this change' : selected.axis ? 'Apply selected setting' : selected.action === 'background.wallpaper' ? 'Choose a wallpaper' : selected.action === 'background.rotation' ? 'Choose a rotation interval' : 'Open on the TV');
+    hint = selected.disabled ? '' : selected.action === 'settings.back' ? T('Return to {0}', T(t.group === 'rotation' ? 'Background' : 'Settings')) : T(selected.action === 'settings.retry' ? 'Retry this change' : selected.axis ? 'Apply selected setting' : selected.action === 'background.wallpaper' ? 'Choose a wallpaper' : selected.action === 'background.rotation' ? 'Choose a rotation interval' : selected.action === 'background.custom' ? 'Show the QR code' : 'Open on the TV');
     setHTML(appearanceDesc, hint ? '<span class="remote-key">OK</span><span>' + esc(hint) + '</span>' : '');
   }
   function renderWallpaper(t) {
@@ -1761,7 +1855,7 @@
     var rows = appearanceRows.querySelector('.wallpaper-rows'), shown = wall(S.wallShown) || wall(S.c.wall), candidate = WALLS[t.i], status, note, hint;
     keyed(rows, WALLS.map(function (w) { return { key: w.id, wall: w }; }), function (row, item, i) {
       var visible = i >= t.top && i < t.top + WALL_VISIBLE, w = item.wall, image;
-      setContent(row, w.id + '|' + visible, '<span class="wallpaper-thumb">' + (visible ? '<img src="' + WP + w.id + '-thumb.jpg" alt="">' : '') + '</span><span class="setting-copy"><span class="setting-name">' + esc(T(w.name)) + '</span></span><span class="setting-tick" aria-hidden="true"></span>');
+      setContent(row, w.id + '|' + visible + '|' + (w.id === CUSTOM ? custom.stamp : ''), '<span class="wallpaper-thumb">' + (visible ? '<img src="' + esc(wallAsset(w.id, 'thumb')) + '" alt="">' : '') + '</span><span class="setting-copy"><span class="setting-name">' + esc(T(w.name)) + '</span></span><span class="setting-tick" aria-hidden="true"></span>');
       row.className = 'setting-choice wallpaper-choice' + (t.f.zone === 'photo' && t.i === i ? ' is-focus' : '') + (w.id === S.c.wall ? ' is-applied' : '');
       row.style.transform = 'translate3d(0,' + (i * WALL_ROW) + 'px,0)'; row.style.visibility = visible ? 'visible' : 'hidden';
       row.setAttribute('role', 'radio'); row.setAttribute('tabindex', '-1'); row.setAttribute('aria-label', T(w.name));
@@ -1846,6 +1940,13 @@
     message: function (t) {
       var m = messageContent(t);
       return '<h2 class="msg-title">' + esc(T(m.title)) + '</h2><p class="msg-line">' + esc(T(m.line)) + '</p><p class="msg-note">' + esc(T(m.note)) + '</p><div class="msg-acts" data-slot="acts"></div>';
+    },
+    phone: function () {
+      return '<div class="phone-panel"><h2 class="s-title">' + T('Your picture') + '</h2>'
+        + '<div class="phone-body"><div class="phone-qr-card"><canvas class="phone-qr" width="360" height="360" data-slot="qr"></canvas><p class="phone-url" data-slot="url"></p></div>'
+        + '<div class="phone-copy"><ol class="phone-steps"><li>' + T('Scan the code with your phone.') + '</li><li>' + T('On the page that opens, tap the paperclip and choose a photo.') + '</li><li>' + T('Send it. The TV sets it as your background in a few seconds.') + '</li></ol>'
+        + '<p class="phone-status" data-slot="status" aria-live="polite"></p><p class="phone-note">' + T('The photo passes through ntfy.sh on a private channel and is deleted there after a few hours. The TV keeps its own copy.') + '</p>'
+        + '<div class="phone-acts" data-slot="acts"></div></div></div></div>';
     },
     wifitype: function () {
       return '<div class="wifi-field-panel"><h2 class="s-title" data-slot="title"></h2><p class="wifi-field-value" data-slot="value"></p><div class="wifi-char-row" data-slot="chars"></div><div class="wifi-field-actions" data-slot="acts"></div></div>';
@@ -1948,6 +2049,17 @@
         return '<button type="button" tabindex="-1" class="btn' + (i === t.f.b ? ' is-focus' : '') + '" data-z="act" data-i="' + i + '" data-action="message.' + a[0] + '"><span>' + esc(T(a[1])) + '</span></button>';
       }).join(''));
     },
+    phone: function (t, el) {
+      var url = RELAY + '/' + S.c.relayTopic, text = {
+        waiting: T('Waiting for a photo…'), offline: T('Can’t reach ntfy.sh. Trying again…'), notimage: T('That file isn’t a picture. Send a JPG or PNG.'),
+        downloading: T('Receiving {0}…', custom.name || T('photo')), processing: T('Preparing your background…'),
+        unreadable: T('Couldn’t open that picture. Send a JPG or PNG.'), done: T('Done. Your picture is the background now.'), unsaved: T('Done for now, but the TV couldn’t store it for next time.')
+      }[custom.phase];
+      if (custom.qr !== url && window.qrcode) { drawQr(el.qr, url); custom.qr = url; }
+      setHTML(el.url, esc(url.replace(/^https:\/\//, '')));
+      setHTML(el.status, '<span class="phone-dot is-' + custom.phase + '"></span>' + esc(text));
+      setHTML(el.acts, '<button type="button" tabindex="-1" class="btn is-focus" data-z="act" data-i="0" data-action="phone.done"><span>' + T(custom.phase === 'done' ? 'Done' : 'Close') + '</span></button>');
+    },
     wifitype: function (t, el) {
       var f = t.f, chars = '', acts = [T('Delete last'), T('Save'), T('Cancel')], i;
       setHTML(el.title, T(t.field === 'ssid' ? 'Network name' : 'Password'));
@@ -1963,11 +2075,18 @@
   /* ---------- Atomic appearance bundles ---------- */
   var wallToken = 0, committedBundle = null, reflowToken = 0, fontSwitchToken = 0;
   function registeredMaterial(id) { return S.c.bg === 'photo' && S.c.material === 'soft' && !!wall(id); }
-  function matSrc(id, material) { return 'assets/materials/' + id + (material === 'soft' ? '-study-soft.jpg' : material === 'tint' ? '-field-clear.jpg' : '-field-frost.jpg'); }
-  function fieldSrc(id, material) { return 'assets/materials/' + id + (material === 'soft' ? '-field-blur.jpg' : material === 'tint' ? '-field-clear.jpg' : '-field-frost.jpg'); }
+  /* Bundled wallpapers are files; Your picture is a set of object URLs made on the TV. */
+  function wallAsset(id, kind) {
+    if (id === CUSTOM) return custom.urls && custom.urls[kind] || '';
+    if (kind === 'photo') return WP + id + '.jpg';
+    if (kind === 'thumb' || kind === 'panel') return WP + id + '-' + kind + '.jpg';
+    return 'assets/materials/' + id + '-' + kind + '.jpg';
+  }
+  function matSrc(id, material) { return wallAsset(id, material === 'soft' ? 'study-soft' : material === 'tint' ? 'field-clear' : 'field-frost'); }
+  function fieldSrc(id, material) { return wallAsset(id, material === 'soft' ? 'field-blur' : material === 'tint' ? 'field-clear' : 'field-frost'); }
   function makeImg(cls, src, key) {
     var im = document.createElement('img'); im.className = cls; im.alt = ''; im._src = src;
-    im.src = key ? src + (src.indexOf('?') >= 0 ? '&' : '?') + 'cf=' + encodeURIComponent(key) : src;
+    im.src = key && !/^(?:blob|data):/.test(src) ? src + (src.indexOf('?') >= 0 ? '&' : '?') + 'cf=' + encodeURIComponent(key) : src;
     return im;
   }
   function whenReady(im, done) {
@@ -1978,9 +2097,9 @@
     else { im.onload = ready; im.onerror = function () { finish(false); }; }
   }
   function swapImg(k, im) { var old = IMG[k]; if (old === im) return; im.style.cssText = old.style.cssText; if (old.id) im.id = old.id; old.parentNode.replaceChild(im, old); IMG[k] = im; }
-  function bundleKey(look) { return look.wall + '|' + look.material; }
+  function bundleKey(look) { return look.wall + '|' + look.material + (look.wall === CUSTOM ? '|' + custom.stamp : ''); }
   function loadBundle(look, token, done) {
-    var key = bundleKey(look), imgs = { photo: makeImg('photo', WP + look.wall + '.jpg', key), bg: makeImg('sheet-bg', WP + look.wall + '-panel.jpg', key) }, keys, left, allOk = true;
+    var key = bundleKey(look), imgs = { photo: makeImg('photo', wallAsset(look.wall, 'photo'), key), bg: makeImg('sheet-bg', wallAsset(look.wall, 'panel'), key) }, keys, left, allOk = true;
     imgs.mat = makeImg('mat-img', matSrc(look.wall, look.material), key);
     imgs.field = makeImg('ph-field-img', fieldSrc(look.wall, look.material), key);
     imgs.fieldAlt = makeImg('ph-field-img', fieldSrc(look.wall, look.material), key);
@@ -2053,7 +2172,7 @@
       if (!imageDone || !fontDone || failed || token !== wallToken) return;
       window.requestAnimationFrame(function () { if (!failed && token === wallToken) finish(loadedBundle); });
     }
-    needs = target.bg === 'photo' && S.bundleKey !== bundleKey(target) && (!S.shown || S.shown.bg !== 'photo' || target.wall !== S.c.wall || materialApplies(target));
+    needs = target.bg === 'photo' && S.bundleKey !== bundleKey(target) && (opts.reload || !S.shown || S.shown.bg !== 'photo' || target.wall !== S.c.wall || materialApplies(target));
     needsFont = !fontMetrics[target.font]; imageDone = !needs; fontDone = !needsFont;
     if (!needs && !needsFont) { finish(null); return; }
     S.pending = { patch: changes, target: target, row: opts.row || (needsFont ? 'font' : S.appearanceFocus), transient: !!opts.transient, preview: false };
@@ -2251,7 +2370,10 @@
   initialise();
   applyLanguage();
   showBuildVersion();
-  setLook({}, { transient: true, startup: true });
-  norm(); render(); fit(); focusStage(); updateClock(); syncRotation();
-  refreshWeather(function () { render(); syncRotation(); });
+  function start() {
+    setLook({}, { transient: true, startup: true });
+    norm(); render(); fit(); focusStage(); updateClock(); syncRotation();
+    refreshWeather(function () { render(); syncRotation(); });
+  }
+  if (FCW && S.c.customAt) loadCustom(start); else start();
 })();

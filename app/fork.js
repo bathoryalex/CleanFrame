@@ -22,6 +22,9 @@ window.FrameFork = {
     { id: 'browser', name: 'Internet', brand: 'browser', appId: 'org.tizen.browser' }
   ],
 
+  /* Your picture arrives through this ntfy server. The channel name is generated on the TV. */
+  relay: 'https://ntfy.sh',
+
   /* Shown beside the clock. Coordinates only; Open-Meteo needs no key. */
   weather: { name: 'Budapest', latitude: 47.4979, longitude: 19.0402 }
 };

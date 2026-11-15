@@ -33,7 +33,7 @@ The public preview uses the included Manrope, Geist and Newsreader fonts.
 - Choose and reorder Home apps; discover installed apps on the TV.
 - Use the interface in English or Hungarian.
 - Show a QR code that lets guests join your Wi‑Fi; the network details are entered on the TV and stay there.
-- Select from seventeen wallpapers and save your preferences locally.
+- Select from seventeen wallpapers, or send your own photo from your phone (Settings → Background → Picture from phone), and save your preferences locally.
 
 The Home shortcuts, this installation's app identity and the weather location are configured in [`app/fork.js`](app/fork.js).
 

@@ -100,6 +100,14 @@ async function page(options = {}) {
     if (expected.some(s => request.url().includes(s))) report.expectedNetworkFailures.push(failure);
     else if (failure.error !== 'net::ERR_ABORTED') report.pageErrors.push(failure);
   });
+  // Your picture's relay: an empty channel unless a check publishes into it.
+  current.__relay = null;
+  await current.route('https://ntfy.sh/**', route => {
+    const url = route.request().url(), relay = current.__relay;
+    if (url.includes('/file/')) return relay ? route.fulfill({ contentType: 'image/jpeg', headers: { 'Access-Control-Allow-Origin': '*' }, body: readFileSync(root + relay.image) }) : route.fulfill({ status: 404 });
+    const body = relay && relay.ready() ? JSON.stringify({ id: relay.id, time: 1, event: 'message', topic: 't', message: 'photo', attachment: { name: relay.name || 'IMG_0001.jpg', type: relay.type || 'image/jpeg', size: 1, url: 'https://ntfy.sh/file/' + relay.id + '.jpg' } }) + '\n' : '';
+    return route.fulfill({ contentType: 'application/x-ndjson', headers: { 'Access-Control-Allow-Origin': '*' }, body });
+  });
   // The weather caption is optional; answer it locally so checks never leave the machine.
   await current.route('https://api.open-meteo.com/**', route => route.fulfill({ contentType: 'application/json',
     body: JSON.stringify({ current: { temperature_2m: 12, weather_code: 2, is_day: 1 }, daily: { temperature_2m_max: [15], temperature_2m_min: [7] } }) }));
@@ -412,6 +420,36 @@ try {
     await current.reload(); await ready();
     const after = await state();
     check('Preferences survive a restart', after.lang === 'hu' && after.clock === '12' && after.weather === 'off' && after.clockPos === 'large', after);
+  });
+  await run('Your picture arrives from a phone', async () => {
+    await page(); await group('background');
+    let polls = 0;
+    current.__relay = { id: 'Ab12Cd34Ef56', image: 'app/assets/wallpapers/golden.jpg', ready: () => ++polls > 1 };
+    await act('background.custom');
+    const opened = await state();
+    check('Opening creates a private channel and shows its QR code', /^framehome-[a-z0-9]{20}$/.test(opened.relayTopic) && opened.view === 'phone' && await current.evaluate(() => /ntfy\.sh\/framehome-/.test(document.querySelector('.phone-url').textContent)));
+    await current.waitForFunction(() => ShoreQA.state().wall === 'custom' && ShoreQA.ready(), null, { timeout: 30000 });
+    const after = await state();
+    check('The picture becomes the saved photo background', after.bg === 'photo' && after.customAt > 0 && after.relaySince === 'Ab12Cd34Ef56', after);
+    await current.waitForTimeout(3500);
+    check('An already handled message is not processed again', (await state()).customAt === after.customAt && !(await state()).pending);
+    check('Every material is generated on the TV', await current.evaluate(() => ['photo', 'matImg', 'phFieldImg', 'sheetBg'].every(id => { const im = document.getElementById(id); return im && /^blob:/.test(im.src) && im.naturalWidth > 0; })));
+    await current.waitForFunction(() => /Done|Kész/.test(document.querySelector('.phone-status').textContent));
+    await nav('ok');
+    check('Done returns to Background', (await state()).settingsGroup === 'background');
+    await act('background.wallpaper');
+    const picker = await current.evaluate(() => ({ view: ShoreQA.state().view, ids: [...document.querySelectorAll('[data-action^="wallpaper.choose."]')].map(e => e.getAttribute('data-action')) }));
+    check('Your picture is in the wallpaper list', picker.ids.includes('wallpaper.choose.custom'), picker);
+    current.__relay = null;
+    await current.reload(); await ready();
+    check('The picture is restored after a restart', (await state()).wall === 'custom' && await current.evaluate(() => /^blob:/.test(document.getElementById('photo').src) && document.getElementById('photo').naturalWidth === 1920));
+  });
+  await run('Your picture ignores files that are not pictures', async () => {
+    await page(); await group('background');
+    current.__relay = { id: 'Zz98Yy76Xx54', image: 'app/assets/wallpapers/golden.jpg', type: 'application/pdf', name: 'tickets.pdf', ready: () => true };
+    await act('background.custom');
+    await current.waitForFunction(() => /picture|kép/.test(document.querySelector('.phone-status').textContent) && ShoreQA.state().relaySince === 'Zz98Yy76Xx54');
+    check('A PDF leaves the background unchanged', (await state()).wall !== 'custom' && !(await state()).customAt);
   });
   await run('Settings focus never changes the applied Home', async () => {
     await page();

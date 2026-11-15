@@ -673,3 +673,24 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000}
 .is-font-switch .home .ph-name,.is-font-switch .home .clock,.is-font-switch .home .tile .label,.is-font-switch .home .u-label,.is-font-switch .home .app-focus-name,.is-font-switch .home .util-focus-label{animation:font-in 160ms linear}
 @keyframes font-in{from{opacity:0}}
 @media(prefers-reduced-motion:reduce){.is-font-switch .home .ph-name,.is-font-switch .home .clock,.is-font-switch .home .tile .label,.is-font-switch .home .u-label,.is-font-switch .home .app-focus-name,.is-font-switch .home .util-focus-label{animation-duration:120ms}}
+
+/* Your picture: QR code beside three steps and a live status line. */
+.phone-panel .s-title{position:absolute;left:140px;top:72px}
+.phone-body{position:absolute;left:140px;top:200px;right:140px;display:flex;align-items:flex-start;gap:80px}
+.phone-qr-card{flex:none;display:flex;flex-direction:column;align-items:center;gap:18px}
+.phone-qr{display:block;width:360px;height:360px;border-radius:24px;background:#fff;box-shadow:0 12px 40px rgba(6,10,12,.28)}
+.phone-url{margin:0;font-size:24px;line-height:32px;color:var(--mute);letter-spacing:0}
+.phone-copy{flex:1;min-width:0;max-width:980px}
+.phone-steps{margin:0;padding:0 0 0 48px;font-size:36px;line-height:48px;font-weight:500;letter-spacing:-.4px}
+.phone-steps li{margin:0 0 22px;padding-left:8px}
+.phone-status{display:flex;align-items:center;gap:16px;margin:40px 0 0;font-size:32px;line-height:44px;font-weight:500}
+.phone-dot{flex:none;width:16px;height:16px;border-radius:50%;background:var(--mute);opacity:.8}
+.phone-dot.is-waiting,.phone-dot.is-downloading,.phone-dot.is-processing{animation:phone-pulse 1.4s ease-in-out infinite}
+.phone-dot.is-done{background:#7fd18b;opacity:1}
+.phone-dot.is-offline,.phone-dot.is-notimage,.phone-dot.is-unreadable,.phone-dot.is-unsaved{background:#e9a35b;opacity:1}
+.phone-note{margin:28px 0 0;font-size:24px;line-height:34px;color:var(--mute);max-width:860px}
+.phone-acts{margin-top:40px}
+@keyframes phone-pulse{0%,100%{opacity:.35}50%{opacity:1}}
+@media(prefers-reduced-motion:reduce){.phone-dot{animation:none!important}}
+.setting-phone{display:flex;align-items:center;justify-content:center;background:none!important}
+.setting-phone .ico{width:34px;height:34px;stroke-width:1.6}
