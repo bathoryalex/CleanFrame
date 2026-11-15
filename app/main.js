@@ -4,7 +4,7 @@
 
   /* ---------- Bundled data ---------- */
   var ASSETS = 'assets/', ICONS = ASSETS + 'icons/', WP = ASSETS + 'wallpapers/';
-  var APP_VERSION = '0.8.0';
+  var APP_VERSION = '0.8.1';
   var CAP = 9, SCRIM_Y = 560;
   var DOCK_MODES = { both: { tw: 288, th: 200, pitch: 296 }, text: { tw: 288, th: 104, pitch: 296 }, icons: { tw: 176, th: 144, pitch: 184 } };
   var GRID_ROW = 240, GRID_COL = 344, COLS = 5;
@@ -1944,7 +1944,7 @@
     phone: function () {
       return '<div class="phone-panel"><h2 class="s-title">' + T('Your picture') + '</h2>'
         + '<div class="phone-body"><div class="phone-qr-card"><canvas class="phone-qr" width="360" height="360" data-slot="qr"></canvas><p class="phone-url" data-slot="url"></p></div>'
-        + '<div class="phone-copy"><ol class="phone-steps"><li>' + T('Scan the code with your phone.') + '</li><li>' + T('On the page that opens, tap the paperclip and choose a photo.') + '</li><li>' + T('Send it. The TV sets it as your background in a few seconds.') + '</li></ol>'
+        + '<div class="phone-copy"><ol class="phone-steps"><li>' + T('Scan the code with your phone.') + '</li><li>' + T('On the page that opens, tap ^ beside the message field, then “Attach local file” and choose a photo.') + '</li><li>' + T('Send it. The TV sets it as your background in a few seconds.') + '</li></ol>'
         + '<p class="phone-status" data-slot="status" aria-live="polite"></p><p class="phone-note">' + T('The photo passes through ntfy.sh on a private channel and is deleted there after a few hours. The TV keeps its own copy.') + '</p>'
         + '<div class="phone-acts" data-slot="acts"></div></div></div></div>';
     },

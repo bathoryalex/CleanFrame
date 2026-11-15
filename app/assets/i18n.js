@@ -184,7 +184,7 @@ window.CleanFrameI18n = {
     'Picture from phone': 'Kép küldése telefonról',
     'Show the QR code': 'QR-kód megjelenítése',
     'Scan the code with your phone.': 'Olvasd be a kódot a telefonoddal.',
-    'On the page that opens, tap the paperclip and choose a photo.': 'A megnyíló oldalon koppints a gemkapocs ikonra, és válassz egy fotót.',
+    'On the page that opens, tap ^ beside the message field, then “Attach local file” and choose a photo.': 'A megnyíló oldalon koppints az üzenetmező melletti ^ gombra, majd az „Attach local file” lehetőségre, és válassz egy fotót.',
     'Send it. The TV sets it as your background in a few seconds.': 'Küldd el. A TV néhány másodpercen belül beállítja háttérképnek.',
     'The photo passes through ntfy.sh on a private channel and is deleted there after a few hours. The TV keeps its own copy.': 'A fotó egy privát csatornán, az ntfy.sh-n keresztül érkezik, és ott néhány óra múlva törlődik. A TV megtartja a saját példányát.',
     'Waiting for a photo…': 'Várakozás a fotóra…',
