@@ -395,7 +395,7 @@ try {
   await run('Language, clock and weather preferences', async () => {
     await page(); await group('region');
     const actions = await call('actions');
-    check('Region group offers every choice', ['choice.lang.en', 'choice.lang.hu', 'choice.clock.24', 'choice.clock.12', 'choice.weather.off', 'choice.weather.now', 'choice.weather.day'].every(a => actions.includes(a)), actions);
+    check('Region group offers every choice', ['choice.lang.en', 'choice.lang.hu', 'choice.clock.24', 'choice.clock.12', 'choice.weather.off', 'choice.weather.now', 'choice.weather.day', 'choice.clockPos.corner', 'choice.clockPos.center', 'choice.clockPos.large'].every(a => actions.includes(a)), actions);
     await act('choice.lang.hu');
     check('Hungarian is saved and applied at once', (await state()).lang === 'hu' && await current.evaluate(() => document.documentElement.lang === 'hu' && document.getElementById('appearanceTitle').textContent === 'Nyelv és óra'));
     await act('choice.clock.12');
@@ -405,11 +405,13 @@ try {
     check('Weather shows icon, temperature and range', await current.evaluate(() => { const w = document.querySelector('#caption .weather'); return !!w.querySelector('.wx-icon') && w.querySelector('.wx-temp').textContent === '12°' && w.querySelector('.wx-range').textContent === '15° / 7°'; }));
     await act('choice.weather.off');
     check('Weather can be hidden', await current.evaluate(() => !document.querySelector('#caption .weather')));
+    await act('choice.clockPos.large');
+    check('Large centred clock is applied and saved', (await state()).clockPos === 'large' && await current.evaluate(() => document.getElementById('stage').classList.contains('clock-large')));
     await scene('home');
     check('Home controls follow the language', await current.evaluate(() => [...document.querySelectorAll('#utils .u-label')].map(e => e.textContent).join('|') === 'Wi‑Fi|Összes app|Beállítások'));
     await current.reload(); await ready();
     const after = await state();
-    check('Preferences survive a restart', after.lang === 'hu' && after.clock === '12' && after.weather === 'off', after);
+    check('Preferences survive a restart', after.lang === 'hu' && after.clock === '12' && after.weather === 'off' && after.clockPos === 'large', after);
   });
   await run('Settings focus never changes the applied Home', async () => {
     await page();
@@ -598,7 +600,7 @@ try {
     for (const width of [1920, 1280]) {
       await current.setViewportSize({ width, height: width * 9 / 16 });
       await current.waitForFunction(w => Math.abs(document.getElementById('stage').getBoundingClientRect().width - w) < 1, width);
-      for (const name of ['background', 'layout', 'typography', 'focus', 'samsung', 'rotation']) {
+      for (const name of ['background', 'layout', 'typography', 'focus', 'region', 'samsung', 'rotation']) {
         await group(name === 'rotation' ? 'background' : name);
         if (name === 'rotation') await act('background.rotation');
         const geometry = await current.evaluate(() => {

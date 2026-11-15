@@ -4,7 +4,7 @@
 
   /* ---------- Bundled data ---------- */
   var ASSETS = 'assets/', ICONS = ASSETS + 'icons/', WP = ASSETS + 'wallpapers/';
-  var APP_VERSION = '0.7.0';
+  var APP_VERSION = '0.7.1';
   var CAP = 9, SCRIM_Y = 560;
   var DOCK_MODES = { both: { tw: 288, th: 200, pitch: 296 }, text: { tw: 288, th: 104, pitch: 296 }, icons: { tw: 176, th: 144, pitch: 184 } };
   var GRID_ROW = 240, GRID_COL = 344, COLS = 5;
@@ -30,8 +30,8 @@
   }
   window.FrameText = T;
   /* Saved preferences outside the appearance bundle: they apply at once and load nothing. */
-  var PREF_VALUES = { lang: ['en', 'hu'], clock: ['24', '12'], weather: ['off', 'now', 'day'] };
-  var PREF_NAMES = { en: 'English', hu: 'Magyar', '24': '24-hour', '12': '12-hour', off: 'Off', now: 'Temperature', day: 'With high and low' };
+  var PREF_VALUES = { lang: ['en', 'hu'], clock: ['24', '12'], clockPos: ['corner', 'center', 'large'], weather: ['off', 'now', 'day'] };
+  var PREF_NAMES = { en: 'English', hu: 'Magyar', '24': '24-hour', '12': '12-hour', corner: 'Corner', center: 'Centre', large: 'Large', off: 'Off', now: 'Basic', day: 'Full' };
   WALLS.forEach(function (w) { w.ut = w.ut || { tr: 'light', br: 'light' }; w.frostVeil = w.frostVeil || .12; });
   var MODES = [
     { id: 'fixed', name: 'Fixed', min: 0 }, { id: 'open', name: 'Each time Home opens', min: 0 },
@@ -62,7 +62,7 @@
   var SVG = {
     art: '<rect x="3.5" y="4.5" width="17" height="15" rx="2"/><circle cx="9" cy="9.8" r="1.5"/><path d="m4.5 17.5 4.5-4.5 3 3 2.5-2.5 5 5"/>',
     apps: '<rect x="4" y="4" width="6.5" height="6.5" rx="1.6"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.6"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.6"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.6"/>',
-    wifi: '<path d="M12 4.5C7.8 4.5 4.1 6.6 1.8 9.8"/><path d="M12 8.5c-2.8 0-5.3 1.2-7.1 3.2"/><path d="M12 12.5c-1.4 0-2.6.6-3.5 1.5"/><circle cx="12" cy="16.5" r="1.35"/>',
+    wifi: '<path d="M2.5 8.2a14 14 0 0 1 19 0"/><path d="M5.8 11.6a9.2 9.2 0 0 1 12.4 0"/><path d="M9.1 15a4.5 4.5 0 0 1 5.8 0"/><circle cx="12" cy="18.4" r="1.2"/>',
     arrange: '<path d="M4 8.5h14M15 5.5l3 3-3 3M20 15.5H6M9 12.5l-3 3 3 3"/>',
     settings: '<path d="m9 3-.6 2.4-2 1.2L4 6l-2 3.5L3.8 11v2L2 14.5 4 18l2.4-.6 2 1.2L9 21h6l.6-2.4 2-1.2 2.4.6 2-3.5-1.8-1.5v-2L22 9.5 20 6l-2.4.6-2-1.2L15 3Z"/><circle cx="12" cy="12" r="3.2"/>',
     home: '<path d="M4 11 12 4.5l8 6.5v8a1 1 0 0 1-1 1h-4.5v-6h-5v6H5a1 1 0 0 1-1-1Z"/>',
@@ -449,7 +449,7 @@
       wifiSsid: typeof s.wifiSsid === 'string' ? s.wifiSsid.slice(0, 32) : '',
       wifiPass: typeof s.wifiPass === 'string' ? s.wifiPass.slice(0, 63) : '',
       wifiSec: s.wifiSec === 'nopass' ? 'nopass' : 'WPA',
-      lang: pick(s.lang, PREF_VALUES.lang, 'en'), clock: pick(s.clock, PREF_VALUES.clock, '24'), weather: pick(s.weather, PREF_VALUES.weather, 'day')
+      lang: pick(s.lang, PREF_VALUES.lang, 'en'), clock: pick(s.clock, PREF_VALUES.clock, '24'), clockPos: pick(s.clockPos, PREF_VALUES.clockPos, 'corner'), weather: pick(s.weather, PREF_VALUES.weather, 'day')
     };
   }
   function serialise(c) {
@@ -487,7 +487,7 @@
     var c = lookOf(S.c);
     c.home = home; c.recent = recent; c.lastApp = S.c.lastApp; c.mode = S.c.mode;
     c.wifiSsid = S.c.wifiSsid; c.wifiPass = S.c.wifiPass; c.wifiSec = S.c.wifiSec;
-    c.lang = S.c.lang; c.clock = S.c.clock; c.weather = S.c.weather;
+    c.lang = S.c.lang; c.clock = S.c.clock; c.clockPos = S.c.clockPos; c.weather = S.c.weather;
     return c;
   }
   function snap() { return { home: S.c.home.slice(), recent: S.c.recent.slice() }; }
@@ -643,7 +643,7 @@
   }
   function openWifiQr() {
     if (!wifiReady()) { push({ id: 'message', msg: 'wifiSetup', f: { b: 0 } }); return; }
-    push({ id: 'wifiqr', beat: Date.now(), f: {} });
+    push({ id: 'wifiqr', f: {} });
   }
   function utilAction(u) {
     if (u === 'wifi') openWifiQr();
@@ -986,7 +986,7 @@
       { id: 'typography', label: T('Typography'), value: FONTS[S.c.font].name },
       { id: 'focus', label: T('Focus'), value: T(VALUE_NAMES[S.c.focus]) + (materialApplies() ? ', ' + T(VALUE_NAMES[S.c.material]) : '') },
       { id: 'editor', label: T('Apps on Home'), value: T(n === 1 ? '{0} app' : '{0} apps', n) },
-      { id: 'region', label: T('Language and clock'), value: PREF_NAMES[S.c.lang] + ', ' + T(PREF_NAMES[S.c.clock]) },
+      { id: 'region', label: T('Language and clock'), value: PREF_NAMES[S.c.lang] + ', ' + T(PREF_NAMES[S.c.clock]) + (S.c.clockPos === 'corner' ? '' : ', ' + T(PREF_NAMES[S.c.clockPos])) },
       { id: 'wifiqr', label: T('Wifi QR code settings'), value: wifiReady() ? S.c.wifiSsid : T('Not set') },
       { id: 'samsung', label: T('Samsung'), value: T('Home and TV settings') }];
   }
@@ -1038,7 +1038,8 @@
     if (t.group === 'region') return [
       { id: 'lang', title: T('Language'), horizontal: true, items: options('lang', PREF_VALUES.lang) },
       { id: 'clock', title: T('Time format'), horizontal: true, items: options('clock', PREF_VALUES.clock) },
-      { id: 'weather', title: T('Weather') + ' · ' + WEATHER_PLACE.name, items: options('weather', PREF_VALUES.weather) }
+      { id: 'clockPos', title: T('Clock'), horizontal: true, items: options('clockPos', PREF_VALUES.clockPos) },
+      { id: 'weather', title: T('Weather') + ' · ' + WEATHER_PLACE.name, horizontal: true, items: options('weather', PREF_VALUES.weather) }
     ];
     if (t.group === 'wifiqr') return [
       { id: 'ssid', title: T('Network name'), items: [{ action: 'wifi.edit.ssid', label: S.c.wifiSsid || T('Add network name'), description: T('SSID shown in the QR code') }] },
@@ -1234,7 +1235,7 @@
   var utPlates = [$('utLens'), $('utLensAlt')], utFields = [$('utField'), $('utFieldAlt')], utPlateIndex = 0, utPlateKey = null;
   var photoMode = null, photoTransitionToken = 0;
   var sheetEl = $('sheet'), sheetView = $('sheetView');
-  var wifiQrEl = $('wifiQr'), wifiQrCanvas = $('wifiQrCanvas'), wifiQrSsid = $('wifiQrSsid'), wifiQrCard = $('wifiQrCard'), wifiQrTitle = $('wifiQrTitle');
+  var wifiQrEl = $('wifiQr'), wifiQrCanvas = $('wifiQrCanvas'), wifiQrSsid = $('wifiQrSsid'), wifiQrCard = $('wifiQrCard'), wifiQrTitle = $('wifiQrTitle'), wifiQrBg = $('wifiQrBg');
   var IMG = { photo: $('photo'), mat: $('matImg'), bg: $('sheetBg'), field: $('phFieldImg'), fieldAlt: $('phFieldImgAlt'), utility: $('utFieldImg'), utilityAlt: $('utFieldImgAlt') };
   var sheetKey = '', slotEls = {}, dockAnchorCenter = 960;
   var appliedPalette = null, appliedPhoto = null, appliedFont = null, appliedFontMetrics = null;
@@ -1267,7 +1268,7 @@
   function render() {
     var t = top(), sheet = !!V[t.id].sheet, shown = wall(S.shown ? S.shown.wall : S.c.wall), palette = ADAPTIVE_INK[shown.id];
     var adaptive = applyAdaptiveInk(palette), tr = adaptive && palette.tr ? palette.tr.pol : shown.ut.tr, br = adaptive && palette.br ? palette.br.pol : shown.ut.br;
-    stage.className = 'stage bg-' + S.c.bg + ' l-' + S.c.layout + ' m-' + (materialApplies() ? S.c.material : 'none') + ' f-' + S.c.focus + ' a-' + S.c.apps + ' i-' + S.c.iconStyle + ' u-' + S.c.controls + ' tone-' + shown.tone + ' tr-' + tr + ' br-' + br + wallClasses(shown) + inkRungClasses(palette, adaptive) + ' at-' + t.id + ' font-' + homeFont() + (homeFont() !== 'manrope' ? ' font-custom' : '') + (S.fontSwitch ? ' is-font-switch' : '') + (adaptive ? ' has-adaptive-ink adaptive-tl-' + palette.tl.pol : '') + (!adaptive && shown.clockInk ? ' has-clock-ink' : '') + (!adaptive && shown.dockClockInk ? ' has-dock-clock-ink' : '') + (registeredMaterial(shown.id) ? ' registered-material' : '') + (sheet ? ' is-sheet' : '') + (t.id === 'wifiqr' ? ' is-wifi-qr' : '') + (S.hdmiInApp ? ' is-hdmi-input' : '') + (S.reflow ? ' is-reflow' : '');
+    stage.className = 'stage bg-' + S.c.bg + ' l-' + S.c.layout + ' m-' + (materialApplies() ? S.c.material : 'none') + ' f-' + S.c.focus + ' a-' + S.c.apps + ' i-' + S.c.iconStyle + ' u-' + S.c.controls + ' clock-' + S.c.clockPos + (S.c.clockPos !== 'corner' ? ' clock-big' : '') + ' tone-' + shown.tone + ' tr-' + tr + ' br-' + br + wallClasses(shown) + inkRungClasses(palette, adaptive) + ' at-' + t.id + ' font-' + homeFont() + (homeFont() !== 'manrope' ? ' font-custom' : '') + (S.fontSwitch ? ' is-font-switch' : '') + (adaptive ? ' has-adaptive-ink adaptive-tl-' + palette.tl.pol : '') + (!adaptive && shown.clockInk ? ' has-clock-ink' : '') + (!adaptive && shown.dockClockInk ? ' has-dock-clock-ink' : '') + (registeredMaterial(shown.id) ? ' registered-material' : '') + (sheet ? ' is-sheet' : '') + (t.id === 'wifiqr' ? ' is-wifi-qr' : '') + (S.hdmiInApp ? ' is-hdmi-input' : '') + (S.reflow ? ' is-reflow' : '');
     if (!adaptive && shown.clockInk) stage.style.setProperty('--clock-ink', shown.clockInk);
     else stage.style.removeProperty('--clock-ink');
     if (!adaptive && shown.dockClockInk) stage.style.setProperty('--dock-clock-ink', shown.dockClockInk);
@@ -1280,10 +1281,15 @@
     renderFocusStatus(t);
   }
 
+  /* The QR code is drawn once per network payload, ahead of time, so opening the overlay
+     only changes opacity and transform. */
+  var wifiQrDrawn = '';
   function drawWifiQrCanvas() {
     var payload, qr, n, cells, size, cell, ctx, r, c, x, y;
     if (!window.qrcode || !wifiQrCanvas) return;
     payload = wifiQrPayload();
+    if (payload === wifiQrDrawn) return;
+    wifiQrDrawn = payload;
     qr = qrcode(0, 'M');
     qr.addData(payload);
     qr.make();
@@ -1303,20 +1309,14 @@
     }
   }
   function renderWifiOverlay(t) {
-    var on = t.id === 'wifiqr', card;
+    var on = t.id === 'wifiqr';
     if (!wifiQrEl) return;
-    wifiQrEl.hidden = !on;
+    if (wifiReady()) drawWifiQrCanvas();
+    // The backdrop is the pre-blurred panel image already loaded for Settings: no live blur.
+    if (wifiQrBg && S.c.bg === 'photo' && IMG.bg.src && wifiQrBg._src !== IMG.bg.src) { wifiQrBg._src = IMG.bg.src; wifiQrBg.src = IMG.bg.src; }
+    if (wifiQrSsid.textContent !== S.c.wifiSsid) wifiQrSsid.textContent = S.c.wifiSsid;
+    wifiQrEl.className = 'wifi-qr-overlay' + (on ? ' is-on' : '');
     wifiQrEl.setAttribute('aria-hidden', on ? 'false' : 'true');
-    if (!on) return;
-    wifiQrSsid.textContent = S.c.wifiSsid;
-    drawWifiQrCanvas();
-    card = wifiQrCard;
-    if (card && t.beat !== card._beat) {
-      card._beat = t.beat;
-      card.className = 'wifi-qr-card';
-      void card.offsetWidth;
-      card.className = 'wifi-qr-card';
-    }
   }
   function wifiDraftDisplay(t) {
     if (t.field === 'pass') return t.draft ? Array(t.draft.length + 1).join('•') : T('No password');
@@ -1328,7 +1328,7 @@
     if (appliedFont === id && appliedFontMetrics === metrics) return;
     appliedFont = id; appliedFontMetrics = metrics;
     var values = { 'display-family': '"' + f.family + '"', 'ui-family': '"' + ui.family + '"', 'primary-family': '"' + primary.family + '"', 'display-weight': f.display, 'ui-weight': ui.weight, 'primary-weight': primary.weight, 'clock-weight': f.clock,
-      'clock-shift': px(fontShift('clock', 48)), 'utility-shift': px(fontShift('ui', 28)), 'action-shift': px(fontShift('ui', 30)), 'heading-shift': px(fontShift('ui', 48)), 'full-name-shift': px(fontShift('primary', 30)), 'clock-digit': px(metrics ? metrics.digitCell : 0) };
+      'clock-shift': (fontShift('clock', 48) / 48).toFixed(4) + 'em', 'utility-shift': px(fontShift('ui', 28)), 'action-shift': px(fontShift('ui', 30)), 'heading-shift': px(fontShift('ui', 48)), 'full-name-shift': px(fontShift('primary', 30)), 'clock-digit': (metrics ? metrics.digitCell / 48 : 0).toFixed(4) + 'em' };
     Object.keys(values).forEach(function (key) { homeEl.style.setProperty('--font-' + key, String(values[key])); });
   }
 
@@ -1432,7 +1432,7 @@
   function renderCaption(t, hs) {
     var html = '<span class="caption-head"><span class="clock">' + clockHtml() + '</span>' + weatherCaptionHtml() + '</span>';
     caption.setAttribute('data-weather', S.c.weather === 'off' || weather.temp === null ? '' : String(weather.temp));
-    if (S.c.apps !== 'icons' && hs.items[hs.i] && (S.c.layout === 'list' ? photoLabel(hs.items[hs.i].id, false).size < 88 || photoLabel(hs.items[hs.i].id, false).ellipsis : hs.zone === 'apps' && reducedDockLabel(hs.items[hs.i].id))) html += '<span class="cap-line full-name">' + esc(app(hs.items[hs.i].id).name) + '</span>';
+    if (S.c.apps !== 'icons' && !(S.c.clockPos !== 'corner' && S.c.layout === 'dock') && hs.items[hs.i] && (S.c.layout === 'list' ? photoLabel(hs.items[hs.i].id, false).size < 88 || photoLabel(hs.items[hs.i].id, false).ellipsis : hs.zone === 'apps' && reducedDockLabel(hs.items[hs.i].id))) html += '<span class="cap-line full-name">' + esc(app(hs.items[hs.i].id).name) + '</span>';
     setHTML(caption, html);
   }
 

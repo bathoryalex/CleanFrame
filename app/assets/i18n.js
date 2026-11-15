@@ -129,8 +129,12 @@ window.CleanFrameI18n = {
     '12-hour': '12 órás',
     'Weather': 'Időjárás',
     'Off': 'Ki',
-    'Temperature': 'Hőmérséklet',
-    'With high and low': 'Napi max./min. értékkel',
+    'Basic': 'Alap',
+    'Full': 'Teljes',
+    'Clock': 'Óra',
+    'Corner': 'Sarok',
+    'Centre': 'Közép',
+    'Large': 'Nagy',
 
     /* Wi‑Fi QR */
     'Network name': 'Hálózat neve',

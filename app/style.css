@@ -407,7 +407,8 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000}
 .f-type .quiet-utils .u.is-focus .u-content{transform:scale(1.05)}
 .f-type .util-focus-label.is-on{transform:scale(1.05);transform-origin:50% 50%}
 .f-type.l-list .util-focus-label.is-on{transform-origin:100% 50%}
-.ut-lens{left:0;top:0;height:60px;border-radius:30px;pointer-events:none}
+.ut-lens{left:0;top:0;height:60px;border-radius:30px;pointer-events:none;-webkit-mask-image:-webkit-radial-gradient(#fff,#000);-webkit-clip-path:inset(0 round 30px);clip-path:inset(0 round 30px)}
+/* The mask and clip keep the rounded edge on TV engines that do not clip a composited field by border-radius alone. */
 .l-list .ut-lens .scrim{display:none}
 .l-list .quiet-utils.is-both .u-label{max-width:330px}
 .l-list .quiet-utils.is-both .u .ico{width:36px;height:36px}
@@ -581,6 +582,9 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000}
 .stage.l-dock .dock .tile .dock-icon{position:absolute;left:0;right:0;top:0;bottom:0;display:flex;justify-content:center;align-items:center;pointer-events:none}
 .stage.l-dock .dock .tile .dock-icon-solo{align-items:center}
 .stage.l-dock .dock .tile .dock-icon:not(.dock-icon-solo){bottom:52px;align-items:flex-end;padding-bottom:4px}
+/* Icons and text: centre the 72px mark and the label line together in the 200px tile. */
+.stage.l-dock.a-both .dock .tile .dock-icon:not(.dock-icon-solo){bottom:90px;padding-bottom:0}
+.stage.l-dock.a-both .dock .tile .label.dock-label{bottom:38px}
 .stage.l-dock .dock{--dock-mark-h:72px;--dock-mark-w:112px}
 .stage.l-dock.a-icons .dock{--dock-mark-w:128px}
 .stage.l-dock .dock .tile .dock-icon .mark{position:relative!important;left:auto!important;top:auto!important;right:auto!important;margin:0}
@@ -605,17 +609,22 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000}
 .l-list .quiet-utils.is-text .u-label{max-width:330px}
 .l-list .quiet-utils.is-text .u-content{gap:0}
 
-.stage.is-wifi-qr .scene{filter:blur(20px) saturate(1.08);transform:scale(1.015);transition:filter 420ms var(--ease),transform 420ms var(--ease)}
-.wifi-qr-overlay{position:absolute;inset:0;z-index:12;display:flex;align-items:center;justify-content:center;pointer-events:none}
-.wifi-qr-overlay:not([hidden]){pointer-events:auto}
-.wifi-qr-shade{position:absolute;inset:0;background:rgba(8,12,14,.46);opacity:0;animation:wifi-shade-in 520ms var(--ease) forwards}
-.wifi-qr-card{position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;gap:20px;padding:40px 48px 36px;border-radius:32px;background:linear-gradient(165deg,rgba(255,255,255,.22),rgba(255,255,255,.08) 55%,rgba(255,255,255,.12));box-shadow:0 24px 80px rgba(6,10,12,.42),inset 0 1px 0 rgba(255,255,255,.28);opacity:0;transform:scale(.86) rotate(-2deg);animation:wifi-card-in 640ms cubic-bezier(.22,1,.28,1) 80ms forwards}
+/* Wi-Fi QR: always laid out and decoded; opening only fades and lifts composited layers.
+   The blurred backdrop is the pre-rendered panel image, never a live filter. */
+.wifi-qr-overlay{position:absolute;inset:0;z-index:12;display:flex;align-items:center;justify-content:center;pointer-events:none;visibility:hidden;transition:visibility 0s linear 360ms}
+.wifi-qr-overlay.is-on{pointer-events:auto;visibility:visible;transition-delay:0s}
+.wifi-qr-bg,.wifi-qr-shade{position:absolute;left:0;top:0;width:1920px;height:1080px;opacity:0;transition:opacity 320ms linear;will-change:opacity}
+.wifi-qr-bg{max-width:none;object-fit:cover}
+.wifi-qr-shade{background:rgba(8,12,14,.46)}
+.bg-dark .wifi-qr-bg,.bg-light .wifi-qr-bg{display:none}
+.bg-dark .wifi-qr-shade,.bg-light .wifi-qr-shade{background:rgba(8,12,14,.72)}
+.is-on .wifi-qr-bg,.is-on .wifi-qr-shade{opacity:1}
+.wifi-qr-card{position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;gap:20px;padding:40px 48px 36px;border-radius:32px;background:linear-gradient(165deg,rgba(255,255,255,.22),rgba(255,255,255,.08) 55%,rgba(255,255,255,.12));box-shadow:0 24px 80px rgba(6,10,12,.42),inset 0 1px 0 rgba(255,255,255,.28);opacity:0;transform:translate3d(0,28px,0) scale(.94);transition:opacity 260ms linear,transform 420ms cubic-bezier(.22,1,.28,1);will-change:opacity,transform}
+.is-on .wifi-qr-card{opacity:1;transform:translate3d(0,0,0) scale(1);transition-delay:60ms}
 .wifi-qr-canvas{display:block;width:420px;height:420px;border-radius:20px;background:#fff;padding:16px;box-sizing:border-box;box-shadow:0 8px 32px rgba(6,10,12,.24)}
 .wifi-qr-title{margin:0;font-size:40px;line-height:48px;font-weight:600;letter-spacing:-.6px;color:#f6f1e7;text-shadow:0 2px 12px rgba(6,10,12,.36)}
 .wifi-qr-ssid{margin:0;font-size:30px;line-height:38px;font-weight:500;letter-spacing:-.2px;color:rgba(246,241,231,.84);text-shadow:0 1px 8px rgba(6,10,12,.32);max-width:520px;text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-@keyframes wifi-shade-in{from{opacity:0}to{opacity:1}}
-@keyframes wifi-card-in{from{opacity:0;transform:scale(.86) rotate(-2deg)}to{opacity:1;transform:scale(1) rotate(0deg)}}
-@media(prefers-reduced-motion:reduce){.stage.is-wifi-qr .scene{transition-duration:120ms}.wifi-qr-shade,.wifi-qr-card{animation-duration:160ms;animation-delay:0s}}
+@media(prefers-reduced-motion:reduce){.wifi-qr-card{transform:none!important}.wifi-qr-bg,.wifi-qr-shade,.wifi-qr-card{transition-duration:120ms}}
 .wifi-field-panel{position:absolute;left:112px;top:152px;right:112px;bottom:48px;display:flex;flex-direction:column;gap:20px}
 .wifi-field-panel .s-title{position:static;left:auto;top:auto;margin:0;font-size:48px;line-height:56px;letter-spacing:-1.2px}
 .wifi-field-value{margin:0;font-size:34px;line-height:44px;font-weight:500;letter-spacing:.02em;color:var(--ink);word-break:break-all;min-height:44px;flex:none}
@@ -645,6 +654,22 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000}
 .font-newsreader .home .wall-keep{font-family:var(--font-ui-family),serif;font-weight:400;font-variation-settings:"opsz" 36;letter-spacing:0}
 .font-newsreader .home .header-utils .u-label,.font-newsreader .home .wall-keep{position:relative;top:var(--font-action-shift)}
 .clock-digit{display:inline-block;width:var(--font-clock-digit);text-align:center;letter-spacing:0}
+/* Centred clock: Centre and Large centre sit in the open space above the dock, or grow in place in List. */
+.stage.l-dock.clock-big .caption{left:160px;right:160px;top:0;bottom:404px;max-width:none;justify-content:center;align-items:center;text-align:center}
+.stage.l-dock.clock-big .caption::before{content:"";position:absolute;left:50%;top:50%;width:1100px;height:520px;margin:-260px 0 0 -550px;border-radius:50%;background:radial-gradient(closest-side,rgba(8,12,14,.22),rgba(8,12,14,0));pointer-events:none}
+.bg-dark.l-dock.clock-big .caption::before,.bg-light.l-dock.clock-big .caption::before{display:none}
+.stage.l-dock.clock-big .caption-head{position:relative;flex-direction:column;align-items:center;gap:6px}
+.stage.clock-big .home .clock{font-size:150px;line-height:164px;letter-spacing:-4px}
+.stage.clock-large .home .clock{font-size:220px;line-height:232px;letter-spacing:-6px}
+.stage.l-list.clock-big .home .clock{font-size:112px;line-height:124px;letter-spacing:-3px}
+.stage.l-list.clock-large .home .clock{font-size:152px;line-height:164px;letter-spacing:-4px}
+.stage.clock-big .clock-period{font-size:.26em;line-height:1;margin:0 .3em}
+/* Fixed digit cells look gappy at display size; the centred clock may change width by a few pixels instead. */
+.stage.clock-big .home .clock{font-variant-numeric:proportional-nums}
+.stage.clock-big .clock-digit{width:auto}
+.stage.l-dock.clock-big .weather{font-size:44px;line-height:56px}
+.stage.l-dock.clock-large .weather{font-size:52px;line-height:64px}
+.stage.bg-photo.l-dock.clock-big .caption .clock,.stage.bg-photo.l-dock.clock-big .caption .weather{color:#f6f1e7;opacity:1;text-shadow:0 2px 6px rgba(8,12,14,.30),0 6px 28px rgba(8,12,14,.30)}
 .is-font-switch .home .ph-name,.is-font-switch .home .clock,.is-font-switch .home .tile .label,.is-font-switch .home .u-label,.is-font-switch .home .app-focus-name,.is-font-switch .home .util-focus-label{animation:font-in 160ms linear}
 @keyframes font-in{from{opacity:0}}
 @media(prefers-reduced-motion:reduce){.is-font-switch .home .ph-name,.is-font-switch .home .clock,.is-font-switch .home .tile .label,.is-font-switch .home .u-label,.is-font-switch .home .app-focus-name,.is-font-switch .home .util-focus-label{animation-duration:120ms}}

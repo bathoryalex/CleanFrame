@@ -21,7 +21,7 @@ Settings opens a grouped overview: Background, Layout, Typography, Focus, Apps o
 | Typography | Manrope, Neue Montreal, Mori, Pangram Sans, Geist and Newsreader, when available |
 | Focus | Type or Glass; Soft, Frost or Clear tint material |
 | Apps on Home | Membership and arrangement editor |
-| Language and clock | English or Magyar; 24-hour or 12-hour clock; weather Off, Temperature, or With high and low |
+| Language and clock | English or Magyar; 24-hour or 12-hour clock; clock in the Corner, Centre or Large centre; weather Off, Basic (temperature) or Full (with today's high and low) |
 | Wifi QR code settings | Network name, password and security for the home-screen QR code |
 | Samsung | Samsung Home and TV settings |
 
@@ -84,6 +84,8 @@ The native Home operation and startup configuration from 19 October remain separ
 ## Clock and rendering
 
 Both layouts show the TV's local time in 24-hour format by default, or 12-hour with AM/PM (Hungarian: de./du. before the time). It updates at the minute boundary and on return to the launcher. No date or clock panel is shown.
+
+Centre and Large place a display-size clock with the weather beneath it in the open space above the Dock, over a soft static shade on photos. In List, the clock grows in place at the top right. Proportional digits are used at display size, so the centred clock can shift by a few pixels when a minute changes.
 
 Beside the clock, the weather for the place in `app/fork.js` comes from Open-Meteo (no key) and is cached for an hour: a line icon, the current temperature and, by default, today's high and low. If the request fails, the clock is shown alone.
 
