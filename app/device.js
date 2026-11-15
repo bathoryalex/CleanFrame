@@ -139,7 +139,6 @@
     catch (err) { finish(failure(err)); }
   }
   function home(done) { launchApp('com.samsung.tv.csfs', done); }
-  function settings(done) { launchApp('com.samsung.tv.coba.setting', done); }
   function apps(done) {
     if (!api()) {
       bounded(done)(null, PREVIEW_APPS.map(function (a) { return { appId: a.appId, name: a.name, brand: a.brand, icon: a.icon, rank: 0 }; }));
@@ -164,6 +163,6 @@
       }, function (err) { finish(failure(err)); });
     } catch (err) { finish(failure(err)); }
   }
-  window.FrameDevice = { launchApp: launchApp, home: home, settings: settings, apps: apps,
+  window.FrameDevice = { launchApp: launchApp, home: home, apps: apps,
     hideHdmiView: hideHdmiView, hdmiInAppActive: hdmiInAppActive };
 }());

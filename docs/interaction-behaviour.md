@@ -12,7 +12,7 @@
 
 ## Settings and appearance
 
-Settings opens a grouped overview: Background, Layout, Typography, Focus, Apps on Home, Language and clock, Wifi QR code settings and Samsung. OK opens a group. Appearance groups use a two-pane screen with visible choices on the left and the committed Home preview on the right.
+Settings opens a grouped overview: Background, Layout, Typography, Focus, Apps on Home, Language and clock and Wifi QR code settings, followed by a Samsung Home row that opens Samsung's Home screen directly. OK opens a group. Appearance groups use a two-pane screen with visible choices on the left and the committed Home preview on the right.
 
 | Group | Choices |
 | --- | --- |
@@ -23,7 +23,6 @@ Settings opens a grouped overview: Background, Layout, Typography, Focus, Apps o
 | Apps on Home | Membership and arrangement editor |
 | Language and clock | English or Magyar; 24-hour or 12-hour clock; clock in the Corner, Centre or Large centre; weather Off, Basic (temperature) or Full (with today's high and low) |
 | Wifi QR code settings | Network name, password and security for the home-screen QR code |
-| Samsung | Samsung Home and TV settings |
 
 Up/Down moves between rows. Left/Right moves between choices in a horizontal row. Focus alone changes neither the preview nor saved preferences in these appearance groups. Wallpaper has its own temporary photo preview, described below. OK applies the focused value. A checkmark identifies the applied value; the filled plate identifies remote focus. Applying the current value does not write again.
 
@@ -60,7 +59,7 @@ Art Mode sends an application control to the installed `org.tizen.art-app`, with
 
 This mode comes from [research on Samsung's Art app](https://github.com/TheFab21/ha-samsungtv-smart/blob/master/notes/QN55LS03FAFXZA/ART_MODE_DECOMPILED.md), on another Tizen 9 Frame model. It is an internal Samsung contract, not a documented public Art API. Its visible behaviour on this exact firmware must be confirmed on the TV.
 
-Samsung Home explicitly launches the original `com.samsung.tv.csfs` app, independently of the new Home assignment. The earlier `com.samsung.tv.coba.newhome` component did not open Smart Hub visibly and is no longer the escape target. TV settings still uses `com.samsung.tv.coba.setting`. Exact on-device destinations are recorded in docs/tv-status.md; launch callbacks alone are not visual proof. There is no blind power-key fallback.
+Samsung Home explicitly launches the original `com.samsung.tv.csfs` app, independently of the new Home assignment. The earlier `com.samsung.tv.coba.newhome` component did not open Smart Hub visibly and is no longer the escape target. Exact on-device destinations are recorded in docs/tv-status.md; launch callbacks alone are not visual proof. There is no blind power-key fallback.
 
 All calls have bounded response handling. A failure leaves CleanFrame usable. No simulated device success views remain. Browser validation cannot confirm the visible Samsung destination.
 

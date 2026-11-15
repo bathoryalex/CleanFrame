@@ -4,7 +4,7 @@
 
   /* ---------- Bundled data ---------- */
   var ASSETS = 'assets/', ICONS = ASSETS + 'icons/', WP = ASSETS + 'wallpapers/';
-  var APP_VERSION = '0.8.2';
+  var APP_VERSION = '0.8.3';
   var CAP = 9, SCRIM_Y = 560;
   var DOCK_MODES = { both: { tw: 288, th: 200, pitch: 296 }, text: { tw: 288, th: 104, pitch: 296 }, icons: { tw: 176, th: 144, pitch: 184 } };
   var GRID_ROW = 240, GRID_COL = 344, COLS = 5;
@@ -668,7 +668,7 @@
   function openSettings() { push({ id: 'settings', f: { id: S.settingsFocus } }); }
   function openAppearance(group) {
     var axis = { background: 'bg', layout: 'layout', typography: 'font', focus: 'focus', region: 'lang' }[group];
-    var action = S.detailFocus[group] || (axis ? 'choice.' + axis + '.' + S.c[axis] : group === 'rotation' ? 'rotation.' + S.c.mode : group === 'wifiqr' ? 'wifi.edit.ssid' : 'samsung.home');
+    var action = S.detailFocus[group] || (axis ? 'choice.' + axis + '.' + S.c[axis] : group === 'rotation' ? 'rotation.' + S.c.mode : 'wifi.edit.ssid');
     push({ id: 'appearance', group: group, f: { action: action } });
   }
   function openWifiField(field) {
@@ -1002,7 +1002,7 @@
       { id: 'editor', label: T('Apps on Home'), value: T(n === 1 ? '{0} app' : '{0} apps', n) },
       { id: 'region', label: T('Language and clock'), value: PREF_NAMES[S.c.lang] + ', ' + T(PREF_NAMES[S.c.clock]) + (S.c.clockPos === 'corner' ? '' : ', ' + T(PREF_NAMES[S.c.clockPos])) },
       { id: 'wifiqr', label: T('Wifi QR code settings'), value: wifiReady() ? S.c.wifiSsid : T('Not set') },
-      { id: 'samsung', label: T('Samsung'), value: T('Home and TV settings') }];
+      { id: 'samsung', label: T('Samsung Home'), value: T('Open Samsung’s Home screen'), direct: true }];
   }
   function settingsIds() { return settingsRows().map(function (r) { return r.id; }); }
   V.settings = {
@@ -1020,9 +1020,10 @@
   };
   function settingsOk(id) {
     if (id === 'editor') openEditor('settings');
+    else if (id === 'samsung') perform('Samsung Home', FrameDevice.home);
     else openAppearance(id);
   }
-  var DETAIL_NAMES = { background: 'Background', layout: 'Layout', typography: 'Typography', focus: 'Focus', rotation: 'Rotation', region: 'Language and clock', samsung: 'Samsung', wifiqr: 'Wifi QR code settings' };
+  var DETAIL_NAMES = { background: 'Background', layout: 'Layout', typography: 'Typography', focus: 'Focus', rotation: 'Rotation', region: 'Language and clock', wifiqr: 'Wifi QR code settings' };
   function choice(axis, value, disabled) {
     return { action: axis === 'mode' ? 'rotation.' + value : axis === 'wifiSec' ? 'wifi.sec.' + value : 'choice.' + axis + '.' + value, axis: axis, value: value, disabled: !!disabled,
       label: axis === 'font' ? FONTS[value].name : axis === 'mode' ? T(MODES.filter(function (m) { return m.id === value; })[0].name) : axis === 'wifiSec' ? (value === 'nopass' ? T('Open network') : 'WPA/WPA2') : PREF_VALUES[axis] ? T(PREF_NAMES[value]) : value === 'both' ? T('Both') : T(VALUE_NAMES[value]) };
@@ -1061,10 +1062,7 @@
       { id: 'pass', title: T('Password'), items: [{ action: 'wifi.edit.pass', label: S.c.wifiPass ? T('Change password') : T('Add password'), description: S.c.wifiPass ? T('Saved (hidden)') : T('Optional for open networks') }] },
       { id: 'sec', title: T('Security'), horizontal: true, items: [choice('wifiSec', 'WPA'), choice('wifiSec', 'nopass')] }
     ];
-    return [{ id: 'samsung', title: '', items: [
-      { action: 'samsung.home', label: T('Samsung Home'), description: T('Open Samsung’s Home screen') },
-      { action: 'samsung.settings', label: T('TV settings'), description: T('Picture, sound and network settings') }
-    ] }];
+    return [];
   }
   function detailRows(t) {
     var rows = [[{ action: 'settings.back', label: T(t.group === 'rotation' ? 'Background' : 'Settings') }]];
@@ -1128,8 +1126,6 @@
     else if (item.action === 'background.custom') openPhone();
     else if (item.action === 'wifi.edit.ssid') openWifiField('ssid');
     else if (item.action === 'wifi.edit.pass') openWifiField('pass');
-    else if (item.action === 'samsung.home') perform('Samsung Home', FrameDevice.home);
-    else if (item.action === 'samsung.settings') perform('TV settings', FrameDevice.settings);
   }
   V.appearance = {
     norm: function (t) {
@@ -1950,7 +1946,7 @@
         + '<div class="ed-home" data-slot="home"></div><div class="ed-order-break" data-slot="break">' + T('Then scroll') + '</div><div class="ed-other-view" data-slot="ov"><div class="ed-other" data-slot="other"></div></div><div class="ed-origin" data-slot="origin"></div>'
         + '<div class="row-cue editor-before" data-slot="otherBefore" aria-hidden="true">' + icon('up') + '</div><div class="row-cue editor-after" data-slot="otherAfter" aria-hidden="true">' + icon('down') + '</div>';
     },
-    settings: function () { return '<h2 class="s-title">' + T('Settings') + '</h2><div class="settings-overview" data-slot="list"></div><p class="settings-overview-hint"><span class="remote-key">OK</span><span>' + T('Open selected group') + '</span></p>'; },
+    settings: function () { return '<h2 class="s-title">' + T('Settings') + '</h2><div class="settings-overview" data-slot="list"></div><p class="settings-overview-hint"><span class="remote-key">OK</span><span data-slot="hint"></span></p>'; },
     message: function (t) {
       var m = messageContent(t);
       return '<h2 class="msg-title">' + esc(T(m.title)) + '</h2><p class="msg-line">' + esc(T(m.line)) + '</p><p class="msg-note">' + esc(T(m.note)) + '</p><div class="msg-acts" data-slot="acts"></div>';
@@ -2055,9 +2051,10 @@
     settings: function (t, el) {
       var html = '';
       settingsRows().forEach(function (r) {
-        html += '<button type="button" tabindex="-1" class="settings-group' + (r.id === t.f.id ? ' is-focus' : '') + '" data-z="row" data-i="0" data-id="' + r.id + '" data-action="settings.' + (r.id === 'editor' ? 'editor' : 'group.' + r.id) + '"><span class="settings-group-copy"><span class="settings-group-name">' + esc(r.label) + '</span><span class="settings-group-value">' + esc(r.value) + '</span></span>' + icon('right') + '</button>';
+        html += '<button type="button" tabindex="-1" class="settings-group' + (r.id === t.f.id ? ' is-focus' : '') + '" data-z="row" data-i="0" data-id="' + r.id + '" data-action="settings.' + (r.id === 'editor' ? 'editor' : r.direct ? 'samsung-home' : 'group.' + r.id) + '"><span class="settings-group-copy"><span class="settings-group-name">' + esc(r.label) + '</span><span class="settings-group-value">' + esc(r.value) + '</span></span>' + icon(r.direct ? 'home' : 'right') + '</button>';
       });
       setHTML(el.list, html);
+      setHTML(el.hint, T(t.f.id === 'samsung' ? 'Open Samsung’s Home screen' : 'Open selected group'));
     },
     message: function (t, el) {
       setHTML(el.acts, messageContent(t).actions.map(function (a, i) {

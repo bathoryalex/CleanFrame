@@ -257,12 +257,9 @@ try {
     await current.evaluate(() => window.dispatchEvent(new Event('focus')));
     await scene('home'); await act('home.app.youtube'); await current.waitForFunction(() => __tv.calls.length === 2);
     check('Primary app keeps verified target', (await current.evaluate(() => __tv.calls.at(-1))).id === IDS[3]);
-    await current.evaluate(() => window.dispatchEvent(new Event('focus'))); await group('samsung'); await act('samsung.home');
+    await current.evaluate(() => window.dispatchEvent(new Event('focus'))); await scene('settings'); await act('settings.samsung-home');
     await current.waitForFunction(() => __tv.calls.length === 3);
     check('Samsung escape keeps CSFS target', (await current.evaluate(() => __tv.calls.at(-1))).id === 'com.samsung.tv.csfs');
-    await current.evaluate(() => window.dispatchEvent(new Event('focus'))); await group('samsung'); await act('samsung.settings');
-    await current.waitForFunction(() => __tv.calls.length === 4);
-    check('TV settings keeps installed target', (await current.evaluate(() => __tv.calls.at(-1))).id === 'com.samsung.tv.coba.setting');
     await current.evaluate(() => { window.dispatchEvent(new Event('focus')); __tv.launchFailure = true; });
     await scene('home'); await act('home.app.youtube'); await current.waitForFunction(() => ShoreQA.where().view === 'message');
     check('Launch failure is shown', /could not|unavailable|try again/i.test(await current.locator('#stage').innerText()));
@@ -369,7 +366,7 @@ try {
   });
   await run('Settings overview and visible choices', async () => {
     await page(); await scene('settings');
-    const expected = ['settings.group.background', 'settings.group.layout', 'settings.group.typography', 'settings.group.focus', 'settings.editor', 'settings.group.region', 'settings.group.samsung'];
+    const expected = ['settings.group.background', 'settings.group.layout', 'settings.group.typography', 'settings.group.focus', 'settings.editor', 'settings.group.region', 'settings.samsung-home'];
     check('Overview has all seven settings groups', same((await call('actions')).filter(a => expected.includes(a)).sort(), expected.slice().sort()));
     const specs = {
       background: { bg: ['dark', 'light', 'photo'] },
@@ -397,9 +394,8 @@ try {
     check('All five rotation modes are visible together', same(rotationRows.map(r => r.action).sort(), ['fixed', 'open', '5', '15', '60'].map(v => 'rotation.' + v).sort()), rotationRows);
     await nav('back');
     check('Rotation Back restores its Background row', (await state()).settingsGroup === 'background' && (await state()).focusAction === 'background.rotation', await call('where'));
-    await group('samsung');
-    const samsungActions = await call('actions');
-    check('Samsung group shows both native actions', samsungActions.includes('samsung.home') && samsungActions.includes('samsung.settings'));
+    await scene('settings');
+    check('Samsung Home is the last Settings row', (await call('actions')).filter(a => a.indexOf('settings.') === 0).pop() === 'settings.samsung-home');
   });
   await run('Language, clock and weather preferences', async () => {
     await page(); await group('region');
@@ -464,7 +460,7 @@ try {
   });
   await run('Settings focus never changes the applied Home', async () => {
     await page();
-    for (const name of ['background', 'layout', 'typography', 'focus', 'samsung']) {
+    for (const name of ['background', 'layout', 'typography', 'focus', 'region']) {
       await group(name); const before = await settingsSnapshot();
       const visited = new Set();
       for (const direction of ['right', 'right', 'down', 'left', 'left', 'down', 'right', 'right', 'down', 'left', 'up', 'up', 'up', 'right']) {
@@ -482,7 +478,7 @@ try {
       await nav('back');
       check(name + ' Back cancels the unconfirmed choice', same(await settingsSnapshot(), before) && (await state()).focusAction === 'settings.group.' + name);
     }
-    check('Browsing Samsung does not launch a native app', (await current.evaluate(() => __tv.calls.length)) === 0);
+    check('Browsing Settings does not launch a native app', (await current.evaluate(() => __tv.calls.length)) === 0);
     await group('background'); await act('background.rotation'); const before = await settingsSnapshot();
     await nav('down', 'down', 'up', 'right', 'left');
     check('Rotation arrows do not save a mode', same(await settingsSnapshot(), before));
@@ -649,7 +645,7 @@ try {
     for (const width of [1920, 1280]) {
       await current.setViewportSize({ width, height: width * 9 / 16 });
       await current.waitForFunction(w => Math.abs(document.getElementById('stage').getBoundingClientRect().width - w) < 1, width);
-      for (const name of ['background', 'layout', 'typography', 'focus', 'region', 'samsung', 'rotation']) {
+      for (const name of ['background', 'layout', 'typography', 'focus', 'region', 'rotation']) {
         await group(name === 'rotation' ? 'background' : name);
         if (name === 'rotation') await act('background.rotation');
         const geometry = await current.evaluate(() => {

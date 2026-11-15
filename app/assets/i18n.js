@@ -82,8 +82,6 @@ window.CleanFrameI18n = {
     'Focus': 'Kijelölés',
     'Language and clock': 'Nyelv és óra',
     'Wifi QR code settings': 'Wi‑Fi QR-kód beállításai',
-    'Samsung': 'Samsung',
-    'Home and TV settings': 'Kezdőlap és TV-beállítások',
     'Not set': 'Nincs beállítva',
     '{0} app': '{0} app',
     '{0} apps': '{0} app',
@@ -154,8 +152,6 @@ window.CleanFrameI18n = {
 
     /* Samsung */
     'Open Samsung’s Home screen': 'A Samsung kezdőképernyőjének megnyitása',
-    'TV settings': 'TV-beállítások',
-    'Picture, sound and network settings': 'Kép, hang és hálózat',
 
     /* Settings status and hints */
     'Loading {0}…': '{0} betöltése…',

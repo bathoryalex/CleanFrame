@@ -31,7 +31,7 @@ The app is signed with my own author and distributor certificates. Keep this ide
 
 Record the app version, firmware and the observed result when one of these is confirmed:
 
-1. Remote Home routing to Frame Home after the optional native Home step ([alex-native-home.md](alex-native-home.md)), and the Settings → Samsung → Samsung Home escape.
+1. Remote Home routing to Frame Home after the optional native Home step ([alex-native-home.md](alex-native-home.md)), and the Settings → Samsung Home escape.
 2. Normal power-on after a streaming app or Art Mode.
 3. Readability of the Hungarian interface, 12-hour clock and weather caption from the sofa.
 

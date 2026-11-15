@@ -1,6 +1,6 @@
 # Remote Home → CleanFrame (Alex UE75U8072)
 
-**You authorised this step.** It changes undocumented Samsung settings so the physical **Home** button opens **`AlexFrmH01.FrameHome`**. **Settings → Samsung → Samsung Home** in the app still opens Samsung’s launcher so you can escape.
+**You authorised this step.** It changes undocumented Samsung settings so the physical **Home** button opens **`AlexFrmH01.FrameHome`**. **Settings → Samsung Home** in the app still opens Samsung’s launcher so you can escape.
 
 Read [agent-tv-setup-guide.md](agent-tv-setup-guide.md) stages 6–8 for risks. **Restore before uninstalling CleanFrame** or changing its app id.
 
@@ -65,7 +65,7 @@ The helper sets the native Home operation to **`AlexFrmH01.FrameHome`**, `db/app
 | --- | --- |
 | **Home** from YouTube (or another app) → CleanFrame | |
 | **Home** from HDMI (Xbox tile) → CleanFrame | |
-| **Settings → Samsung → Samsung Home** → Samsung launcher | |
+| **Settings → Samsung Home** → Samsung launcher | |
 | Cold start / power cycle (optional, record what you see) | |
 
 ## 6. Rollback
