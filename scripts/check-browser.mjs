@@ -104,9 +104,10 @@ async function page(options = {}) {
   current.__relay = null;
   await current.route('https://ntfy.sh/**', route => {
     const url = route.request().url(), relay = current.__relay;
-    if (url.includes('/file/')) return relay ? route.fulfill({ contentType: relay.type || 'image/jpeg', headers: { 'Access-Control-Allow-Origin': '*' }, body: readFileSync(root + relay.image) }) : route.fulfill({ status: 404 });
+    const list = relay ? relay.messages || [{ id: relay.id, image: relay.image, type: relay.type, name: relay.name }] : [];
+    if (url.includes('/file/')) { const m = list.find(x => url.includes('/file/' + x.id + '.')); return m ? route.fulfill({ contentType: m.type || 'image/jpeg', headers: { 'Access-Control-Allow-Origin': '*' }, body: readFileSync(root + m.image) }) : route.fulfill({ status: 404 }); }
     const open = url.includes('poll=1') ? '' : JSON.stringify({ event: 'open' }) + '\n';
-    const body = open + (relay && relay.ready() ? JSON.stringify({ id: relay.id, time: 1, event: 'message', topic: 't', message: 'photo', attachment: { name: relay.name || 'IMG_0001.jpg', type: relay.type || 'image/jpeg', size: 1, url: 'https://ntfy.sh/file/' + relay.id + '.jpg' } }) + '\n' : '');
+    const body = open + (relay && relay.ready() ? list.map(m => JSON.stringify({ id: m.id, time: 1, event: 'message', topic: 't', message: 'photo', tags: m.tags, attachment: { name: m.name || 'IMG_0001.jpg', type: m.type || 'image/jpeg', size: 1, url: 'https://ntfy.sh/file/' + m.id + '.jpg' } }) + '\n').join('') : '');
     return route.fulfill({ contentType: 'application/x-ndjson', headers: { 'Access-Control-Allow-Origin': '*' }, body });
   });
   // The weather caption is optional; answer it locally so checks never leave the machine.
@@ -427,7 +428,7 @@ try {
     current.__relay = { id: 'Ab12Cd34Ef56', image: 'app/assets/wallpapers/golden.jpg', ready: () => ++polls > 1 };
     await act('background.custom');
     const opened = await state();
-    check('Opening creates a private channel and shows its QR code', /^framehome-[a-z0-9]{20}$/.test(opened.relayTopic) && opened.view === 'phone' && await current.evaluate(() => /ntfy\.sh\/framehome-/.test(document.querySelector('.phone-url').textContent)));
+    check('Opening creates a private channel and shows its QR code', /^framehome-[a-z0-9]{20}$/.test(opened.relayTopic) && opened.view === 'phone' && await current.evaluate(() => /github\.io\/CleanFrame\/send|ntfy\.sh\/framehome-/.test(document.querySelector('.phone-url').textContent)));
     await current.waitForFunction(() => ShoreQA.state().wall === 'custom' && ShoreQA.ready(), null, { timeout: 30000 });
     const after = await state();
     check('The picture becomes the saved photo background', after.bg === 'photo' && after.customAt > 0 && after.relaySince === 'Ab12Cd34Ef56', after);
@@ -496,6 +497,46 @@ try {
     await current.waitForFunction(() => /neutral|semleges/.test(document.querySelector('.phone-status').textContent), null, { timeout: 10000 });
     const lit = await current.evaluate(() => { const im = document.getElementById('matImg'), c = document.createElement('canvas'); c.width = 16; c.height = 9; const x = c.getContext('2d'); x.drawImage(im, 0, 0, 16, 9); const d = x.getImageData(0, 0, 16, 9).data; let s = 0; for (let i = 0; i < d.length; i += 4) s += d[i] + d[i + 1] + d[i + 2]; return s / (d.length / 4 * 3); });
     check('The glass is a neutral tint, not black', lit > 8, lit);
+  });
+  await run('Your picture uses the still the send page puts before a video', async () => {
+    await page(); await group('background');
+    await current.evaluate(() => { const draw = CanvasRenderingContext2D.prototype.drawImage; CanvasRenderingContext2D.prototype.drawImage = function (source) { if (source instanceof HTMLVideoElement) { this.fillStyle = '#000'; this.fillRect(0, 0, this.canvas.width, this.canvas.height); return; } return draw.apply(this, arguments); }; });
+    current.__relay = { ready: () => true, messages: [
+      { id: 'St12Cd34Ef56', image: 'scripts/fixtures/still-red.jpg', type: 'image/jpeg', name: 'still.jpg', tags: ['frame-home-still'] },
+      { id: 'Vs12Cd34Ef56', image: 'scripts/fixtures/loop.mp4', type: 'video/mp4', name: 'clip.mp4' }] };
+    await act('background.custom');
+    await current.waitForFunction(() => ShoreQA.state().wall === 'custom' && ShoreQA.ready(), null, { timeout: 30000 });
+    await current.waitForFunction(() => /Done|Kész/.test(document.querySelector('.phone-status').textContent)).catch(async e => { throw Error('status: ' + await current.evaluate(() => document.querySelector('.phone-status') && document.querySelector('.phone-status').textContent + ' view=' + ShoreQA.state().view)); });
+    const red = await current.evaluate(() => { const im = document.getElementById('photo'), c = document.createElement('canvas'); c.width = 16; c.height = 9; const x = c.getContext('2d'); x.drawImage(im, 0, 0, 16, 9); const d = x.getImageData(0, 0, 16, 9).data; let r = 0, g = 0; for (let i = 0; i < d.length; i += 4) { r += d[i]; g += d[i + 1]; } return r > g * 3; });
+    check('The still sent before the video becomes the photo', red);
+    check('The still alone does not become the background', (await state()).relaySince === 'Vs12Cd34Ef56');
+  });
+  await run('Send page prepares photos and videos within 1.9 MB', async () => {
+    const phone = await preview.browser.newPage({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 1 });
+    const puts = [];
+    await phone.route('https://ntfy.sh/**', async route => { const r = route.request(); puts.push({ method: r.method(), url: r.url(), filename: r.headers()['filename'], tags: r.headers()['tags'] || '', size: (r.postDataBuffer() || Buffer.alloc(0)).length, jpeg: (r.postDataBuffer() || Buffer.alloc(2))[0] === 0xff }); await route.fulfill({ status: 200, headers: { 'Access-Control-Allow-Origin': '*' }, body: '{}' }); });
+    const pageUrl = 'file://' + root + 'docs/send/index.html';
+    try {
+      await phone.goto(pageUrl);
+      check('Without a channel the page explains where to open it', await phone.evaluate(() => document.body.className === 'no-channel'));
+      await phone.goto(pageUrl + '#framehome-abcdefghijk234567890'); await phone.reload();
+      // A noisy 3000 x 2000 bitmap: about 18 MB raw, well over the limit as a plain JPEG.
+      const w = 3000, h = 2000, row = w * 3 + ((4 - w * 3 % 4) % 4), bmp = Buffer.alloc(54 + row * h);
+      bmp.write('BM'); bmp.writeUInt32LE(bmp.length, 2); bmp.writeUInt32LE(54, 10); bmp.writeUInt32LE(40, 14); bmp.writeInt32LE(w, 18); bmp.writeInt32LE(h, 22); bmp.writeUInt16LE(1, 26); bmp.writeUInt16LE(24, 28);
+      for (let i = 54; i < bmp.length; i++) bmp[i] = (i * 2654435761 >>> 24) ^ (i >> 7);
+      await phone.setInputFiles('#file', { name: 'IMG_0001.bmp', mimeType: 'image/bmp', buffer: bmp });
+      await phone.waitForFunction(() => !document.getElementById('send').disabled, null, { timeout: 30000 });
+      await phone.click('#send'); await phone.waitForFunction(() => /Sent|Elküldve/.test(document.getElementById('status').textContent));
+      check('A large photo is resized to a JPEG under 1.9 MB', puts.length === 1 && puts[0].method === 'PUT' && puts[0].jpeg && puts[0].size <= 1900000 && /\/framehome-abcdefghijk234567890$/.test(puts[0].url) && puts[0].filename === 'IMG_0001.jpg', puts);
+      puts.length = 0;
+      await phone.setInputFiles('#file', { name: 'long.mp4', mimeType: 'video/mp4', buffer: Buffer.alloc(2000000) });
+      await phone.waitForFunction(() => /1,9 MB|1.9 MB/.test(document.getElementById('status').textContent));
+      check('A video over 1.9 MB is refused before sending', puts.length === 0 && await phone.evaluate(() => document.getElementById('send').disabled));
+      await phone.setInputFiles('#file', root + 'scripts/fixtures/loop.mp4');
+      await phone.waitForFunction(() => !document.getElementById('send').disabled, null, { timeout: 30000 });
+      await phone.click('#send'); await phone.waitForFunction(() => /Sent|Elküldve/.test(document.getElementById('status').textContent));
+      check('A video goes after a tagged still of its first frame', puts.length === 2 && puts[0].tags === 'frame-home-still' && puts[0].jpeg && puts[1].filename === 'loop.mp4' && puts[1].tags === '', puts);
+    } finally { await phone.close(); }
   });
   await run('Your picture ignores files that are not pictures', async () => {
     await page(); await group('background');

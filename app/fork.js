@@ -24,6 +24,9 @@ window.FrameFork = {
 
   /* Your picture arrives through this ntfy server. The channel name is generated on the TV. */
   relay: 'https://ntfy.sh',
+  /* The QR code opens this page (docs/send/ on GitHub Pages) with the channel in the URL fragment.
+     Leave it empty to open the ntfy.sh web page instead. */
+  sendPage: 'https://bathoryalex.github.io/CleanFrame/send/',
 
   /* Shown beside the clock. Coordinates only; Open-Meteo needs no key. */
   weather: { name: 'Budapest', latitude: 47.4979, longitude: 19.0402 }

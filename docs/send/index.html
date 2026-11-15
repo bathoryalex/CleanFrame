@@ -1,0 +1,189 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#11171a">
+<title>Frame Home · Send</title>
+<style>
+  /* Frame Home send page: pick a photo or a short video on the phone and send it to the TV.
+     The TV's private channel name arrives in the URL fragment, which browsers never send to a server. */
+  :root {
+    --bg: #f2efe8; --card: #ffffff; --ink: #1d1a16; --mute: rgba(29, 26, 22, .62); --line: rgba(29, 26, 22, .12);
+    --accent: #1d1a16; --accent-ink: #f2efe8; --ok: #2f8a4c; --warn: #a2560f; --track: rgba(29, 26, 22, .10);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #11171a; --card: #1b2327; --ink: #f4f4f1; --mute: rgba(244, 244, 241, .64); --line: rgba(244, 244, 241, .12);
+      --accent: #f3f3ef; --accent-ink: #141618; --ok: #7fd18b; --warn: #e9a35b; --track: rgba(244, 244, 241, .12); }
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { -webkit-text-size-adjust: 100%; }
+  body { min-height: 100vh; background: var(--bg); color: var(--ink); font: 17px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; -webkit-font-smoothing: antialiased; }
+  main { max-width: 520px; margin: 0 auto; padding: max(28px, env(safe-area-inset-top)) 20px max(32px, env(safe-area-inset-bottom)); display: flex; flex-direction: column; gap: 20px; }
+  header { display: flex; align-items: center; gap: 12px; }
+  .mark { width: 40px; height: 40px; border-radius: 12px; background: var(--accent); color: var(--accent-ink); display: grid; place-items: center; flex: none; }
+  .mark svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+  h1 { font-size: 22px; line-height: 1.2; font-weight: 650; letter-spacing: -.3px; }
+  .sub { color: var(--mute); font-size: 15px; }
+  .card { background: var(--card); border-radius: 22px; padding: 18px; box-shadow: 0 1px 0 var(--line), 0 10px 30px rgba(0, 0, 0, .06); display: flex; flex-direction: column; gap: 14px; }
+  .frame { position: relative; aspect-ratio: 16 / 9; border-radius: 14px; overflow: hidden; background: var(--track); display: grid; place-items: center; color: var(--mute); text-align: center; padding: 16px; }
+  .frame img, .frame video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+  .frame .hint { font-size: 15px; max-width: 260px; }
+  .tv { position: absolute; left: 8px; top: 8px; padding: 3px 8px; border-radius: 999px; background: rgba(0, 0, 0, .55); color: #fff; font-size: 12px; letter-spacing: .2px; }
+  .meta { color: var(--mute); font-size: 14px; min-height: 20px; }
+  button, .pick { appearance: none; border: 0; font: inherit; font-weight: 600; border-radius: 16px; min-height: 54px; padding: 0 20px; display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+  .pick { background: var(--track); color: var(--ink); }
+  .send { background: var(--accent); color: var(--accent-ink); }
+  button:disabled { opacity: .45; cursor: default; }
+  .bar { height: 6px; border-radius: 3px; background: var(--track); overflow: hidden; display: none; }
+  .bar > i { display: block; height: 100%; width: 0; background: var(--accent); transition: width 120ms linear; }
+  .status { font-size: 15px; min-height: 22px; }
+  .status.ok { color: var(--ok); } .status.warn { color: var(--warn); }
+  .note { color: var(--mute); font-size: 13px; }
+  input[type=file] { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+  .missing { display: none; }
+  body.no-channel .card { display: none; } body.no-channel .missing { display: block; }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <div class="mark"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4.5" width="18" height="12" rx="2"/><path d="M8.5 20h7"/></svg></div>
+    <div><h1 data-t="title">Send to Frame Home</h1><p class="sub" data-t="subtitle">A photo or a short video for your TV background</p></div>
+  </header>
+
+  <section class="card" aria-live="polite">
+    <div class="frame" id="frame"><span class="hint" data-t="empty">The TV shows the middle 16:9 part of the picture.</span></div>
+    <p class="meta" id="meta"></p>
+    <label class="pick" for="file"><span data-t="pick">Choose a photo or video</span></label>
+    <input type="file" id="file" accept="image/*,video/*">
+    <button class="send" id="send" disabled data-t="send">Send to TV</button>
+    <div class="bar" id="bar"><i></i></div>
+    <p class="status" id="status"></p>
+  </section>
+
+  <p class="missing card" data-t="missing">Open this page by scanning the QR code on the TV: Settings → Background → Picture from phone.</p>
+  <p class="note" data-t="privacy">The file goes through ntfy.sh on your TV's private channel and is deleted there after a few hours. Photos are resized on this phone first; files can be at most 1.9 MB.</p>
+</main>
+<script>
+(function () {
+  'use strict';
+  var LIMIT = 1900000, RELAY = 'https://ntfy.sh', STILL_TAG = 'frame-home-still';
+  var TEXT = {
+    en: {},
+    hu: {
+      title: 'Küldés a Frame Home-ra', subtitle: 'Fotó vagy rövid videó a TV hátterének',
+      empty: 'A TV a kép középső, 16:9-es részét mutatja.', pick: 'Fotó vagy videó kiválasztása', send: 'Küldés a TV-re',
+      missing: 'Ezt az oldalt a TV-n lévő QR-kóddal nyisd meg: Beállítások → Háttér → Kép küldése telefonról.',
+      privacy: 'A fájl az ntfy.sh-n, a TV privát csatornáján keresztül érkezik, és ott néhány óra múlva törlődik. A fotókat ez a telefon előbb lekicsinyíti; a fájl legfeljebb 1,9 MB lehet.',
+      preparing: 'Előkészítés…', ready: 'Kész a küldésre', photoSize: 'Fotó · {0} × {1} · {2}', videoSize: 'Videó · {0}',
+      tooBig: 'Ez a videó {0}. Legfeljebb 1,9 MB lehet: rövidítsd vagy tömörítsd, és próbáld újra.',
+      unreadable: 'Ezt a fájlt a telefon nem tudja megnyitni. Válassz JPG, PNG vagy MP4 fájlt.',
+      sending: 'Küldés… {0}%', sent: 'Elküldve. A TV néhány másodpercen belül beállítja háttérnek.', again: 'Újabb küldése',
+      failed: 'Nem sikerült elküldeni ({0}). Próbáld újra.', notMedia: 'Ez nem kép és nem videó.'
+    }
+  };
+  var EN = {
+    preparing: 'Preparing…', ready: 'Ready to send', photoSize: 'Photo · {0} × {1} · {2}', videoSize: 'Video · {0}',
+    tooBig: 'This video is {0}. It can be at most 1.9 MB: trim or compress it and try again.',
+    unreadable: 'This phone cannot open that file. Choose a JPG, PNG or MP4.',
+    sending: 'Sending… {0}%', sent: 'Sent. The TV sets it as the background in a few seconds.', again: 'Send another',
+    failed: 'Could not send ({0}). Please try again.', notMedia: 'That is not a picture or a video.'
+  };
+  var lang = /^hu\b/i.test(navigator.language || '') ? 'hu' : 'en';
+  function t(key) { var s = (TEXT[lang] && TEXT[lang][key]) || EN[key] || key, a = arguments; return s.replace(/\{(\d)\}/g, function (m, n) { return a[+n + 1]; }); }
+  document.documentElement.lang = lang;
+  Array.prototype.forEach.call(document.querySelectorAll('[data-t]'), function (el) { var v = TEXT[lang] && TEXT[lang][el.getAttribute('data-t')]; if (v) el.textContent = v; });
+
+  var topic = decodeURIComponent((location.hash || '').slice(1)).trim();
+  if (!/^[A-Za-z0-9_-]{1,64}$/.test(topic)) { document.body.className = 'no-channel'; return; }
+  var $ = function (id) { return document.getElementById(id); };
+  var input = $('file'), frame = $('frame'), meta = $('meta'), send = $('send'), bar = $('bar'), status = $('status');
+  var ready = null; // { file: Blob, name, still: Blob | null }
+
+  function mb(bytes) { return (bytes / 1000000).toFixed(bytes < 10000000 ? 2 : 1).replace('.', lang === 'hu' ? ',' : '.') + ' MB'; }
+  function say(text, kind) { status.textContent = text || ''; status.className = 'status' + (kind ? ' ' + kind : ''); }
+  function show(node) { frame.innerHTML = '<span class="tv">TV</span>'; frame.insertBefore(node, frame.firstChild); }
+  function toBlob(canvas, quality) { return new Promise(function (done) { canvas.toBlob(done, 'image/jpeg', quality); }); }
+  function load(src, video) {
+    return new Promise(function (done, fail) {
+      var el = document.createElement(video ? 'video' : 'img');
+      if (video) { el.muted = true; el.playsInline = true; el.preload = 'auto'; el.onloadeddata = function () { el.currentTime = Math.min(.1, (el.duration || 1) / 2); }; el.onseeked = function () { done(el); }; }
+      else el.onload = function () { done(el); };
+      el.onerror = fail; el.src = src;
+    });
+  }
+  /* Photos: cover the TV's 1920 x 1080 at most, then lower JPEG quality (and size) until under the limit. */
+  async function preparePhoto(file) {
+    var url = URL.createObjectURL(file), img = await load(url, false), w = img.naturalWidth, h = img.naturalHeight;
+    var scale = Math.min(1, Math.max(1920 / w, 1080 / h)), quality = .9, blob, canvas;
+    for (var round = 0; round < 12; round++) {
+      canvas = document.createElement('canvas'); canvas.width = Math.round(w * scale); canvas.height = Math.round(h * scale);
+      canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+      blob = await toBlob(canvas, quality);
+      if (blob && blob.size <= LIMIT) break;
+      if (quality > .62) quality -= .07; else scale *= .85;
+    }
+    URL.revokeObjectURL(url);
+    if (!blob || blob.size > LIMIT) throw new Error('size');
+    var preview = new Image(); preview.src = URL.createObjectURL(blob); show(preview);
+    meta.textContent = t('photoSize', canvas.width, canvas.height, mb(blob.size));
+    return { file: blob, name: (file.name || 'photo').replace(/\.[^.]+$/, '') + '.jpg', still: null };
+  }
+  /* Videos are sent as they are (a phone cannot re-encode them), with a still of the first frame:
+     Samsung TVs cannot read frames back from a playing video. */
+  async function prepareVideo(file) {
+    if (file.size > LIMIT) throw new Error('video-size');
+    var url = URL.createObjectURL(file), video = await load(url, true), w = 1280, h = 720, canvas = document.createElement('canvas'), x;
+    canvas.width = w; canvas.height = h; x = canvas.getContext('2d');
+    var s = Math.max(w / video.videoWidth, h / video.videoHeight);
+    x.drawImage(video, (w - video.videoWidth * s) / 2, (h - video.videoHeight * s) / 2, video.videoWidth * s, video.videoHeight * s);
+    var still = await toBlob(canvas, .82);
+    video.loop = true; video.play().catch(function () {}); show(video);
+    meta.textContent = t('videoSize', mb(file.size));
+    return { file: file, name: file.name || 'video.mp4', still: still };
+  }
+  input.addEventListener('change', async function () {
+    var file = input.files && input.files[0];
+    ready = null; send.disabled = true; bar.style.display = 'none';
+    if (!file) return;
+    say(t('preparing'));
+    try {
+      if (/^video\//.test(file.type) || /\.(mp4|m4v|mov|webm)$/i.test(file.name)) ready = await prepareVideo(file);
+      else if (/^image\//.test(file.type) || /\.(jpe?g|png|webp|gif|heic|heif|bmp)$/i.test(file.name)) ready = await preparePhoto(file);
+      else throw new Error('type');
+      send.disabled = false; send.textContent = TEXT[lang] && TEXT[lang].send || 'Send to TV'; say(t('ready'));
+    } catch (e) {
+      say(e.message === 'video-size' ? t('tooBig', mb(file.size)) : e.message === 'type' ? t('notMedia') : t('unreadable'), 'warn');
+    }
+  });
+  function put(blob, name, tags, progress) {
+    return new Promise(function (done, fail) {
+      var xhr = new XMLHttpRequest();
+      xhr.open('PUT', RELAY + '/' + encodeURIComponent(topic));
+      xhr.setRequestHeader('Filename', name);
+      if (tags) xhr.setRequestHeader('Tags', tags);
+      xhr.upload.onprogress = function (e) { if (e.lengthComputable && progress) progress(e.loaded / e.total); };
+      xhr.onload = function () { if (xhr.status >= 200 && xhr.status < 300) done(); else fail(new Error('HTTP ' + xhr.status)); };
+      xhr.onerror = function () { fail(new Error('network')); };
+      xhr.send(blob);
+    });
+  }
+  send.addEventListener('click', async function () {
+    if (!ready) return;
+    if (send.textContent === t('again')) { input.value = ''; input.click(); return; }
+    var total = ready.file.size + (ready.still ? ready.still.size : 0), done = 0;
+    send.disabled = true; bar.style.display = 'block';
+    function progress(part, size) { return function (f) { var p = Math.round((done + f * size) / total * 100); bar.firstChild.style.width = p + '%'; say(t('sending', p)); }; }
+    try {
+      if (ready.still) { await put(ready.still, 'still.jpg', STILL_TAG, progress(0, ready.still.size)); done += ready.still.size; }
+      await put(ready.file, ready.name, '', progress(0, ready.file.size));
+      bar.firstChild.style.width = '100%'; say(t('sent'), 'ok');
+      send.textContent = t('again'); send.disabled = false;
+    } catch (e) { say(t('failed', e.message), 'warn'); send.disabled = false; }
+  });
+}());
+</script>
+</body>
+</html>
