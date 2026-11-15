@@ -1,14 +1,18 @@
 """Make a seamless, gently moving loop from a still picture with glowing light (aurora, sky glow).
 
 The bright, soft parts sway and shimmer; dark silhouettes such as trees stay still. Every motion
-is periodic over the clip, so the last frame meets the first. Output is H.264 MP4 for the TV.
+is periodic over the clip, so the last frame meets the first. Output is H.264 MP4 for the TV,
+sized to stay under ntfy.sh's 2 MB attachment limit for a 12-second 1080p clip.
 Usage: python3 scripts/animate-glow.py photo.jpg loop.mp4 [seconds=12]
+Environment: CRF (quality, default 26; lower is larger), W/H (output size), DITHER (default 0.5).
 """
 import sys, subprocess, numpy as np
 from PIL import Image, ImageFilter
 src, out = sys.argv[1], sys.argv[2]
 W, H, FPS, SECONDS = 1920, 1080, 30, int(sys.argv[3]) if len(sys.argv) > 3 else 12
 N = FPS * SECONDS
+import os
+CRF = os.environ.get('CRF', '26'); DITHER = float(os.environ.get('DITHER', '0.5')); W, H = int(os.environ.get('W', W)), int(os.environ.get('H', H))
 im = Image.open(src).convert('RGB')
 r = max(W / im.width, H / im.height); im = im.resize((round(im.width * r), round(im.height * r)), Image.LANCZOS)
 l, t = (im.width - W) // 2, (im.height - H) // 2; im = im.crop((l, t, l + W, t + H))
@@ -31,7 +35,7 @@ g1 = wave(700, -2600, 0.3)     # brightness bands travelling across
 g2 = wave(-430, 1800, 2.1)
 def comb(w, k, phi): s, c = w; return s * np.cos(k * phi) + c * np.sin(k * phi)
 p = subprocess.Popen(['ffmpeg', '-v', 'error', '-y', '-f', 'rawvideo', '-pix_fmt', 'rgb24', '-s', f'{W}x{H}', '-r', str(FPS), '-i', '-',
-    '-c:v', 'libx264', '-preset', 'slow', '-crf', '19', '-tune', 'grain', '-pix_fmt', 'yuv420p', '-profile:v', 'high', '-level', '4.1',
+    '-c:v', 'libx264', '-preset', 'veryslow', '-crf', CRF, '-x264-params', 'aq-mode=3:aq-strength=1.1:deblock=1,1', '-pix_fmt', 'yuv420p', '-profile:v', 'high', '-level', '4.1',
     '-g', str(FPS * 2), '-movflags', '+faststart', '-an', out], stdin=subprocess.PIPE)
 rng = np.random.default_rng(7); dither = (rng.random((H, W, 3), np.float32) - .5) / 255.0
 for f in range(N):
@@ -43,7 +47,7 @@ for f in range(N):
     a = base[y0, x0]; b = base[y0, x0 + 1]; c = base[y0 + 1, x0]; d = base[y0 + 1, x0 + 1]
     frame = (a * (1 - fx) + b * fx) * (1 - fy) + (c * (1 - fx) + d * fx) * fy
     gain = 1 + M * (.16 * comb(g1, 1, phi) + .08 * comb(g2, 1, phi))
-    frame = frame * gain[..., None] + dither
+    frame = frame * gain[..., None] + dither * DITHER
     p.stdin.write((np.clip(frame, 0, 1) * 255 + .5).astype(np.uint8).tobytes())
     if f % 60 == 0: print('frame', f, '/', N, flush=True)
 p.stdin.close(); p.wait()
