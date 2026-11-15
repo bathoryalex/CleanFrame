@@ -44,7 +44,8 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000}
 .weather .wx-icon{width:44px;height:44px;align-self:center;stroke-width:1.7;overflow:visible;filter:drop-shadow(0 1px 2px rgba(0,0,0,.22))}
 .weather .wx-range{font-size:30px;letter-spacing:-.4px;opacity:.72}
 .clock-period{font-size:26px;letter-spacing:0;margin:0 10px;opacity:.78;font-variant-numeric:normal}
-.has-clock-ink .weather,.has-adaptive-ink .weather{color:var(--tl-clock-ink,var(--tl-ink,var(--clock-ink,var(--ink))))}
+.cap-date{font-size:32px;line-height:42px;font-weight:500;letter-spacing:-.3px;white-space:nowrap;opacity:.8;text-shadow:0 1px 3px rgba(0,0,0,.22)}
+.has-clock-ink .weather,.has-adaptive-ink .weather,.has-clock-ink .cap-date,.has-adaptive-ink .cap-date{color:var(--tl-clock-ink,var(--tl-ink,var(--clock-ink,var(--ink))))}
 .cap-line{max-width:100%;font-size:30px;line-height:40px;font-weight:500;letter-spacing:-.2px;color:rgba(255,255,255,.88);text-shadow:0 1px 2px rgba(0,0,0,.3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .warn{display:inline-flex;gap:12px;align-items:flex-start;color:var(--warn)}
 .warn .ico{width:30px;height:30px;margin-top:5px}
@@ -443,7 +444,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000}
 .ut-br{background:radial-gradient(ellipse 900px 260px at 1560px 878px,rgba(10,8,6,var(--br-a)),rgba(10,8,6,var(--br-b)) 55%,rgba(10,8,6,0))!important}
 .tr-dark .ut-tr,.br-dark .ut-br,.l-dock .ut-br{display:none}
 .bg-photo.l-list .caption{color:var(--tr-ink)}
-.bg-photo.l-list .caption .clock,.bg-photo.l-list .caption .cap-title,.bg-photo.l-list .caption .cap-line{color:var(--tr-ink);text-shadow:var(--tr-shadow)}
+.bg-photo.l-list .caption .cap-date,.bg-photo.l-list .caption .clock,.bg-photo.l-list .caption .cap-title,.bg-photo.l-list .caption .cap-line{color:var(--tr-ink);text-shadow:var(--tr-shadow)}
 .bg-photo.l-list.has-clock-ink .caption .clock{color:var(--clock-ink);opacity:1;text-shadow:none}
 .bg-photo.l-dock.has-dock-clock-ink .caption .clock{color:var(--dock-clock-ink);opacity:1;text-shadow:none}
 .bg-photo.l-dock.tl-mist .shade{background:radial-gradient(ellipse 560px 200px at 188px 104px,rgba(10,8,6,.24),rgba(10,8,6,.14) 55%,rgba(10,8,6,0)),linear-gradient(to bottom,rgba(4,10,12,.32),rgba(4,10,12,.14) 150px,rgba(4,10,12,0))}
@@ -463,6 +464,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000}
 /* Generated photo-family inks apply only to unlocked Home palettes. */
 .bg-photo.has-adaptive-ink .home{--ink:var(--home-app-ink);--ph-ink:var(--home-app-ink);color:var(--home-app-ink)}
 .bg-photo.has-adaptive-ink.l-list .caption .clock{color:var(--tr-clock-ink)}
+.bg-photo.has-adaptive-ink.l-list .caption .cap-date,.bg-photo.has-adaptive-ink.l-list .caption .weather{color:var(--tr-clock-ink,var(--tr-ink))}
 .bg-photo.has-adaptive-ink.l-dock .caption .clock{color:var(--tl-clock-ink)}
 .bg-photo.has-adaptive-ink.l-list.tr-dark .caption .clock{opacity:1;text-shadow:var(--tr-shadow)}
 .bg-photo.has-adaptive-ink.l-dock.adaptive-tl-dark .caption .clock{opacity:1;text-shadow:var(--tl-shadow)}
@@ -506,13 +508,14 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000}
 .is-horizontal .setting-tick .ico{width:26px;height:26px}
 .section-material .setting-choice:last-child{flex:1.4}
 .detail-background .section-rotation .setting-choice{padding-left:128px}
-.detail-layout .appearance-rows{top:212px;width:680px}
-.detail-layout .setting-section+.setting-section{margin-top:28px}
-.detail-layout .setting-label{margin-bottom:8px;font-size:26px;line-height:32px}
-.detail-layout .is-horizontal .setting-options{gap:8px}
-.detail-layout .is-horizontal .setting-choice{min-height:68px;padding:10px 14px;font-size:28px;line-height:36px;gap:10px}
-.detail-layout .is-horizontal .setting-tick{width:22px;height:24px}
-.detail-layout .is-horizontal .setting-tick .ico{width:22px;height:22px}
+.detail-layout .appearance-rows,.detail-region .appearance-rows{top:212px;width:680px}
+.detail-region .appearance-rows{top:236px}
+.detail-layout .setting-section+.setting-section,.detail-region .setting-section+.setting-section{margin-top:28px}
+.detail-layout .setting-label,.detail-region .setting-label{margin-bottom:8px;font-size:26px;line-height:32px}
+.detail-layout .is-horizontal .setting-options,.detail-region .is-horizontal .setting-options{gap:8px}
+.detail-layout .is-horizontal .setting-choice,.detail-region .is-horizontal .setting-choice{min-height:68px;padding:10px 14px;font-size:28px;line-height:36px;gap:10px}
+.detail-layout .is-horizontal .setting-tick,.detail-region .is-horizontal .setting-tick{width:22px;height:24px}
+.detail-layout .is-horizontal .setting-tick .ico,.detail-region .is-horizontal .setting-tick .ico{width:22px;height:22px}
 .detail-focus .setting-section+.setting-section{margin-top:64px}
 .stage.l-dock.a-both .dock .tile .dock-icon{top:10px;bottom:56px;height:auto;align-items:center;padding-bottom:0}
 .stage.l-dock.a-both .dock .tile .label.dock-label{top:auto;bottom:12px;left:8px;right:8px}
@@ -654,9 +657,13 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000}
 /* Fixed digit cells look gappy at display size; the centred clock may change width by a few pixels instead. */
 .stage.clock-big .home .clock{font-variant-numeric:proportional-nums}
 .stage.clock-big .clock-digit{width:auto}
+.stage.l-dock.clock-big .caption-sub{display:flex;align-items:baseline;justify-content:center;gap:28px}
+.stage.l-dock.clock-big .cap-date{font-size:44px;line-height:56px;opacity:.92}
+.stage.l-dock.clock-large .cap-date{font-size:52px;line-height:64px}
+.stage.l-dock.clock-big .cap-date+.weather::before{content:"";align-self:center;width:8px;height:8px;margin-right:6px;border-radius:50%;background:currentColor;opacity:.55}
 .stage.l-dock.clock-big .weather{font-size:44px;line-height:56px}
 .stage.l-dock.clock-large .weather{font-size:52px;line-height:64px}
-.stage.bg-photo.l-dock.clock-big .caption .clock,.stage.bg-photo.l-dock.clock-big .caption .weather{color:#f6f1e7;opacity:1;text-shadow:0 2px 6px rgba(8,12,14,.30),0 6px 28px rgba(8,12,14,.30)}
+.stage.bg-photo.l-dock.clock-big .caption .clock,.stage.bg-photo.l-dock.clock-big .caption .weather,.stage.bg-photo.l-dock.clock-big .caption .cap-date{color:#f6f1e7;opacity:1;text-shadow:0 2px 6px rgba(8,12,14,.30),0 6px 28px rgba(8,12,14,.30)}
 .is-font-switch .home .ph-name,.is-font-switch .home .clock,.is-font-switch .home .tile .label,.is-font-switch .home .u-label,.is-font-switch .home .app-focus-name,.is-font-switch .home .util-focus-label{animation:font-in 160ms linear}
 @keyframes font-in{from{opacity:0}}
 @media(prefers-reduced-motion:reduce){.is-font-switch .home .ph-name,.is-font-switch .home .clock,.is-font-switch .home .tile .label,.is-font-switch .home .u-label,.is-font-switch .home .app-focus-name,.is-font-switch .home .util-focus-label{animation-duration:120ms}}

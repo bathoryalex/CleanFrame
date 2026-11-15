@@ -132,6 +132,8 @@ window.CleanFrameI18n = {
     'Basic': 'Alap',
     'Full': 'Teljes',
     'Clock': 'Óra',
+    'Date': 'Dátum',
+    'On': 'Be',
     'Corner': 'Sarok',
     'Centre': 'Közép',
     'Large': 'Nagy',

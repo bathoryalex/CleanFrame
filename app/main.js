@@ -4,7 +4,7 @@
 
   /* ---------- Bundled data ---------- */
   var ASSETS = 'assets/', ICONS = ASSETS + 'icons/', WP = ASSETS + 'wallpapers/';
-  var APP_VERSION = '0.9.1';
+  var APP_VERSION = '0.9.2';
   var CAP = 9, SCRIM_Y = 560;
   var DOCK_MODES = { both: { tw: 288, th: 200, pitch: 296 }, text: { tw: 288, th: 104, pitch: 296 }, icons: { tw: 176, th: 144, pitch: 184 } };
   var GRID_ROW = 240, GRID_COL = 344, COLS = 5;
@@ -30,8 +30,8 @@
   }
   window.FrameText = T;
   /* Saved preferences outside the appearance bundle: they apply at once and load nothing. */
-  var PREF_VALUES = { lang: ['en', 'hu'], clock: ['24', '12'], clockPos: ['corner', 'center', 'large'], weather: ['off', 'now', 'day'] };
-  var PREF_NAMES = { en: 'English', hu: 'Magyar', '24': '24-hour', '12': '12-hour', corner: 'Corner', center: 'Centre', large: 'Large', off: 'Off', now: 'Basic', day: 'Full' };
+  var PREF_VALUES = { lang: ['en', 'hu'], clock: ['24', '12'], date: ['off', 'on'], clockPos: ['corner', 'center', 'large'], weather: ['off', 'now', 'day'] };
+  var PREF_NAMES = { en: 'English', hu: 'Magyar', '24': '24-hour', '12': '12-hour', corner: 'Corner', center: 'Centre', large: 'Large', off: 'Off', on: 'On', now: 'Basic', day: 'Full' };
   WALLS.forEach(function (w) { w.ut = w.ut || { tr: 'light', br: 'light' }; w.frostVeil = w.frostVeil || .12; });
   var MODES = [
     { id: 'fixed', name: 'Fixed', min: 0 }, { id: 'open', name: 'Each time Home opens', min: 0 },
@@ -463,7 +463,7 @@
       wifiSsid: typeof s.wifiSsid === 'string' ? s.wifiSsid.slice(0, 32) : '',
       wifiPass: typeof s.wifiPass === 'string' ? s.wifiPass.slice(0, 63) : '',
       wifiSec: s.wifiSec === 'nopass' ? 'nopass' : 'WPA',
-      lang: pick(s.lang, PREF_VALUES.lang, 'en'), clock: pick(s.clock, PREF_VALUES.clock, '24'), clockPos: pick(s.clockPos, PREF_VALUES.clockPos, 'corner'), weather: pick(s.weather, PREF_VALUES.weather, 'day'),
+      lang: pick(s.lang, PREF_VALUES.lang, 'en'), clock: pick(s.clock, PREF_VALUES.clock, '24'), clockPos: pick(s.clockPos, PREF_VALUES.clockPos, 'corner'), date: pick(s.date, PREF_VALUES.date, 'off'), weather: pick(s.weather, PREF_VALUES.weather, 'day'),
       customAt: typeof s.customAt === 'number' && wall(CUSTOM) ? s.customAt : 0, customTone: s.customTone === 'light' ? 'light' : 'dark',
       relayTopic: safeId(s.relayTopic) ? s.relayTopic : '', relayAt: typeof s.relayAt === 'number' ? s.relayAt : 0, relaySince: safeId(s.relaySince) ? s.relaySince : ''
     };
@@ -503,7 +503,7 @@
     var c = lookOf(S.c);
     c.home = home; c.recent = recent; c.lastApp = S.c.lastApp; c.mode = S.c.mode;
     c.wifiSsid = S.c.wifiSsid; c.wifiPass = S.c.wifiPass; c.wifiSec = S.c.wifiSec;
-    c.lang = S.c.lang; c.clock = S.c.clock; c.clockPos = S.c.clockPos; c.weather = S.c.weather;
+    c.lang = S.c.lang; c.clock = S.c.clock; c.clockPos = S.c.clockPos; c.date = S.c.date; c.weather = S.c.weather;
     c.customAt = S.c.customAt; c.customTone = S.c.customTone; c.relayTopic = S.c.relayTopic; c.relayAt = S.c.relayAt; c.relaySince = S.c.relaySince;
     return c;
   }
@@ -1061,6 +1061,7 @@
     if (t.group === 'region') return [
       { id: 'lang', title: T('Language'), horizontal: true, items: options('lang', PREF_VALUES.lang) },
       { id: 'clock', title: T('Time format'), horizontal: true, items: options('clock', PREF_VALUES.clock) },
+      { id: 'date', title: T('Date'), horizontal: true, items: options('date', PREF_VALUES.date) },
       { id: 'clockPos', title: T('Clock'), horizontal: true, items: options('clockPos', PREF_VALUES.clockPos) },
       { id: 'weather', title: T('Weather') + ' · ' + WEATHER_PLACE.name, horizontal: true, items: options('weather', PREF_VALUES.weather) }
     ];
@@ -1531,6 +1532,13 @@
     if (S.c.clock === '12') { suffix = h < 12 ? 'AM' : 'PM'; h = h % 12 || 12; }
     return { text: h + ':' + (m < 10 ? '0' : '') + m, suffix: suffix };
   }
+  var MONTHS = { en: ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'],
+    hu: ['Január', 'Február', 'Március', 'Április', 'Május', 'Június', 'Július', 'Augusztus', 'Szeptember', 'Október', 'November', 'December'] };
+  /* "15 November" in English, "November 15" in Hungarian. */
+  function dateText() {
+    var d = new Date(), month = (MONTHS[S.c.lang] || MONTHS.en)[d.getMonth()];
+    return S.c.lang === 'hu' ? month + ' ' + d.getDate() : d.getDate() + ' ' + month;
+  }
   function clockHtml() {
     var parts = clockParts(), text = parts.text, metrics = fontMetrics[homeFont()], suffix;
     if (metrics && metrics.digitCell) text = text.replace(/[0-9]/g, function (digit) { return '<span class="clock-digit">' + digit + '</span>'; });
@@ -1540,7 +1548,10 @@
     return S.c.lang === 'hu' ? suffix + text : text + suffix;
   }
   function renderCaption(t, hs) {
-    var html = '<span class="caption-head"><span class="clock">' + clockHtml() + '</span>' + weatherCaptionHtml() + '</span>';
+    var weatherHtml = weatherCaptionHtml(), date = S.c.date === 'on' ? '<span class="cap-date">' + esc(dateText()) + '</span>' : '', html;
+    // Centred: date and weather share one smaller line under the clock. Corner: the date is a quiet second line.
+    if (S.c.clockPos !== 'corner' && S.c.layout === 'dock') html = '<span class="caption-head"><span class="clock">' + clockHtml() + '</span>' + (date || weatherHtml ? '<span class="caption-sub">' + date + weatherHtml + '</span>' : '') + '</span>';
+    else html = '<span class="caption-head"><span class="clock">' + clockHtml() + '</span>' + weatherHtml + '</span>' + date;
     caption.setAttribute('data-weather', S.c.weather === 'off' || weather.temp === null ? '' : String(weather.temp));
     if (S.c.apps !== 'icons' && !(S.c.clockPos !== 'corner' && S.c.layout === 'dock') && hs.items[hs.i] && (S.c.layout === 'list' ? photoLabel(hs.items[hs.i].id, false).size < 88 || photoLabel(hs.items[hs.i].id, false).ellipsis : hs.zone === 'apps' && reducedDockLabel(hs.items[hs.i].id))) html += '<span class="cap-line full-name">' + esc(app(hs.items[hs.i].id).name) + '</span>';
     setHTML(caption, html);

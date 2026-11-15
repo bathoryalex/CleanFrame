@@ -408,6 +408,9 @@ try {
     check('12-hour clock shows the Hungarian period first', /^(de\.|du\.)\d{1,2}:\d{2}$/.test(clock) && Number(clock.replace(/^\D+/, '').split(':')[0]) <= 12, clock);
     await current.waitForFunction(() => !!document.querySelector('#caption .weather .wx-range'));
     check('Weather shows icon, temperature and range', await current.evaluate(() => { const w = document.querySelector('#caption .weather'); return !!w.querySelector('.wx-icon') && w.querySelector('.wx-temp').textContent === '12°' && w.querySelector('.wx-range').textContent === '15° / 7°'; }));
+    await act('choice.date.on');
+    const dated = await current.evaluate(() => document.querySelector('#caption .cap-date').textContent);
+    check('Date shows month name first in Hungarian', /^(Január|Február|Március|Április|Május|Június|Július|Augusztus|Szeptember|Október|November|December) \d{1,2}$/.test(dated), dated);
     await act('choice.weather.off');
     check('Weather can be hidden', await current.evaluate(() => !document.querySelector('#caption .weather')));
     await act('choice.clockPos.large');
