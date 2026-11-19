@@ -4,7 +4,7 @@
 
   /* ---------- Bundled data ---------- */
   var ASSETS = 'assets/', ICONS = ASSETS + 'icons/', WP = ASSETS + 'wallpapers/';
-  var APP_VERSION = '0.12.0';
+  var APP_VERSION = '0.12.1';
   var CAP = 9, SCRIM_Y = 560;
   var DOCK_MODES = { both: { tw: 288, th: 200, pitch: 296 }, text: { tw: 288, th: 104, pitch: 296 }, icons: { tw: 176, th: 144, pitch: 184 } };
   var GRID_ROW = 240, GRID_COL = 344, COLS = 5;
@@ -41,7 +41,7 @@
   var KEY = 'cleanframe.home.v1', storageOk = true, catalog = { loading: false, loaded: false, error: null, request: 0, revision: 0 };
   /* Your picture: one wallpaper slot that a phone fills through an ntfy.sh topic (assets/custom-wallpaper.js). */
   var CUSTOM = 'custom', STILL_TAG = 'frame-home-still', PART_TAG = 'frame-home-part', SEND_PAGE = window.FrameFork && window.FrameFork.sendPage || '', FCW = window.FrameCustomWallpaper, RELAY = (window.FrameFork && window.FrameFork.relay) || 'https://ntfy.sh';
-  var custom = { urls: null, stamp: 0, phase: 'idle', name: '', busy: false, queued: null, seen: {}, sets: {}, percent: 0, stillMsg: null, link: 'idle', detail: '', relay: null };
+  var custom = { urls: null, stamp: 0, phase: 'idle', name: '', busy: false, queued: null, seen: {}, sets: {}, lost: false, percent: 0, stillMsg: null, link: 'idle', detail: '', relay: null };
   function addCustomWall(tone) {
     var w = wall(CUSTOM);
     if (!w) { w = { id: CUSTOM, name: 'Your picture', ut: { tr: 'light', br: 'light' }, frostVeil: .2 }; WALLS.push(w); }
@@ -1278,6 +1278,7 @@
             if (video) record.files.video = got.blob;
             custom.still = !video || !!got.frame;
             FCW.save(record, function (stored) {
+              FCW.persist(); custom.lost = false;
               installCustom(record);
               savePrefs({ customAt: record.stamp, customTone: record.tone }, 'Your picture');
               custom.busy = false; custom.phase = !stored ? 'unsaved' : custom.still ? 'done' : 'nostill';
@@ -1320,15 +1321,27 @@
     addCustomWall(record.tone);
     if (old) setTimeout(function () { Object.keys(old).forEach(function (k) { URL.revokeObjectURL(old[k]); }); }, 5000);
   }
+  /* Storage can be slow or briefly unavailable right after the TV powers on. Home starts after a
+     few seconds regardless, showing the first wallpaper's files in the slot while it waits, but the
+     saved choice is never changed: the picture appears as soon as storage answers. Only a picture
+     that is really gone switches the background, and the Your picture screen says so. */
   function loadCustom(done) {
-    var finished = false, timer = setTimeout(function () { finish(null); }, 4000);
-    function finish(record) {
-      if (finished) return; finished = true; clearTimeout(timer);
-      if (record) installCustom(record);
-      else if (S.c.wall === CUSTOM) S.c.wall = WALLS[0].id;
-      done();
+    var started = false, tries = 0, timer = setTimeout(begin, 4000);
+    function begin() { if (!started) { started = true; clearTimeout(timer); done(); } }
+    function attempt() {
+      FCW.load(function (record, failed) {
+        if (record) {
+          installCustom(record);
+          if (started && S.c.bg === 'photo' && S.c.wall === CUSTOM) setLook({}, { row: 'bg', reload: true, transient: true });
+          begin(); return;
+        }
+        if (failed) { tries++; if (tries >= 3) begin(); setTimeout(attempt, Math.min(30000, 3000 * tries)); return; }
+        custom.lost = true;
+        if (!started) { if (S.c.wall === CUSTOM) S.c.wall = WALLS[0].id; S.c.customAt = 0; savePrefs({}, 'Your picture is gone'); begin(); }
+        else { savePrefs({ customAt: 0 }, 'Your picture is gone'); if (S.c.wall === CUSTOM) setLook({ wall: WALLS[0].id }, { row: 'bg' }); }
+      });
     }
-    FCW.load(finish);
+    attempt();
   }
   V.phone = {
     sheet: true,
@@ -2148,10 +2161,11 @@
       }).join(''));
     },
     phone: function (t, el) {
-      var url = SEND_PAGE ? SEND_PAGE + '#' + S.c.relayTopic : RELAY + '/' + S.c.relayTopic, phase = custom.phase !== 'idle' ? custom.phase : custom.link === 'retry' ? 'offline' : custom.link === 'open' ? 'waiting' : 'connecting', text = {
+      var url = SEND_PAGE ? SEND_PAGE + '#' + S.c.relayTopic : RELAY + '/' + S.c.relayTopic, phase = custom.phase !== 'idle' ? custom.phase : custom.lost ? 'lost' : custom.link === 'retry' ? 'offline' : custom.link === 'open' ? 'waiting' : 'connecting', text = {
         connecting: T('Connecting to ntfy.sh…'), waiting: T('Waiting for a photo…'), offline: T('Can’t reach ntfy.sh ({0}). Trying again…', custom.detail || '?'),
         notimage: T('That file isn’t a picture or a video. Send a JPG, PNG or MP4.'), downloading: T('Receiving {0}…', (custom.name || T('photo')) + (custom.percent ? ' · ' + custom.percent + '%' : '')), processing: T('Preparing your background…'),
         unreadable: T('Couldn’t open that file. Send a JPG, PNG or MP4.'), unreachable: T('Couldn’t download the photo ({0}). Send it again.', custom.detail || '?'),
+        lost: T('The TV no longer had your last picture. Send it again.'),
         done: T('Done. Your picture is the background now.'), nostill: T('Done. The TV couldn’t take a still from this video, so the glass uses a neutral tint.'), unsaved: T('Done for now, but the TV couldn’t store it for next time.')
       }[phase];
       // The sheet is rebuilt on every visit, so the drawn code belongs to the canvas, not the session.
@@ -2177,7 +2191,8 @@
   function registeredMaterial(id) { return S.c.bg === 'photo' && S.c.material === 'soft' && !!wall(id); }
   /* Bundled wallpapers are files; Your picture is a set of object URLs made on the TV. */
   function wallAsset(id, kind) {
-    if (id === CUSTOM) return custom.urls && custom.urls[kind] || '';
+    // Until stored files are ready the slot borrows the first wallpaper, so Home never starts black.
+    if (id === CUSTOM) return custom.urls && custom.urls[kind] || (custom.urls ? '' : wallAsset(WALLS[0].id, kind));
     if (kind === 'photo') return WP + id + '.jpg';
     if (kind === 'thumb' || kind === 'panel') return WP + id + '-' + kind + '.jpg';
     return 'assets/materials/' + id + '-' + kind + '.jpg';
@@ -2475,5 +2490,5 @@
     norm(); render(); fit(); focusStage(); updateClock(); syncRotation();
     refreshWeather(function () { render(); syncRotation(); });
   }
-  if (FCW && S.c.customAt) loadCustom(function () { start(); startRelay(); }); else { start(); startRelay(); }
+  if (FCW && S.c.customAt) { FCW.persist(); loadCustom(function () { start(); startRelay(); }); } else { start(); startRelay(); }
 })();

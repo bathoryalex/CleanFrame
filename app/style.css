@@ -681,6 +681,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000}
 .phone-steps li{margin:0 0 22px;padding-left:8px}
 .phone-hint{margin:8px 0 0;font-size:26px;line-height:36px;color:var(--mute)}
 .phone-dot.is-connecting{animation:phone-pulse 1.4s ease-in-out infinite}
+.phone-dot.is-lost{background:#e9a35b;opacity:1}
 .phone-dot.is-unreachable{background:#e9a35b;opacity:1}
 .phone-status{display:flex;align-items:center;gap:16px;margin:40px 0 0;font-size:32px;line-height:44px;font-weight:500}
 .phone-dot{flex:none;width:16px;height:16px;border-radius:50%;background:var(--mute);opacity:.8}

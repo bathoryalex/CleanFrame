@@ -590,6 +590,43 @@ try {
     await current.waitForFunction(() => { const v = document.getElementById('photoVideo'); return !v.paused && /is-playing/.test(v.className); }, null, { timeout: 10000 });
     check('The joined video plays on Home', true);
   });
+  await run('Your picture survives slow or failing storage at power-on', async () => {
+    await page(); await group('background');
+    current.__relay = { id: 'Sl12Cd34Ef56', image: 'app/assets/wallpapers/golden.jpg', ready: () => true };
+    await act('background.custom');
+    await current.waitForFunction(() => ShoreQA.state().wall === 'custom' && ShoreQA.ready(), null, { timeout: 30000 });
+    current.__relay = null;
+    const savedWall = () => current.evaluate(() => JSON.parse(localStorage.getItem('cleanframe.home.v1')).look.wall);
+    // Power-on with storage answering only after 9 s: Home starts on borrowed files, and a write
+    // made meanwhile (a launched app, a changed setting) must not replace the saved choice.
+    await current.addInitScript(() => { let v; Object.defineProperty(window, 'FrameCustomWallpaper', { configurable: true, get() { return v; }, set(x) { const load = x.load; x.load = cb => setTimeout(() => load(cb), 9000); v = x; } }); });
+    await current.reload();
+    await current.waitForFunction(() => window.ShoreQA && ShoreQA.ready && ShoreQA.ready(), null, { timeout: 15000 });
+    check('Home starts on the first wallpaper while storage is slow', await current.evaluate(() => /wallpapers\//.test(document.getElementById('photo').src)) && (await state()).wall === 'custom');
+    await scene('settings'); await act('settings.group.region'); await act('choice.date.on');
+    check('A write while waiting keeps the saved picture', await savedWall() === 'custom', await savedWall());
+    await current.waitForFunction(() => /^blob:/.test(document.getElementById('photo').src), null, { timeout: 20000 });
+    check('The picture comes back once storage answers', (await state()).wall === 'custom' && await savedWall() === 'custom');
+    // Storage that errors twice before answering.
+    await current.addInitScript(() => { let v, n = 0; Object.defineProperty(window, 'FrameCustomWallpaper', { configurable: true, get() { return v; }, set(x) { const load = x.load; x.load = cb => (++n <= 2 ? setTimeout(() => cb(null, true), 50) : load(cb)); v = x; } }); });
+    await current.reload();
+    await current.waitForFunction(() => window.ShoreQA && /^blob:/.test(document.getElementById('photo').src), null, { timeout: 30000 });
+    check('Failing storage is retried, not treated as a lost picture', (await state()).wall === 'custom' && await savedWall() === 'custom');
+  });
+  await run('Your picture that is really gone says so', async () => {
+    await page(); await group('background');
+    current.__relay = { id: 'Gn12Cd34Ef56', image: 'app/assets/wallpapers/golden.jpg', ready: () => true };
+    await act('background.custom');
+    await current.waitForFunction(() => ShoreQA.state().wall === 'custom' && ShoreQA.ready(), null, { timeout: 30000 });
+    current.__relay = null;
+    await current.evaluate(() => new Promise(done => { const r = indexedDB.open('framehome', 1); r.onsuccess = () => { const tx = r.result.transaction('files', 'readwrite'); tx.objectStore('files').clear(); tx.oncomplete = () => { r.result.close(); done(); }; }; }));
+    await current.reload(); await ready();
+    const after = await state();
+    check('A missing picture switches to the first wallpaper and is saved that way', after.wall !== 'custom' && !after.customAt, after.wall);
+    await group('background'); await act('background.custom');
+    await current.waitForFunction(() => /no longer|már nem/.test(document.querySelector('.phone-status').textContent), null, { timeout: 10000 });
+    check('The Your picture screen asks to send it again', true);
+  });
   await run('Your picture ignores files that are not pictures', async () => {
     await page(); await group('background');
     current.__relay = { id: 'Zz98Yy76Xx54', image: 'app/assets/wallpapers/golden.jpg', type: 'application/pdf', name: 'tickets.pdf', ready: () => true };

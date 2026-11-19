@@ -133,15 +133,21 @@
       } catch (e) { done(false); }
     });
   }
+  /* done(record, failed): `failed` means storage did not answer properly (it may be starting up),
+     which is different from a picture that is really gone. */
   function load(done) {
     open(function (db) {
-      if (!db) { done(null); return; }
+      if (!db) { done(null, true); return; }
       try {
         var get = db.transaction(STORE, 'readonly').objectStore(STORE).get(KEY);
-        get.onsuccess = function () { db.close(); done(get.result && get.result.files ? get.result : null); };
-        get.onerror = function () { db.close(); done(null); };
-      } catch (e) { done(null); }
+        get.onsuccess = function () { db.close(); done(get.result && get.result.files ? get.result : null, false); };
+        get.onerror = function () { db.close(); done(null, true); };
+      } catch (e) { done(null, true); }
     });
+  }
+  /* Ask the browser to keep this storage when space runs low instead of clearing it. */
+  function persist() {
+    try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(function () { /* best effort */ }); } catch (e) { /* not offered */ }
   }
   function urls(record) {
     var out = {};
@@ -325,5 +331,5 @@
     });
   }
 
-  window.FrameCustomWallpaper = { processImage: processImage, save: save, load: load, urls: urls, randomTopic: randomTopic, listen: listen, isImage: isImage, isVideo: isVideo, download: download, downloadVideo: downloadVideo, downloadParts: downloadParts, videoFromBuffer: videoFromBuffer };
+  window.FrameCustomWallpaper = { processImage: processImage, save: save, load: load, urls: urls, randomTopic: randomTopic, listen: listen, persist: persist, isImage: isImage, isVideo: isVideo, download: download, downloadVideo: downloadVideo, downloadParts: downloadParts, videoFromBuffer: videoFromBuffer };
 }());

@@ -199,6 +199,7 @@ window.CleanFrameI18n = {
     'Preparing your background…': 'A háttérkép előkészítése…',
     'Couldn’t open that file. Send a JPG, PNG or MP4.': 'Ezt a fájlt nem sikerült megnyitni. JPG, PNG vagy MP4 fájlt küldj.',
     'Done. Your picture is the background now.': 'Kész. Mostantól ez a háttérkép.',
+    'The TV no longer had your last picture. Send it again.': 'A TV-n már nem volt meg az utoljára küldött kép. Küldd el újra.',
     'Done. The TV couldn’t take a still from this video, so the glass uses a neutral tint.': 'Kész. A TV nem tudott állóképet venni ebből a videóból, ezért az üveghatás semleges árnyalatú.',
     'Done for now, but the TV couldn’t store it for next time.': 'Most beállítva, de a TV nem tudta elmenteni a következő indításra.',
 
