@@ -841,4 +841,19 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000}
 .lyrics-note{position:absolute;left:0;right:0;top:50%;margin:-24px 0 0;font-size:36px;line-height:48px;color:var(--mute)}
 .lyrics-source{position:absolute;left:0;bottom:0;margin:0;font-size:22px;color:var(--mute)}
 @media(prefers-reduced-motion:reduce){.lyrics-track,.lyric{transition:none}}
+/* Now playing opens like the Wi‑Fi QR code: the blurred panel and shade fade in, the content rises. */
+.np-overlay{position:absolute;inset:0;z-index:12;pointer-events:none;visibility:hidden;transition:visibility 0s linear 420ms}
+.np-overlay.is-on{pointer-events:auto;visibility:visible;transition-delay:0s}
+.np-bg,.np-shade{position:absolute;left:0;top:0;width:1920px;height:1080px;opacity:0;transition:opacity 320ms linear;will-change:opacity}
+.np-bg{max-width:none;object-fit:cover}
+.np-shade{background:rgba(8,12,14,.5)}
+.bg-dark .np-bg,.bg-light .np-bg{display:none}
+.bg-dark .np-shade,.bg-light .np-shade{background:rgba(8,12,14,.86)}
+.np-overlay.is-on .np-bg,.np-overlay.is-on .np-shade{opacity:1}
+.np-stage{position:absolute;inset:0;color:#f6f1e7;opacity:0;transform:translate3d(0,36px,0) scale(.96);transition:opacity 260ms linear,transform 420ms cubic-bezier(.22,1,.28,1);will-change:opacity,transform}
+.np-overlay.is-on .np-stage{opacity:1;transform:translate3d(0,0,0) scale(1);transition-delay:60ms}
+.np-stage .np-device,.np-stage .np-album,.np-stage .lyrics-note,.np-stage .lyrics-source{color:rgba(246,241,231,.66)}
+.np-stage .np-btn{color:#f6f1e7;background:rgba(255,255,255,.12)}
+.np-stage .np-btn.is-focus{background:#f6f1e7;color:#141618}
+@media(prefers-reduced-motion:reduce){.np-stage{transform:none!important}.np-bg,.np-shade,.np-stage{transition-duration:120ms}}
 

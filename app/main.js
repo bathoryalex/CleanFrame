@@ -4,7 +4,7 @@
 
   /* ---------- Bundled data ---------- */
   var ASSETS = 'assets/', ICONS = ASSETS + 'icons/', WP = ASSETS + 'wallpapers/';
-  var APP_VERSION = '0.17.0';
+  var APP_VERSION = '0.17.1';
   var CAP = 9, SCRIM_Y = 560, DOCK_BOTTOM = 1032; // the Dock sits 48 px above the bottom edge; names and actions go above it
   var DOCK_MODES = { both: { tw: 288, th: 200, pitch: 296 }, text: { tw: 288, th: 104, pitch: 296 }, icons: { tw: 176, th: 144, pitch: 184 } };
   var GRID_ROW = 240, GRID_COL = 344, COLS = 5;
@@ -1535,8 +1535,10 @@
   }
   setInterval(function () { if (!document.hidden && top().id === 'nowplaying' && top().lyrics) placeLyrics(); }, 250);
 
+  /* Not a sheet: like the Wi‑Fi QR code it fades in over Home on the pre-blurred panel image,
+     and fades out again on Back, so opening and closing move instead of cutting. */
   V.nowplaying = {
-    sheet: true,
+    sheet: false,
     key: function (t, k) {
       if (k === 'back') pop();
       else if (k === 'left' && t.f.b > 0) t.f.b--;
@@ -1883,7 +1885,7 @@
      Settings preview shows it and the app is visible; otherwise it is paused or released. */
   var photoVideo = document.getElementById('photoVideo');
   function syncVideo() {
-    var url = custom.urls && custom.urls.video, t = top(), visible = !document.hidden && !V[t.id].sheet && t.id !== 'wifiqr',
+    var url = custom.urls && custom.urls.video, t = top(), visible = !document.hidden && !V[t.id].sheet && t.id !== 'wifiqr' && t.id !== 'nowplaying',
       wanted = !!url && S.c.bg === 'photo' && !!S.shown && S.shown.wall === CUSTOM;
     if (!photoVideo) return;
     if (!wanted) {
@@ -2049,6 +2051,7 @@
     renderSheet(t, sheet);
     renderAppearance(t);
     renderWifiOverlay(t);
+    renderNowPlayingOverlay(t);
     renderFocusStatus(t);
     if (alexaToast) { if (alexa.toast && alexaToast.textContent !== alexa.toast) alexaToast.textContent = alexa.toast; alexaToast.className = 'alexa-toast' + (alexa.toast ? ' is-on' : ''); }
     syncVideo();
@@ -2096,6 +2099,20 @@
     if (wifiQrSsid.textContent !== S.c.wifiSsid) wifiQrSsid.textContent = S.c.wifiSsid;
     wifiQrEl.className = 'wifi-qr-overlay' + (on ? ' is-on' : '');
     wifiQrEl.setAttribute('aria-hidden', on ? 'false' : 'true');
+  }
+  var npOverlay = $('npOverlay'), npBg = $('npBg'), npStage = $('npStage'), npSlots = null;
+  function renderNowPlayingOverlay(t) {
+    var on = t.id === 'nowplaying';
+    if (!npOverlay) return;
+    if (on && !npSlots) {
+      npStage.innerHTML = FRAMES.nowplaying(t); npSlots = {};
+      Array.prototype.forEach.call(npStage.querySelectorAll('[data-slot]'), function (el) { npSlots[el.getAttribute('data-slot')] = el; });
+    }
+    if (npBg && S.c.bg === 'photo' && IMG.bg.src && npBg._src !== IMG.bg.src) { npBg._src = IMG.bg.src; npBg.src = IMG.bg.src; }
+    /* While closing, the last content stays and fades out with the overlay. */
+    if (on) FILLS.nowplaying(t, npSlots);
+    npOverlay.className = 'np-overlay' + (on ? ' is-on' : '');
+    npOverlay.setAttribute('aria-hidden', on ? 'false' : 'true');
   }
   function wifiDraftDisplay(t) {
     if (t.field === 'pass') return t.draft ? Array(t.draft.length + 1).join('•') : T('No password');
