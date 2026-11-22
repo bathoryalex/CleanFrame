@@ -18,7 +18,7 @@ This repo uses [Nathan Clark's CleanFrame](https://github.com/nthnclrk/CleanFram
 
 - **Home row.** Xbox and Nintendo Switch on HDMI, Nuvio, YouTube, Spotify, HBO Max, SmartThings and Internet by default. Choose and reorder up to nine apps, or add any installed app.
 - **Layouts.** List or Dock, with icons, names or both, and colour or minimal (white) icons. When the apps do not fit, the Dock pages through whole tiles with arrows at the sides.
-- **Clock, date and weather.** 24- or 12-hour clock, in the corner or large in the centre. An optional date ("15 November", or "November 15" in Hungarian). Weather from [Open-Meteo](https://open-meteo.com): an icon, the temperature and today's high and low.
+- **Clock, date and weather.** 24- or 12-hour clock, in the corner or large in the centre. An optional date ("15 November", or "November 15" in Hungarian), optionally with Hungarian public holidays, Hungarian name days and today's events from your Google or Outlook calendar (see below). Weather from [Open-Meteo](https://open-meteo.com): an icon, the temperature and today's high and low.
 - **Backgrounds.** A photograph, light or dark. Seventeen bundled wallpapers with pre-rendered glass, optional rotation, and **Your picture**: send any photo or short looping video from your phone and it becomes the background (see below).
 - **Wi‑Fi QR.** A Home control that shows a QR code so guests can join your Wi‑Fi. The network name and password are entered on the TV and never leave it.
 - **Spotify.** What is playing on any of your Spotify devices, with the cover, under the clock. The remote's Play/Pause button plays or pauses, Fast-forward and Rewind skip, and a colour button can skip too (see below).
@@ -68,9 +68,17 @@ Settings → **Connections** → **Spotify** → **Connect Spotify** shows a QR 
 - It uses the official [Spotify Web API](https://developer.spotify.com/documentation/web-api) with Authorization Code and PKCE, so there is no client secret. The app is registered at developer.spotify.com by the owner of this fork; its client id and the redirect URI (`https://bathoryalex.github.io/CleanFrame/spotify/`) are in [`app/fork.js`](app/fork.js). Since February 2026 a Development Mode app needs its owner to have Premium and allows five users.
 - The code Spotify returns travels to the TV through ntfy.sh and is useless without the PKCE verifier that stays on the TV. Tokens are kept on the TV, apart from the preferences; **Sign out of Spotify** forgets them, and the access can be removed in your Spotify account settings.
 
+## Date details
+
+Settings → Language and clock → **Date details** (they also show when the date itself is off):
+
+- **Hungarian holidays** add today's public holiday after the date, from the public [Nager.Date](https://date.nager.at) API (`/api/v3/PublicHolidays/<year>/HU`). Each year is fetched once and kept on the TV. It lists public holidays only, not observances or working-day swaps.
+- **Name days** add up to three of today's Hungarian name days. The list is bundled with the app (data from the npm package [nevnap](https://github.com/nevadavid/nevnap), MIT), so nothing is fetched. In leap years 24–28 February move one day later, as in the Hungarian calendar.
+- **Calendar** shows a line under the date with today's next (at most two) events, or tomorrow's when today has none left. **Connect calendar** shows a QR code; the [calendar page](docs/calendar/index.html) explains, on the phone, where to copy the calendar's secret iCal address: Google Calendar → Settings → the calendar → *Secret address in iCal format*; Outlook.com → Settings → Calendar → Shared calendars → *Publish a calendar* → ICS link. The phone apps do not show this address, so on a phone the page asks for the desktop site of calendar.google.com or outlook.com in the browser. The page encrypts the address with a key that only the QR code carries and sends it through ntfy.sh; the TV decrypts it, keeps it apart from the preferences and reads the calendar every 15 minutes. No sign-in or password is involved, but anyone who has the secret address can read the calendar, so **Disconnect calendar** forgets it on the TV and the address can be reset in Google or Outlook. Google may take several hours to show changes in the secret address feed. Recurring events support the common rules (daily, weekly by weekday, monthly by day or weekday, yearly, with interval, count, end date and exceptions).
+
 ## Configure
 
-[`app/fork.js`](app/fork.js) is the one place for this installation's settings: the Home row (with HDMI inputs and alternative app IDs), the app's own ID, the weather location, the picture relay, the Alexa sign-in page (`alexaPage`) and the Spotify app (`spotify.clientId`, `spotify.page`); empty values hide them. Interface text lives in `app/main.js` with Hungarian translations in [`app/assets/i18n.js`](app/assets/i18n.js).
+[`app/fork.js`](app/fork.js) is the one place for this installation's settings: the Home row (with HDMI inputs and alternative app IDs), the app's own ID, the weather location, the picture relay, the Alexa sign-in page (`alexaPage`), the calendar page (`calendarPage`) and the Spotify app (`spotify.clientId`, `spotify.page`); empty values hide them. Interface text lives in `app/main.js` with Hungarian translations in [`app/assets/i18n.js`](app/assets/i18n.js).
 
 ## Try the interface
 

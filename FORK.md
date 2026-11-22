@@ -19,4 +19,6 @@ Fork-specific TV setup, app identity, and defaults are documented in [docs/alex-
 - Spotify: now playing under the clock, Play/Pause and skip from the remote (official Web API, PKCE).
 - Alexa: readings, light switches, named groups and colour-button shortcuts from the Alexa account, signed in once from the phone (unofficial).
 - Settings as a grid of cards; Samsung Home as a direct action.
+- Clock styles (Classic, Thin, LED, Flip) with optional seconds; Tiles layout.
+- Date details: Hungarian public holidays (Nager.Date), Hungarian name days (bundled) and today's events from a Google or Outlook calendar's secret iCal address, sent from the phone.
 

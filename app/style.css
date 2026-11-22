@@ -921,10 +921,11 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000}
 .np-title{padding-bottom:.12em}
 .mq{padding-bottom:.16em;margin-bottom:-.16em}
 .detail-region .appearance-rows{top:220px}
-.detail-region .setting-section+.setting-section{margin-top:16px}
+.detail-region .setting-section+.setting-section{margin-top:12px}
 .detail-region .is-horizontal .setting-choice{min-height:60px}
 .detail-typography .appearance-rows{top:236px}
-.detail-typography .is-horizontal .setting-choice{min-height:72px;font-size:30px}
+.detail-typography .is-horizontal .setting-choice{min-height:72px;font-size:28px;padding:10px 12px;gap:8px}
+.detail-typography .is-horizontal .setting-tick{flex:none}
 /* Clock styles. Thin and LED are SVG glyphs in currentColor, sized from the clock's font size. */
 .clock-svg{display:inline-flex;align-items:center;gap:.07em;vertical-align:-.06em}
 .clock-glyph{width:.5em;height:.82em;overflow:visible}
@@ -936,6 +937,8 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000}
 .clock-led .clock-glyph .off{opacity:.09}
 .clock-led .clock-glyph .on{filter:drop-shadow(0 0 3px currentColor)}
 .clock-led .clock-sep{transform:skewX(-7deg)}
+.clock-led .clock-sep circle{filter:drop-shadow(0 0 3px currentColor)}
+.clock-led .clock-sep circle{r:5.5px}
 /* Flip clock: dark cards split in the middle; a changing digit folds its top half down. */
 .flip-clock{display:inline-flex;align-items:center;gap:.06em;vertical-align:-.1em;perspective:6em}
 .flip{position:relative;display:inline-block;width:.74em;height:1.08em;border-radius:.1em;background:#16191b;box-shadow:0 .06em .18em rgba(0,0,0,.45),inset 0 0 0 1px rgba(255,255,255,.06);color:#f3f1ec;font-weight:600;text-shadow:none}
@@ -946,8 +949,9 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000}
 .flip-top b{top:0}
 .flip-bottom b{bottom:0}
 .flip::after{content:"";position:absolute;left:0;right:0;top:50%;height:2px;margin-top:-1px;background:rgba(0,0,0,.55);z-index:3}
-.flip-leaf-top{z-index:2;animation:flip-top 300ms ease-in both}
-.flip-leaf-bottom{z-index:2;animation:flip-bottom 300ms ease-out 300ms both}
+.flip-leaf-top{z-index:2;animation:flip-top 220ms cubic-bezier(.55,0,1,.45) both}
+.flip-leaf-bottom{z-index:2;animation:flip-bottom 240ms cubic-bezier(0,.55,.45,1) 220ms both}
+.flip-half{will-change:transform}
 @keyframes flip-top{from{transform:rotateX(0)}to{transform:rotateX(-90deg)}}
 @keyframes flip-bottom{from{transform:rotateX(90deg)}to{transform:rotateX(0)}}
 .flip-sep{display:inline-flex;flex-direction:column;justify-content:center;gap:.22em;width:.16em;height:1.08em;align-items:center}
@@ -963,4 +967,22 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000}
 .bg-light.dock-tiles .dock .tile::before{background:rgba(255,255,255,.55);box-shadow:inset 0 0 0 1px rgba(29,26,22,.08),0 10px 26px rgba(4,8,10,.12)}
 .dock-tiles .dock .tile.is-focus::before{background:rgba(255,255,255,.16)}
 .dock-tiles .dock .plate{border-radius:28px}
+/* Date details: holiday and name days on the date line, the calendar on its own line. */
+.cap-holiday{color:#ffd58a}
+.cap-dot{opacity:.55}
+.cap-cal{display:flex;align-items:center;gap:12px;margin-top:6px;font-size:28px;line-height:36px;font-weight:500;letter-spacing:-.2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:900px;opacity:.9;text-shadow:0 1px 3px rgba(0,0,0,.22)}
+.cap-cal .ico{flex:none;width:28px;height:28px;stroke-width:1.8}
+.cap-cal b{font-weight:600}
+.cap-cal-when{opacity:.7;margin-right:2px}
+.clock-big .cap-cal{justify-content:center;margin:10px auto 0;font-size:32px;line-height:40px}
+.has-clock-ink .cap-cal,.has-adaptive-ink .cap-cal{color:var(--tl-clock-ink,var(--tl-ink,var(--clock-ink,var(--ink))))}
+.detail-region .setting-choice.has-description{min-height:0;padding:8px 22px}
+.detail-region .setting-choice.has-description .setting-name{font-size:30px;line-height:38px}
+.detail-region .setting-choice.has-description .setting-description{font-size:22px;line-height:28px}
 
+/* Date details: one compact line at the end of Language and clock so the page still fits. */
+.detail-region .setting-section.section-dateinfo{margin-top:10px}
+.detail-region .section-dateinfo .setting-choice.has-description{min-height:56px;padding:6px 22px 6px 14px}
+.detail-region .section-dateinfo .setting-copy{flex-direction:row;align-items:baseline;gap:16px;white-space:nowrap;overflow:hidden}
+.detail-region .section-dateinfo .setting-choice.has-description .setting-name{font-size:28px;line-height:36px}
+.detail-region .section-dateinfo .setting-description{overflow:hidden;text-overflow:ellipsis}

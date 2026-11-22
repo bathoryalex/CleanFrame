@@ -4,7 +4,7 @@
 
   /* ---------- Bundled data ---------- */
   var ASSETS = 'assets/', ICONS = ASSETS + 'icons/', WP = ASSETS + 'wallpapers/';
-  var APP_VERSION = '0.21.0';
+  var APP_VERSION = '0.22.0';
   var CAP = 9, SCRIM_Y = 560, DOCK_BOTTOM = 1032; // the Dock sits 48 px above the bottom edge; names and actions go above it
   var DOCK_MODES = { both: { tw: 288, th: 200, pitch: 296 }, text: { tw: 288, th: 104, pitch: 296 }, icons: { tw: 200, th: 156, pitch: 206 } }; // icons-only tiles leave room under the icon for the focused app's name
   var GRID_ROW = 240, GRID_COL = 344, COLS = 5;
@@ -31,7 +31,7 @@
   }
   window.FrameText = T;
   /* Saved preferences outside the appearance bundle: they apply at once and load nothing. */
-  var PREF_VALUES = { lang: ['en', 'hu'], clock: ['24', '12'], date: ['off', 'on'], clockPos: ['corner', 'center', 'large'], weather: ['off', 'now', 'day'], spotifyShow: ['on', 'off'], keyHints: ['auto', 'always', 'off'], switchStyle: ['both', 'icons', 'text'], clockStyle: ['classic', 'thin', 'led', 'flip'], seconds: ['off', 'on'], layoutView: ['list', 'dock', 'tiles'] };
+  var PREF_VALUES = { lang: ['en', 'hu'], clock: ['24', '12'], date: ['off', 'on'], clockPos: ['corner', 'center', 'large'], weather: ['off', 'now', 'day'], spotifyShow: ['on', 'off'], keyHints: ['auto', 'always', 'off'], switchStyle: ['both', 'icons', 'text'], clockStyle: ['classic', 'thin', 'led', 'flip'], seconds: ['off', 'on'], layoutView: ['list', 'dock', 'tiles'], holidays: ['off', 'on'], namedays: ['off', 'on'], calShow: ['on', 'off'] };
   var PREF_NAMES = { en: 'English', hu: 'Magyar', '24': '24-hour', '12': '12-hour', corner: 'Corner', center: 'Centre', large: 'Large', off: 'Off', on: 'On', now: 'Basic', day: 'Full', both: 'Both', icons: 'Icons', text: 'Text', classic: 'Classic', thin: 'Thin', led: 'LED', flip: 'Flip', list: 'List', dock: 'Dock', tiles: 'Tiles' };
   WALLS.forEach(function (w) { w.ut = w.ut || { tr: 'light', br: 'light' }; w.frostVeil = w.frostVeil || .12; });
   var MODES = [
@@ -43,6 +43,7 @@
   /* Your picture: one wallpaper slot that a phone fills through an ntfy.sh topic (assets/custom-wallpaper.js). */
   var CUSTOM = 'custom', STILL_TAG = 'frame-home-still', PART_TAG = 'frame-home-part', SEND_PAGE = window.FrameFork && window.FrameFork.sendPage || '', FCW = window.FrameCustomWallpaper, RELAY = (window.FrameFork && window.FrameFork.relay) || 'https://ntfy.sh';
   var ALEXA_PAGE = window.FrameFork && window.FrameFork.alexaPage || '', FA = ALEXA_PAGE && window.FrameAlexa ? window.FrameAlexa : null;
+  var CAL_PAGE = window.FrameFork && window.FrameFork.calendarPage || '';
   var SPOTIFY_PAGE = window.FrameFork && window.FrameFork.spotify && window.FrameFork.spotify.page || '', FS = window.FrameSpotify && window.FrameSpotify.configured ? window.FrameSpotify : null;
   var custom = { urls: null, stamp: 0, phase: 'idle', name: '', busy: false, queued: null, seen: {}, sets: {}, lost: false, percent: 0, stillMsg: null, link: 'idle', detail: '', relay: null };
   function addCustomWall(tone) {
@@ -73,6 +74,7 @@
     leave: { title: 'Leave Home?', line: 'Open Samsung Home?', note: '', actions: [['stay', 'Stay'], ['samsung', 'Samsung Home']] },
     wifiSetup: { title: 'Wi‑Fi QR not set up', line: 'Add your network name in Settings → Wifi QR code settings.', note: '', actions: [['settings', 'Open Settings'], ['stay', 'Close']] },
     groupDelete: { title: 'Delete this group?', line: 'The lights stay in Alexa; only the group is removed.', note: '', actions: [['stay', 'Cancel'], ['groupdel', 'Delete']] },
+    calendarOut: { title: 'Disconnect the calendar?', line: 'Frame Home forgets your calendar address.', note: 'To stop the address working anywhere, reset it in Google Calendar or Outlook.', actions: [['stay', 'Cancel'], ['calendarout', 'Disconnect']] },
     spotifyOut: { title: 'Sign out of Spotify?', line: 'Frame Home forgets your Spotify sign-in.', note: 'You can also remove its access in your Spotify account settings.', actions: [['stay', 'Cancel'], ['spotifyout', 'Sign out']] },
     alexaOut: { title: 'Sign out of Alexa?', line: 'Frame Home forgets your Alexa sign-in.', note: 'You can also remove “Frame Home” from the devices in your Amazon account.', actions: [['stay', 'Cancel'], ['alexaout', 'Sign out']] }
   };
@@ -86,6 +88,7 @@
     lamp: '<path d="M9 17.5h6M10 20.5h4"/><path d="M12 3.5a5.6 5.6 0 0 0-3.4 10.05c.6.46.9 1.1.9 1.85v.6h5v-.6c0-.75.3-1.39.9-1.85A5.6 5.6 0 0 0 12 3.5Z"/>',
     lampOn: '<path d="M9 17.5h6M10 20.5h4"/><path class="lamp-fill" d="M12 3.5a5.6 5.6 0 0 0-3.4 10.05c.6.46.9 1.1.9 1.85v.6h5v-.6c0-.75.3-1.39.9-1.85A5.6 5.6 0 0 0 12 3.5Z"/><path d="M12 .8v.9M3.6 4.3l.7.6M20.4 4.3l-.7.6M1.6 10h.9M21.5 10h.9"/>',
     alexa: '<path d="M3.5 11.2 12 4.5l8.5 6.7"/><path d="M5.8 9.6V19a1 1 0 0 0 1 1h10.4a1 1 0 0 0 1-1V9.6"/><path d="M9.4 14.6a3.7 3.7 0 0 1 5.2 0"/><path d="M7.6 12.6a6.2 6.2 0 0 1 8.8 0"/><circle cx="12" cy="16.9" r=".9"/>',
+    calendar: '<rect x="3.5" y="5" width="17" height="15.5" rx="2.5"/><path d="M3.5 10h17M8 3v4M16 3v4"/>',
     note: '<path d="M9 17.5V6l10-2v11.5"/><circle cx="6.5" cy="17.5" r="2.5"/><circle cx="16.5" cy="15.5" r="2.5"/>',
     pause: '<path d="M8.5 5.5v13M15.5 5.5v13"/>',
     play: '<path d="M8 5.2v13.6L19 12Z"/>',
@@ -504,7 +507,8 @@
       relayTopic: safeId(s.relayTopic) ? s.relayTopic : '', relayAt: typeof s.relayAt === 'number' ? s.relayAt : 0, relaySince: safeId(s.relaySince) ? s.relaySince : '',
       alexaReadings: cleanReadings(s), alexaSwitches: cleanSwitches(s), alexaGroups: cleanGroups(s.alexaGroups), alexaKeys: cleanKeys(s.alexaKeys),
       spotifyShow: pick(s.spotifyShow, PREF_VALUES.spotifyShow, 'on'), keyHints: pick(s.keyHints === 'on' || s.keyHints === 'top' ? 'auto' : s.keyHints, PREF_VALUES.keyHints, 'auto'), switchStyle: pick(s.switchStyle, PREF_VALUES.switchStyle, 'both'),
-      clockStyle: pick(s.clockStyle, PREF_VALUES.clockStyle, 'classic'), seconds: pick(s.seconds, PREF_VALUES.seconds, 'off'), dockStyle: s.dockStyle === 'tiles' ? 'tiles' : 'shelf'
+      clockStyle: pick(s.clockStyle, PREF_VALUES.clockStyle, 'classic'), seconds: pick(s.seconds, PREF_VALUES.seconds, 'off'), dockStyle: s.dockStyle === 'tiles' ? 'tiles' : 'shelf',
+      holidays: pick(s.holidays, PREF_VALUES.holidays, 'off'), namedays: pick(s.namedays, PREF_VALUES.namedays, 'off'), calShow: pick(s.calShow, PREF_VALUES.calShow, 'on')
     };
   }
   function serialise(c) {
@@ -547,7 +551,7 @@
     c.wifiSsid = S.c.wifiSsid; c.wifiPass = S.c.wifiPass; c.wifiSec = S.c.wifiSec;
     c.lang = S.c.lang; c.clock = S.c.clock; c.clockPos = S.c.clockPos; c.date = S.c.date; c.weather = S.c.weather;
     c.customAt = S.c.customAt; c.customTone = S.c.customTone; c.relayTopic = S.c.relayTopic; c.relayAt = S.c.relayAt; c.relaySince = S.c.relaySince;
-    c.alexaReadings = S.c.alexaReadings; c.alexaSwitches = S.c.alexaSwitches; c.alexaGroups = S.c.alexaGroups; c.alexaKeys = S.c.alexaKeys; c.spotifyShow = S.c.spotifyShow; c.keyHints = S.c.keyHints; c.switchStyle = S.c.switchStyle; c.clockStyle = S.c.clockStyle; c.seconds = S.c.seconds; c.dockStyle = S.c.dockStyle;
+    c.alexaReadings = S.c.alexaReadings; c.alexaSwitches = S.c.alexaSwitches; c.alexaGroups = S.c.alexaGroups; c.alexaKeys = S.c.alexaKeys; c.spotifyShow = S.c.spotifyShow; c.keyHints = S.c.keyHints; c.switchStyle = S.c.switchStyle; c.clockStyle = S.c.clockStyle; c.seconds = S.c.seconds; c.dockStyle = S.c.dockStyle; c.holidays = S.c.holidays; c.namedays = S.c.namedays; c.calShow = S.c.calShow;
     return c;
   }
   function snap() { return { home: S.c.home.slice(), recent: S.c.recent.slice() }; }
@@ -715,7 +719,7 @@
   function openSettings() { push({ id: 'settings', f: { id: S.settingsFocus } }); }
   function openAppearance(group) {
     var axis = { background: 'bg', layout: 'layout', typography: 'font', focus: 'focus', region: 'lang' }[group];
-    var action = S.detailFocus[group] || (axis ? 'choice.' + axis + '.' + S.c[axis] : group === 'rotation' ? 'rotation.' + S.c.mode : group === 'alexa' ? (alexaOn() ? 'alexa.list.readings' : 'alexa.connect') : group === 'spotify' ? (spotifyOn() ? 'choice.spotifyShow.' + S.c.spotifyShow : 'spotify.connect') : group === 'connections' ? (FA ? 'conn.alexa' : 'conn.spotify') : 'wifi.edit.ssid');
+    var action = S.detailFocus[group] || (axis ? 'choice.' + axis + '.' + S.c[axis] : group === 'rotation' ? 'rotation.' + S.c.mode : group === 'alexa' ? (alexaOn() ? 'alexa.list.readings' : 'alexa.connect') : group === 'spotify' ? (spotifyOn() ? 'choice.spotifyShow.' + S.c.spotifyShow : 'spotify.connect') : group === 'connections' ? (FA ? 'conn.alexa' : 'conn.spotify') : group === 'dateinfo' ? 'choice.holidays.' + S.c.holidays : 'wifi.edit.ssid');
     push({ id: 'appearance', group: group, f: { action: action } });
   }
   function openWifiField(field) {
@@ -1097,8 +1101,8 @@
     else if (id === 'samsung') perform('Samsung Home', FrameDevice.home);
     else openAppearance(id);
   }
-  var DETAIL_NAMES = { background: 'Background', layout: 'Layout', typography: 'Typography', focus: 'Focus', rotation: 'Rotation', region: 'Language and clock', wifiqr: 'Wifi QR code settings', alexa: 'Alexa', spotify: 'Spotify', connections: 'Connections' };
-  var PARENT = { rotation: 'background', alexa: 'connections', spotify: 'connections' };
+  var DETAIL_NAMES = { background: 'Background', layout: 'Layout', typography: 'Typography', focus: 'Focus', rotation: 'Rotation', region: 'Language and clock', wifiqr: 'Wifi QR code settings', alexa: 'Alexa', spotify: 'Spotify', connections: 'Connections', dateinfo: 'Date details' };
+  var PARENT = { rotation: 'background', alexa: 'connections', spotify: 'connections', dateinfo: 'region' };
   function backLabel(t) { return T(PARENT[t.group] ? DETAIL_NAMES[PARENT[t.group]] : 'Settings'); }
   function choice(axis, value, disabled) {
     return { action: axis === 'mode' ? 'rotation.' + value : axis === 'wifiSec' ? 'wifi.sec.' + value : 'choice.' + axis + '.' + value, axis: axis, value: value, disabled: !!disabled,
@@ -1134,11 +1138,13 @@
       { id: 'date', title: T('Date'), horizontal: true, items: options('date', PREF_VALUES.date) },
       { id: 'clockPos', title: T('Clock'), horizontal: true, items: options('clockPos', PREF_VALUES.clockPos) },
       { id: 'seconds', title: T('Seconds'), horizontal: true, items: options('seconds', PREF_VALUES.seconds) },
-      { id: 'weather', title: T('Weather') + ' · ' + WEATHER_PLACE.name, horizontal: true, items: options('weather', PREF_VALUES.weather) }
+      { id: 'weather', title: T('Weather') + ' · ' + WEATHER_PLACE.name, horizontal: true, items: options('weather', PREF_VALUES.weather) },
+      { id: 'dateinfo', title: '', items: [{ action: 'region.dateinfo', label: T('Date details'), description: dateInfoSummary() }] }
     ];
     if (t.group === 'alexa') return alexaSections();
     if (t.group === 'spotify') return spotifySections();
     if (t.group === 'connections') return connectionsSections();
+    if (t.group === 'dateinfo') return dateinfoSections();
     if (t.group === 'wifiqr') return [
       { id: 'ssid', title: T('Network name'), items: [{ action: 'wifi.edit.ssid', label: S.c.wifiSsid || T('Add network name'), description: T('SSID shown in the QR code') }] },
       { id: 'pass', title: T('Password'), items: [{ action: 'wifi.edit.pass', label: S.c.wifiPass ? T('Change password') : T('Add password'), description: S.c.wifiPass ? T('Saved (hidden)') : T('Optional for open networks') }] },
@@ -1190,7 +1196,8 @@
     if (!write(c, 'Preference ' + axis)) { S.lookError = { type: 'save', patch: patch, row: axis, transient: false }; return; }
     if (axis === 'lang') applyLanguage();
     if (axis === 'weather' && value !== 'off') refreshWeather(function () { render(); });
-    if (axis === 'clockStyle' || axis === 'seconds') { flip.shown = ''; updateClock(); }
+    if (axis === 'clockStyle' || axis === 'seconds') updateClock();
+    if (axis === 'holidays' && value === 'on') loadHolidays(new Date().getFullYear(), function () { render(); });
     if (axis === 'spotifyShow') { if (value === 'off') spot.now = null; spotifyPoll(true); }
   }
   function applyLanguage() {
@@ -1219,6 +1226,9 @@
     else if (item.action === 'spotify.connect') openPair('spotify');
     else if (item.action === 'spotify.signout') openMessage('spotifyOut');
     else if (item.action === 'conn.alexa') openAppearance('alexa');
+    else if (item.action === 'region.dateinfo') openAppearance('dateinfo');
+    else if (item.action === 'calendar.connect') openPair('calendar');
+    else if (item.action === 'calendar.signout') openMessage('calendarOut');
     else if (item.action === 'conn.spotify') openAppearance('spotify');
     else if (/^alexa\.list\./.test(item.action)) openAlexaList(item.action.slice(11));
     else if (item.action === 'alexa.signout') alexaSignOut();
@@ -1277,6 +1287,7 @@
         else if (a === 'settings') { S.settingsFocus = 'wifiqr'; openSettings(); openAppearance('wifiqr'); }
         else if (a === 'alexaout') alexaForget();
         else if (a === 'spotifyout') spotifyForget();
+        else if (a === 'calendarout') calendarForget();
         else if (a === 'groupdel' && S.deleteGroup) { deleteGroup(S.deleteGroup); S.deleteGroup = null; }
       }
     },
@@ -1693,6 +1704,10 @@
 
   /* ---------- Phone sign-in screen, shared by Alexa and Spotify ---------- */
   function pairInfo(svc) {
+    if (svc === 'calendar') return { st: cal, page: CAL_PAGE, title: 'Connect a calendar',
+      steps: ['Scan the code with your phone.', 'Copy your calendar’s secret iCal address; the page shows where to find it in Google Calendar and Outlook.', 'Paste it on the page and send it.'],
+      note: 'Your phone encrypts the address with a key from this QR code before it passes through ntfy.sh, so only this TV can read it. Frame Home only reads the calendar.',
+      done: 'Connected. Your next events show under the date.' };
     return svc === 'spotify' ? { st: spot, page: SPOTIFY_PAGE, title: 'Connect Spotify',
       steps: ['Scan the code with your phone.', 'Sign in to Spotify on the page that opens and allow access.', 'Spotify returns to the page, which sends the sign-in to the TV by itself.'],
       note: 'Your password goes only to Spotify. You can remove Frame Home’s access in your Spotify account settings.', done: 'Connected. What you play on Spotify now shows on Home.' }
@@ -1703,7 +1718,7 @@
   }
   function openPair(svc) {
     var p = pairInfo(svc), st = p.st;
-    if (svc === 'spotify' ? !FS : !FA) return;
+    if (svc === 'calendar' ? !FC : svc === 'spotify' ? !FS : !FA) return;
     if (st.pair) st.pair();
     st.phase = 'waiting'; st.url = ''; st.detail = '';
     if (!(top().id === 'pair' && top().mode === svc)) push({ id: 'pair', mode: svc, f: {} });
@@ -1711,10 +1726,10 @@
     function onCode() { st.phase = 'registering'; render(); }
     function done(err) {
       st.pair = null; st.phase = err ? 'failed' : 'done'; st.detail = err || ''; st.err = '';
-      if (svc === 'alexa') alexa.list = null; else if (!err) spotifyPoll(true);
+      if (svc === 'alexa') alexa.list = null; else if (svc === 'calendar') { if (!err) calendarPoll(15 * 60 * 1000); } else if (!err) spotifyPoll(true);
       render();
     }
-    st.pair = svc === 'spotify' ? FS.pair(RELAY, onUrl, onCode, done) : FA.pair(ALEXA_PAGE, RELAY, onUrl, onCode, done);
+    st.pair = svc === 'calendar' ? FC.pair(CAL_PAGE, RELAY, onUrl, onCode, done) : svc === 'spotify' ? FS.pair(RELAY, onUrl, onCode, done) : FA.pair(ALEXA_PAGE, RELAY, onUrl, onCode, done);
   }
   function closePair(svc) { var st = pairInfo(svc).st; if (st.pair) { st.pair(); st.pair = null; } pop(); }
   V.pair = {
@@ -2392,6 +2407,99 @@
     var d = new Date(), month = (MONTHS[S.c.lang] || MONTHS.en)[d.getMonth()];
     return S.c.lang === 'hu' ? month + ' ' + d.getDate() : d.getDate() + ' ' + month;
   }
+  /* ---------- Date details: Hungarian holidays, name days and your calendar ---------- */
+  /* Holidays come from the public Nager.Date API (date.nager.at), cached per year; name days are bundled
+     (assets/namedays-hu.js); the calendar is your own secret iCal address (assets/calendar.js). */
+  var FC = window.FrameCalendar && CAL_PAGE ? window.FrameCalendar : null;
+  var cal = { err: '', timer: null, pair: null, phase: 'idle', url: '', detail: '' }, holidays = {};
+  function nameday(d) {
+    var list = window.FrameNamedaysHU, m = d.getMonth(), day = d.getDate(), y = d.getFullYear(), leap = y % 4 === 0 && (y % 100 !== 0 || y % 400 === 0), names;
+    if (!list) return '';
+    /* In leap years 24 February is the leap day and the names of 24-28 move one day later. */
+    if (leap && m === 1) { if (day === 24) return ''; if (day > 24) day -= 1; }
+    names = list[m] && list[m][day - 1] || [];
+    return names.slice(0, 3).join(', ');
+  }
+  function holidayKey(y) { return 'cleanframe.holidays.HU.' + y; }
+  var holidayTried = {};
+  function loadHolidays(y, done) {
+    var cached = null;
+    if (holidays[y]) { if (done) done(); return; }
+    try { cached = JSON.parse(localStorage.getItem(holidayKey(y)) || 'null'); } catch (e) { cached = null; }
+    if (cached && cached.list) { holidays[y] = cached.list; if (done) done(); return; }
+    holidayTried[y] = Date.now();
+    var x = new XMLHttpRequest();
+    x.open('GET', 'https://date.nager.at/api/v3/PublicHolidays/' + y + '/HU', true); x.timeout = 10000;
+    x.onload = function () {
+      var list = null;
+      try { list = JSON.parse(x.responseText); } catch (e) { list = null; }
+      if (x.status === 200 && Array.isArray(list)) {
+        holidays[y] = list.map(function (h) { return { date: String(h.date), name: String(h.localName || h.name || '') }; });
+        try { localStorage.setItem(holidayKey(y), JSON.stringify({ list: holidays[y] })); } catch (e) { /* cache only */ }
+      }
+      if (done) done();
+    };
+    x.onerror = x.ontimeout = function () { if (done) done(); };
+    try { x.send(); } catch (e) { if (done) done(); }
+  }
+  function holidayToday(d) {
+    var y = d.getFullYear(), key, hit = '';
+    /* A new year (or an earlier failure, retried hourly) loads that year's list. */
+    if (!holidays[y] && !(Date.now() - (holidayTried[y] || 0) < 3600000)) loadHolidays(y, function () { if (holidays[y]) setTimeout(render, 0); });
+    key = y + '-' + (d.getMonth() < 9 ? '0' : '') + (d.getMonth() + 1) + '-' + (d.getDate() < 10 ? '0' : '') + d.getDate();
+    (holidays[y] || []).forEach(function (h) { if (h.date === key) hit = h.name; });
+    return hit;
+  }
+  /* The date line: the date (when on), today's holiday and today's name days. */
+  function dateLineHtml() {
+    var d = new Date(), parts = [], h = S.c.holidays === 'on' ? holidayToday(d) : '', n = S.c.namedays === 'on' ? nameday(d) : '';
+    if (S.c.date === 'on') parts.push(esc(dateText()));
+    if (h) parts.push('<span class="cap-holiday">' + esc(h) + '</span>');
+    if (n) parts.push('<span class="cap-nameday">' + esc(T('Name day: {0}', n)) + '</span>');
+    return parts.length ? '<span class="cap-date">' + parts.join('<span class="cap-dot"> · </span>') + '</span>' : '';
+  }
+  function fmtHM(t) { var d = new Date(t), h = d.getHours(), m = d.getMinutes(); if (S.c.clock === '12') h = h % 12 || 12; return h + ':' + (m < 10 ? '0' : '') + m; }
+  /* Calendar line: what is on now and next today (up to two); otherwise tomorrow's first event. */
+  function calendarLineHtml() {
+    var now = Date.now(), day = new Date(), end, list, items, tomorrow = false;
+    if (!FC || !FC.connected() || S.c.calShow === 'off') return '';
+    end = new Date(day.getFullYear(), day.getMonth(), day.getDate() + 1).getTime();
+    list = FC.upcoming(now, end).filter(function (e) { return e.end > now || e.allDay; });
+    if (!list.length) { list = FC.upcoming(end, end + 86400000).filter(function (e) { return e.start >= end || e.allDay; }); tomorrow = true; }
+    if (!list.length) return '';
+    items = list.slice(0, 2).map(function (e) { return (e.allDay ? '' : '<b>' + fmtHM(e.start) + '</b> ') + esc(e.title || T('Busy')); });
+    return '<span class="cap-cal">' + icon('calendar') + (tomorrow ? '<span class="cap-cal-when">' + esc(T('Tomorrow')) + '</span>' : '') + items.join('<span class="cap-dot"> · </span>') + '</span>';
+  }
+  function calendarPoll(when) {
+    clearTimeout(cal.timer); cal.timer = null;
+    if (!FC || !FC.connected() || document.hidden) return;
+    cal.timer = setTimeout(function () {
+      cal.timer = null;
+      FC.refresh(function (err) { cal.err = err || ''; render(); calendarPoll(15 * 60 * 1000); });
+    }, when === true ? 0 : typeof when === 'number' ? when : 15 * 60 * 1000);
+  }
+  function dateDetails() {
+    if (S.c.holidays === 'on') { loadHolidays(new Date().getFullYear(), function () { render(); }); }
+    calendarPoll(true);
+  }
+  function dateinfoSections() {
+    var sections = [
+      { id: 'holidays', title: T('Hungarian holidays'), horizontal: true, items: options('holidays', PREF_VALUES.holidays) },
+      { id: 'namedays', title: T('Name days'), horizontal: true, items: options('namedays', PREF_VALUES.namedays) }
+    ];
+    function options(axis, values) { return values.map(function (v) { return choice(axis, v); }); }
+    if (!FC) return sections;
+    if (!FC.connected()) sections.push({ id: 'calendar', title: T('Calendar'), items: [{ action: 'calendar.connect', label: T('Connect a calendar'), description: T('Google or Outlook, from your phone') }] });
+    else sections.push({ id: 'calShow', title: T('Calendar on Home'), horizontal: true, items: options('calShow', PREF_VALUES.calShow) },
+      { id: 'calendar', title: '', items: [{ action: 'calendar.signout', label: T('Disconnect calendar'), description: cal.err ? T('Couldn’t read the calendar ({0}).', cal.err) : FC.loadedAt() ? T('Read at {0}', fmtHM(FC.loadedAt())) : T('Reading…') }] });
+    return sections;
+  }
+  function dateInfoSummary() {
+    var on = [];
+    if (S.c.holidays === 'on') on.push(T('Holidays')); if (S.c.namedays === 'on') on.push(T('Name days')); if (FC && FC.connected()) on.push(T('Calendar'));
+    return on.length ? on.join(', ') : T('Off');
+  }
+  function calendarForget() { FC.forget(); clearTimeout(cal.timer); cal.err = ''; render(); }
   /* ---------- Clock styles: Classic (the font), Thin and LED (drawn as SVG), Flip (cards) ---------- */
   /* Thin numerals: single-stroke geometric digits in a 60 x 100 box, drawn with currentColor. */
   var THIN = {
@@ -2418,20 +2526,30 @@
   }
   function thinDigit(d) { return '<svg class="clock-glyph" viewBox="0 0 60 100" aria-hidden="true">' + THIN[d] + '</svg>'; }
   function sepGlyph() { return '<svg class="clock-sep" viewBox="0 0 20 100" aria-hidden="true"><circle cx="10" cy="32" r="5"/><circle cx="10" cy="70" r="5"/></svg>'; }
-  /* Flip: one card per digit. When a digit changes, the old top half folds down onto the new one. */
-  var flip = { shown: '', from: '', at: 0 };
+  /* Flip: one card per digit. The caption holds an empty clock; patchClock fills it and, for a flip
+     clock, rewrites only the cards whose digit changed, so the fold always starts on time. */
+  var flip = { at: 0 };
+  function flipCard(digit, old) {
+    var turn = old !== undefined && old !== digit;
+    return '<span class="flip-half flip-top"><b>' + digit + '</b></span><span class="flip-half flip-bottom"><b>' + (turn ? old : digit) + '</b></span>'
+      + (turn ? '<span class="flip-half flip-top flip-leaf-top"><b>' + old + '</b></span><span class="flip-half flip-bottom flip-leaf-bottom"><b>' + digit + '</b></span>' : '');
+  }
   function flipCards(text) {
-    var digits = text.replace(/\D/g, ''), now = Date.now(), moving, i = 0, html = '';
-    if (digits !== flip.shown) { flip.from = flip.shown; flip.shown = digits; flip.at = now; }
-    moving = now - flip.at < 700 && flip.from.length === digits.length;
-    text.split('').forEach(function (ch) {
-      if (ch === ':') { html += '<span class="flip-sep" aria-hidden="true"><i></i><i></i></span>'; return; }
-      var old = moving ? flip.from.charAt(i) : ch, turn = moving && old !== ch;
-      html += '<span class="flip' + (turn ? ' is-flipping' : '') + '" aria-hidden="true"><span class="flip-half flip-top"><b>' + ch + '</b></span><span class="flip-half flip-bottom"><b>' + (turn ? old : ch) + '</b></span>'
-        + (turn ? '<span class="flip-half flip-top flip-leaf-top"><b>' + old + '</b></span><span class="flip-half flip-bottom flip-leaf-bottom"><b>' + ch + '</b></span>' : '') + '</span>';
-      i++;
-    });
-    return '<span class="flip-clock">' + html + '</span>';
+    return '<span class="flip-clock">' + text.split('').map(function (ch) {
+      return ch === ':' ? '<span class="flip-sep" aria-hidden="true"><i></i><i></i></span>' : '<span class="flip" data-d="' + ch + '" aria-hidden="true">' + flipCard(ch) + '</span>';
+    }).join('') + '</span>';
+  }
+  function patchFlip(el) {
+    var parts = clockParts(), shape = parts.text.replace(/\d/g, '0') + '|' + parts.suffix + '|' + S.c.lang, cards, digits = parts.text.replace(/\D/g, ''), i;
+    if (el._flipShape !== shape || !el.querySelector('.flip-clock')) {
+      el.innerHTML = clockHtml(); el._flipShape = shape; el._html = ''; return;
+    }
+    cards = el.querySelectorAll('.flip');
+    for (i = 0; i < cards.length; i++) {
+      if (cards[i].getAttribute('data-d') === digits.charAt(i)) continue;
+      cards[i].innerHTML = flipCard(digits.charAt(i), cards[i].getAttribute('data-d'));
+      cards[i].setAttribute('data-d', digits.charAt(i));
+    }
   }
   function styledTime(text) {
     var st = S.c.clockStyle;
@@ -2439,10 +2557,14 @@
     if (st === 'thin' || st === 'led') return '<span class="clock-svg clock-' + st + '">' + text.split('').map(function (ch) { return ch === ':' ? sepGlyph() : st === 'led' ? ledDigit(ch) : thinDigit(ch); }).join('') + '</span>';
     return null;
   }
-  /* With seconds (or a flip clock about to turn) only the time is repainted, not the whole caption. */
+  /* Only the time is repainted each second or minute, never the whole caption. */
   function patchClock() {
-    var els = caption.querySelectorAll('.clock'), html = clockHtml(), i;
-    for (i = 0; i < els.length; i++) if (els[i]._html !== html) { els[i].innerHTML = html; els[i]._html = html; }
+    var els = caption.querySelectorAll('.clock'), html, i;
+    for (i = 0; i < els.length; i++) {
+      if (S.c.clockStyle === 'flip') { patchFlip(els[i]); continue; }
+      html = html || clockHtml();
+      if (els[i]._html !== html) { els[i].innerHTML = html; els[i]._html = html; els[i]._flipShape = ''; }
+    }
   }
   function clockHtml() {
     var parts = clockParts(), text = styledTime(parts.text) || parts.text, metrics = fontMetrics[homeFont()], suffix;
@@ -2453,11 +2575,12 @@
     return S.c.lang === 'hu' ? suffix + text : text + suffix;
   }
   function renderCaption(t, hs) {
-    var ch = clockHtml();
-    var weatherHtml = weatherCaptionHtml() + readingsCaptionHtml(), date = S.c.date === 'on' ? '<span class="cap-date">' + esc(dateText()) + '</span>' : '', html;
+    var ch = '';
+    var weatherHtml = weatherCaptionHtml() + readingsCaptionHtml(), date = dateLineHtml(), calLine = calendarLineHtml(), html;
     // Centred: date and weather share one smaller line under the clock. Corner: the date is a quiet second line.
     if (S.c.clockPos !== 'corner' && S.c.layout === 'dock') html = '<span class="caption-head"><span class="clock">' + ch + '</span>' + (date || weatherHtml ? '<span class="caption-sub">' + date + weatherHtml + '</span>' : '') + '</span>';
     else html = '<span class="caption-head"><span class="clock">' + ch + '</span>' + weatherHtml + '</span>' + date;
+    html += calLine;
     /* With the clock in the centre, the song sits alone in the top-left corner. */
     var musicInCorner = S.c.clockPos !== 'corner' && S.c.layout === 'dock';
     if (musicInCorner) setHTML(musicEl, musicHtml(hs.zone === 'music'));
@@ -2467,7 +2590,7 @@
     caption.setAttribute('data-weather', S.c.weather === 'off' || weather.temp === null ? '' : String(weather.temp));
     if (S.c.apps !== 'icons' && !(S.c.clockPos !== 'corner' && S.c.layout === 'dock') && hs.items[hs.i] && (S.c.layout === 'list' ? photoLabel(hs.items[hs.i].id, false).size < 88 || photoLabel(hs.items[hs.i].id, false).ellipsis : hs.zone === 'apps' && reducedDockLabel(hs.items[hs.i].id))) html += '<span class="cap-line full-name">' + esc(app(hs.items[hs.i].id).name) + '</span>';
     setHTML(caption, html);
-    Array.prototype.forEach.call(caption.querySelectorAll('.clock'), function (el) { el._html = ch; });
+    patchClock();
     fitMusic(musicInCorner);
   }
 
@@ -2799,7 +2922,7 @@
         + command({ action: 'settings.retry', label: T('Try again') }, '<span>' + T('Try again') + '</span>', 'setting-retry');
     }
     setHTML(appearanceStatus, status);
-    hint = selected.disabled ? '' : selected.action === 'settings.back' ? T('Return to {0}', backLabel(t)) : T(selected.action === 'settings.retry' ? 'Retry this change' : selected.axis ? 'Apply selected setting' : selected.action === 'background.wallpaper' ? 'Choose a wallpaper' : selected.action === 'background.rotation' ? 'Choose a rotation interval' : selected.action === 'background.custom' || selected.action === 'alexa.connect' || selected.action === 'spotify.connect' ? 'Show the QR code' : /^(alexa\.list|conn)\./.test(selected.action) ? 'Open' : selected.action === 'spotify.signout' ? 'Sign out of Spotify' : selected.action === 'alexa.signout' ? 'Sign out of Alexa' : 'Open on the TV');
+    hint = selected.disabled ? '' : selected.action === 'settings.back' ? T('Return to {0}', backLabel(t)) : T(selected.action === 'settings.retry' ? 'Retry this change' : selected.axis ? 'Apply selected setting' : selected.action === 'background.wallpaper' ? 'Choose a wallpaper' : selected.action === 'background.rotation' ? 'Choose a rotation interval' : selected.action === 'background.custom' || selected.action === 'alexa.connect' || selected.action === 'spotify.connect' ? 'Show the QR code' : /^(alexa\.list|conn)\./.test(selected.action) || selected.action === 'region.dateinfo' ? 'Open' : selected.action === 'calendar.connect' ? 'Show the QR code' : selected.action === 'spotify.signout' ? 'Sign out of Spotify' : selected.action === 'alexa.signout' ? 'Sign out of Alexa' : 'Open on the TV');
     setHTML(appearanceDesc, hint ? '<span class="remote-key">OK</span><span>' + esc(hint) + '</span>' : '');
   }
   function renderWallpaper(t) {
@@ -3281,8 +3404,8 @@
   var secondTimer = null;
   function secondTick() {
     clearTimeout(secondTimer);
-    if (document.hidden || S.c.seconds !== 'on' && S.c.clockStyle !== 'flip') return;
-    secondTimer = setTimeout(function () { if (top().id === 'home' || isSettingsDetail(top())) patchClock(); secondTick(); }, S.c.clockStyle === 'flip' && Date.now() - flip.at < 900 ? 750 : 1000 - (Date.now() % 1000) + 15);
+    if (document.hidden || S.c.seconds !== 'on') return;
+    secondTimer = setTimeout(function () { if (top().id === 'home' || isSettingsDetail(top())) patchClock(); secondTick(); }, 1000 - (Date.now() % 1000) + 8);
   }
   function updateClock() {
     clearTimeout(clockTimer);
@@ -3372,10 +3495,10 @@
   document.addEventListener('visibilitychange', function () {
     heldKeys = {};
     if (document.hidden) {
-      pauseRotation(); clearTimeout(clockTimer); stopRelay(); syncVideo(); clearTimeout(alexa.timer); alexa.timer = null; clearTimeout(spot.timer); spot.timer = null; clearTimeout(secondTimer);
+      pauseRotation(); clearTimeout(clockTimer); stopRelay(); syncVideo(); clearTimeout(alexa.timer); alexa.timer = null; clearTimeout(spot.timer); spot.timer = null; clearTimeout(secondTimer); clearTimeout(cal.timer);
       if (S.hdmiInApp) { S.hdmiInApp = false; if (FrameDevice.hideHdmiView) FrameDevice.hideHdmiView(); }
     }
-    else { release(); after(); updateClock(); focusStage(); startRelay(); alexaPoll(true); spotifyPoll(true); showLegend(6000); }
+    else { release(); after(); updateClock(); focusStage(); startRelay(); alexaPoll(true); spotifyPoll(true); showLegend(6000); dateDetails(); }
   });
   window.addEventListener('resize', fit);
   if (wifiQrEl) wifiQrEl.addEventListener('click', function () {
@@ -3434,7 +3557,7 @@
     setLook({}, { transient: true, startup: true });
     norm(); render(); fit(); focusStage(); updateClock(); syncRotation();
     refreshWeather(function () { render(); syncRotation(); });
-    alexaPoll(true); spotifyPoll(true); showLegend(6000);
+    alexaPoll(true); spotifyPoll(true); showLegend(6000); dateDetails();
   }
   if (FCW && S.c.customAt) { FCW.persist(); loadCustom(function () { start(); startRelay(); }); } else { start(); startRelay(); }
 })();

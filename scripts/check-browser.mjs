@@ -106,6 +106,7 @@ async function page(options = {}) {
     const url = route.request().url(), relay = current.__relay;
     const list = relay ? relay.messages || [{ id: relay.id, image: relay.image, type: relay.type, name: relay.name }] : [];
     if (url.includes('/file/')) { const m = list.find(x => url.includes('/file/' + x.id + '.')); return m ? route.fulfill({ contentType: m.type || 'image/jpeg', headers: { 'Access-Control-Allow-Origin': '*' }, body: m.slice ? readFileSync(root + m.image).subarray(m.slice[0], m.slice[1]) : readFileSync(root + m.image) }) : route.fulfill({ status: 404 }); }
+    if (url.includes('/framehome-cal-')) return route.fulfill({ contentType: 'application/x-ndjson', headers: { 'Access-Control-Allow-Origin': '*' }, body: current.__calMsg ? JSON.stringify({ id: 'c1', event: 'message', message: current.__calMsg }) + '\n' : '' });
     if (url.includes('/framehome-spotify-')) return route.fulfill({ contentType: 'application/x-ndjson', headers: { 'Access-Control-Allow-Origin': '*' }, body: current.__spotify && current.__spotify.code ? JSON.stringify({ id: 's1', event: 'message', message: JSON.stringify({ code: 'SPcode123' }) }) + '\n' : '' });
     if (url.includes('/framehome-alexa-')) return route.fulfill({ contentType: 'application/x-ndjson', headers: { 'Access-Control-Allow-Origin': '*' }, body: current.__alexa && current.__alexa.code ? JSON.stringify({ id: 'a1', event: 'message', message: JSON.stringify({ code: 'ANtestCode123', domain: 'com' }) }) + '\n' : '' });
     const open = url.includes('poll=1') ? '' : JSON.stringify({ event: 'open' }) + '\n';
@@ -171,6 +172,12 @@ async function page(options = {}) {
   current.__lyrics = [];
   await current.route('https://lrclib.net/**', route => { current.__lyrics.push(route.request().url()); return route.fulfill({ headers: { 'Access-Control-Allow-Origin': '*' }, contentType: 'application/json',
     body: JSON.stringify({ trackName: 'Song A', duration: 210, instrumental: false, plainLyrics: 'First line\nSecond line\nThird line', syncedLyrics: '[00:50.00] First line\n[01:00.00] Second line\n[01:50.00] Third line' }) }); });
+  await current.route('https://date.nager.at/**', route => { const d = new Date(), iso = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+    return route.fulfill({ headers: { 'Access-Control-Allow-Origin': '*' }, contentType: 'application/json', body: JSON.stringify([{ date: iso, localName: 'Próbaünnep', name: 'Test holiday' }]) }); });
+  await current.route('https://calendar.google.com/**', route => { const d = new Date(Date.now() + 40 * 60000), z = n => String(n).padStart(2, '0');
+    const stamp = d.getUTCFullYear() + z(d.getUTCMonth() + 1) + z(d.getUTCDate()) + 'T' + z(d.getUTCHours()) + z(d.getUTCMinutes()) + '00Z';
+    current.__icsFetched = route.request().url();
+    return route.fulfill({ headers: { 'Access-Control-Allow-Origin': '*' }, contentType: 'text/calendar', body: ['BEGIN:VCALENDAR', 'BEGIN:VEVENT', 'UID:x', 'SUMMARY:Fogorvos', 'DTSTART:' + stamp, 'DURATION:PT1H', 'END:VEVENT', 'END:VCALENDAR'].join('\r\n') }); });
   await current.route('https://i.scdn.co/**', route => route.fulfill({ contentType: 'image/jpeg', body: readFileSync(root + 'scripts/fixtures/still-red.jpg') }));
   // The weather caption is optional; answer it locally so checks never leave the machine.
   await current.route('https://api.open-meteo.com/**', route => route.fulfill({ contentType: 'application/json',
@@ -663,6 +670,39 @@ try {
     check('Tiles is a third layout and is saved', (await stored()).dockStyle === 'tiles' && (await stored()).layout === 'dock' && await current.evaluate(() => document.getElementById('stage').className.indexOf('dock-tiles') >= 0));
     await scene('home'); await nav('up');
     check('With focus in the top row no app looks selected', await current.evaluate(() => !document.querySelector('.dock .tile.is-sel') && !document.querySelector('.dock .tile.is-focus')));
+  });
+  await run('Date details: holidays, name days and a calendar from the phone', async () => {
+    await page({ seed: baseline({ date: 'on' }) });
+    await group('region');
+    const fit = await current.evaluate(() => { const rows = document.querySelector('#appearanceRows .setting-section:last-child .setting-options').getBoundingClientRect(), hint = document.getElementById('appearanceDesc').getBoundingClientRect(); return { rows: Math.round(rows.bottom), hint: Math.round(hint.top) }; });
+    check('Language and clock still fits above the OK hint', fit.rows <= fit.hint, fit);
+    await act('region.dateinfo');
+    check('Date details open from Language and clock', (await state()).settingsGroup === 'dateinfo');
+    await act('choice.holidays.on'); await act('choice.namedays.on');
+    await act('calendar.connect');
+    await current.waitForFunction(() => document.querySelector('.phone-qr') && document.querySelector('.phone-qr')._payload);
+    const url = await current.evaluate(() => document.querySelector('.phone-qr')._payload), frag = new URLSearchParams(url.split('#')[1]);
+    check('The QR code carries a channel and a 32-byte key in the fragment', url.startsWith('https://bathoryalex.github.io/CleanFrame/calendar/#t=framehome-cal-') && /^[A-Za-z0-9_-]{43}$/.test(frag.get('k')), url);
+    const phone = await preview.browser.newPage({ viewport: { width: 390, height: 844 } }), posts = [];
+    await phone.route('https://ntfy.sh/**', async route => { posts.push(route.request().postData()); await route.fulfill({ status: 200, headers: { 'Access-Control-Allow-Origin': '*' }, body: '{}' }); });
+    const secret = 'https://calendar.google.com/calendar/ical/me%40example.com/private-abc123/basic.ics';
+    try {
+      await phone.goto('file://' + root + 'docs/calendar/index.html#' + url.split('#')[1]);
+      await phone.fill('#paste', secret); await phone.click('#send');
+      await phone.waitForFunction(() => /Sent|Elküldve/.test(document.getElementById('status').textContent));
+    } finally { await phone.close(); }
+    check('The phone sends the address encrypted, never in the clear', posts.length === 1 && !posts[0].includes('calendar.google') && !posts[0].includes('abc123') && /"code":"[A-Za-z0-9_-]+"/.test(posts[0]), posts);
+    current.__calMsg = posts[0];
+    await current.waitForFunction(() => /Connected|Összekötve/.test(document.querySelector('.phone-status').textContent), null, { timeout: 15000 });
+    check('The TV decrypts the address and reads the calendar', current.__icsFetched === secret);
+    check('The address is kept apart from the preferences', await current.evaluate(() => /abc123/.test(localStorage.getItem('cleanframe.calendar.v1') || '') && !/abc123/.test(localStorage.getItem('cleanframe.home.v1'))));
+    await nav('ok'); await scene('home');
+    await current.waitForFunction(() => document.querySelector('.cap-cal'));
+    check('Home shows the next event', /Fogorvos/.test(await current.evaluate(() => document.querySelector('.cap-cal').textContent)));
+    await current.waitForFunction(() => document.querySelector('.cap-holiday'));
+    const line = await current.evaluate(() => document.querySelector('.cap-date').textContent);
+    const nd = await current.evaluate(() => { const d = new Date(); return (window.FrameNamedaysHU[d.getMonth()][d.getDate() - 1] || [])[0] || ''; });
+    check('The date line has the holiday and the name days', /Próbaünnep/.test(line) && (!nd || line.includes(nd)), line);
   });
   await run('Remote buttons can open apps and use CH and Guide', async () => {
     await page({ seed: baseline({ alexaKeys: { chup: { id: 'app:9Ur5IzDKqV.TizenYouTube', name: 'YouTube' } } }) });

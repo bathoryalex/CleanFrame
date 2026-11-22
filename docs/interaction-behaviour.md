@@ -126,7 +126,11 @@ Alexa switches on Home are toggle tiles: a rounded glass rectangle with the lamp
 
 ## Clock styles, seconds and Tiles
 
-Settings → Typography → **Clock style**: Classic (the chosen font), Thin (single-stroke SVG numerals), LED (seven-segment SVG digits with faint unlit segments) or Flip (dark split cards; a changing digit's top half folds down over 0.6 s). Settings → Language and clock → **Seconds** adds seconds to every style. With seconds or Flip, only the time is repainted each second, never the rest of the caption.
+Settings → Typography → **Clock style**: Classic (the chosen font), Thin (single-stroke SVG numerals), LED (seven-segment SVG digits with faint unlit segments) or Flip (dark split cards; a changing digit's top half folds down in 0.22 s and the lower half follows in 0.24 s, so a second never runs into the next). Settings → Language and clock → **Seconds** adds seconds to every style. The clock ticks just after each whole second (the timer is re-aimed every tick, so it does not drift). Only the time is repainted, never the rest of the caption, and Flip updates only the cards whose digit changed. LED colons glow like lit segments.
 
 Settings → Layout → Layout offers **List**, **Dock** and **Tiles**. Tiles is the Dock row without the shelf: every app is its own rounded glass tile with a 12 px gap (one row fits up to 1760 px), using the same focus, paging and names as the Dock. While focus is in the Home controls or on the song, no app tile looks selected; Down still returns to the app last used. Titles keep room for descenders (g, y, p).
+
+## Date details
+
+Language and clock ends with a one-line **Date details** entry (its summary lists what is on) that opens Hungarian holidays (Off/On), Name days (Off/On) and Calendar. With a calendar connected, the page shows Calendar on Home (On/Off) and Disconnect calendar with the time it was last read. On Home the date line reads "22 November · holiday · Name day: …" (holiday in warm yellow); the calendar line below it starts with a calendar icon and shows up to two of today's remaining events with their start time (all-day events without one), or "Tomorrow" and tomorrow's first events. A new year's holidays are fetched when the year changes (a failed fetch is retried hourly); the calendar is read every 15 minutes while Home is visible and not while the screen is hidden.
 

@@ -44,6 +44,14 @@ Development dependencies retain the licences in their npm packages. They are not
 
 `docs/send/mp4-muxer.js` is [mp4-muxer](https://github.com/Vanilagy/mp4-muxer) 5.2.2 by Vanilagy, vendored unchanged under the MIT licence in `docs/send/mp4-muxer-LICENSE.txt`. It is used only by the phone send page, not by the TV app.
 
+## Hungarian name days
+
+`app/assets/namedays-hu.js` holds the name-day data of the npm package [nevnap](https://github.com/nevadavid/nevnap) 1.1.1, Copyright (c) 2021 David Uri, under the MIT licence retained as `app/assets/namedays-hu-LICENSE.txt`. The data was converted to a plain array and an empty duplicate day in May was removed.
+
+## Online services
+
+Public holidays come at run time from the [Nager.Date](https://date.nager.at) API; weather from Open-Meteo. Nothing from these services is bundled.
+
 ## aioamazondevices (reference only)
 
 `app/assets/alexa.js` and `tools/alexa-check/` follow the sign-in flow, request parameters and GraphQL queries of [aioamazondevices](https://github.com/chemelli74/aioamazondevices) (Apache License 2.0). No code is copied; the queries are shortened to the fields Frame Home reads.
