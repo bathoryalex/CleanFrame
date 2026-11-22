@@ -41,7 +41,7 @@ for wall in walls:
     for field in ['src', 'thumb']:
         assert (app / wall[field]).is_file(), 'Missing wallpaper: ' + wall[field]
     wall_id = wall['id']
-    for suffix in ['study-soft', 'field-blur', 'field-frost', 'field-clear']:
+    for suffix in ['study-soft', 'field-frost', 'field-clear']:
         assert (app / ('assets/materials/' + wall_id + '-' + suffix + '.jpg')).is_file(), 'Missing registered material: ' + wall_id + '/' + suffix
     assert (app / ('assets/wallpapers/' + wall_id + '-panel.jpg')).is_file(), 'Missing panel backdrop: ' + wall_id
 for icon in ['xbox', 'nintendoswitch', 'nuvio', 'youtube', 'spotify', 'hbomax', 'smartthings', 'browser', 'art', 'apps', 'settings']:

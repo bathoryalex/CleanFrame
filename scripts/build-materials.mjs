@@ -32,7 +32,7 @@ try {
       const encode = v => 255 * (v <= .0031308 ? 12.92 * v : 1.055 * Math.pow(v, 1 / 2.4) - .055);
       const files = {};
       let frost;
-      for (const [suffix, blur, saturation, quality] of [['field-blur', 28, .92, .82], ['field-frost', 42, .92, .82], ['field-clear', 2, 1.06, .86]]) {
+      for (const [suffix, blur, saturation, quality] of [['field-frost', 42, .92, .82], ['field-clear', 2, 1.06, .86]]) {
         const filtered = canvas(W + 2 * P, H + 2 * P), fc = filtered.getContext('2d');
         fc.filter = 'blur(' + blur + 'px) saturate(' + saturation + ')'; fc.drawImage(padded, 0, 0);
         const output = canvas(), out = output.getContext('2d'); out.drawImage(filtered, P, P, W, H, 0, 0, W, H);

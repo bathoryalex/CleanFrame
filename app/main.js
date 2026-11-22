@@ -4,12 +4,11 @@
 
   /* ---------- Bundled data ---------- */
   var ASSETS = 'assets/', ICONS = ASSETS + 'icons/', WP = ASSETS + 'wallpapers/';
-  var APP_VERSION = '0.24.0';
+  var APP_VERSION = '0.25.0';
   var CAP = 9, SCRIM_Y = 560, DOCK_BOTTOM = 1032; // the Dock sits 48 px above the bottom edge; names and actions go above it
   var DOCK_MODES = { both: { tw: 288, th: 200, pitch: 296 }, text: { tw: 288, th: 104, pitch: 296 }, icons: { tw: 200, th: 156, pitch: 206 } }; // icons-only tiles leave room under the icon for the focused app's name
   var GRID_ROW = 240, GRID_COL = 344, COLS = 5;
   var ED_ROW = 80, ED_SEP = 56, ED_VIEW = 752, STRIP_PITCH = 188;
-  var PH_TOP = 220, PH_PITCH = 128, PH_FULL = 5, PH_HEIGHT = 944, PH_COMPACT_TOP = 144, PH_COMPACT_PITCH = 88, PH_COMPACT_VISIBLE = 9;
   var WALL_VISIBLE = 6, WALL_ROW = 92, WALL_DELAY = 200;
   var KEYS = { 37: 'left', 38: 'up', 39: 'right', 40: 'down', 13: 'ok', 27: 'back', 8: 'back', 10009: 'back', 461: 'back', 403: 'red', 404: 'green', 405: 'yellow', 406: 'blue', 427: 'chup', 428: 'chdown', 458: 'guide',
     10252: 'playpause', 179: 'playpause', 415: 'play', 19: 'pause', 417: 'ffwd', 412: 'rew', 10233: 'tracknext', 176: 'tracknext', 10232: 'trackprev', 177: 'trackprev' };
@@ -31,7 +30,7 @@
   }
   window.FrameText = T;
   /* Saved preferences outside the appearance bundle: they apply at once and load nothing. */
-  var PREF_VALUES = { lang: ['en', 'hu'], clock: ['24', '12'], date: ['off', 'on'], clockPos: ['corner', 'center', 'large'], weather: ['off', 'now', 'day'], spotifyShow: ['on', 'off'], keyHints: ['auto', 'always', 'off'], switchStyle: ['both', 'icons', 'text'], clockStyle: ['classic', 'thin', 'led', 'flip'], seconds: ['off', 'on'], layoutView: ['list', 'dock', 'tiles'], holidays: ['off', 'on'], namedays: ['off', 'on'], calShow: ['on', 'off'] };
+  var PREF_VALUES = { lang: ['en', 'hu'], clock: ['24', '12'], date: ['off', 'on'], clockPos: ['corner', 'center', 'large'], weather: ['off', 'now', 'day'], spotifyShow: ['on', 'off'], keyHints: ['auto', 'always', 'off'], switchStyle: ['both', 'icons', 'text'], clockStyle: ['classic', 'thin', 'led', 'flip'], seconds: ['off', 'on'], layoutView: ['dock', 'tiles'], holidays: ['off', 'on'], namedays: ['off', 'on'], calShow: ['on', 'off'] };
   var PREF_NAMES = { en: 'English', hu: 'Magyar', '24': '24-hour', '12': '12-hour', corner: 'Corner', center: 'Centre', large: 'Large', off: 'Off', on: 'On', now: 'Basic', day: 'Full', both: 'Both', icons: 'Icons', text: 'Text', classic: 'Classic', thin: 'Thin', led: 'LED', flip: 'Flip', list: 'List', dock: 'Dock', tiles: 'Tiles' };
   WALLS.forEach(function (w) { w.ut = w.ut || { tr: 'light', br: 'light' }; w.frostVeil = w.frostVeil || .12; });
   var MODES = [
@@ -64,7 +63,7 @@
   };
   var PRIVATE_FONTS = window.CleanFramePrivateFontIDs || [], fontMetrics = {}, unavailableFonts = {}, widthCache = {}, fontsReady = false;
   var LOOK_KEYS = ['bg', 'layout', 'apps', 'iconStyle', 'font', 'controls', 'focus', 'material'];
-  var LOOK_VALUES = { bg: ['dark', 'light', 'photo'], layout: ['list', 'dock'], apps: ['icons', 'both', 'text'], iconStyle: ['color', 'minimal'], font: Object.keys(FONTS).filter(function (id) { return id === 'manrope' || PRIVATE_FONTS.indexOf(id) >= 0; }), controls: ['icons', 'both', 'text'], focus: ['type', 'glass'], material: ['soft', 'frost', 'tint'] };
+  var LOOK_VALUES = { bg: ['dark', 'light', 'photo'], layout: ['dock'], apps: ['icons', 'both', 'text'], iconStyle: ['color', 'minimal'], font: Object.keys(FONTS).filter(function (id) { return id === 'manrope' || PRIVATE_FONTS.indexOf(id) >= 0; }), controls: ['icons', 'both', 'text'], focus: ['type', 'glass'], material: ['soft', 'frost', 'tint'] };
   var LOOK_NAMES = { bg: 'Background', layout: 'Layout', apps: 'Apps', font: 'Font', controls: 'Home controls', focus: 'Focus', material: 'Material' };
   var VALUE_NAMES = { dark: 'Dark', light: 'Light', photo: 'Photo', list: 'List', dock: 'Dock', type: 'Type', glass: 'Glass', soft: 'Soft', frost: 'Frost', tint: 'Clear tint', icons: 'Icons', both: 'Icons and text', text: 'Text', color: 'Color', minimal: 'Minimal' };
   var UTIL = { art: ['Art Mode', 'art'], wifi: ['Wi‑Fi', 'wifi'], apps: ['All apps', 'apps'], arrange: ['Arrange', 'arrange'], settings: ['Settings', 'settings'] };
@@ -125,22 +124,22 @@
     wallShown: null, wallPending: null, wallError: null,
     shown: null, pending: null, lookError: null, bundleKey: null, previewBundle: null, reflow: false, fontSwitch: false, hdmiInApp: false
   };
-  var scroll = { first: 0, photo: 0, photoArrange: 0 };
+  var scroll = { first: 0 };
   function pick(v, list, fallback) {
     v = String(v || '').toLowerCase();
     for (var i = 0; i < list.length; i++) if (list[i].toLowerCase() === v) return list[i];
     return fallback;
   }
   function lookOf(c) { return { bg: c.bg, wall: c.wall, layout: c.layout, apps: c.apps, iconStyle: c.iconStyle, font: c.font, controls: c.controls, focus: c.focus, material: c.material }; }
-  function materialApplies(c) { c = c || S.c; return c.bg === 'photo' && (c.layout === 'dock' || c.focus === 'glass'); }
-  function derivedTheme() { return S.c.layout === 'list' ? 'list' : 'shore'; }
+  function materialApplies(c) { c = c || S.c; return c.bg === 'photo'; }
+  function derivedTheme() { return 'shore'; }
 
   /* ---------- Helpers ---------- */
   function app(id) { for (var i = 0; i < APPS.length; i++) if (APPS[i].id === id) return APPS[i]; return null; }
   function wall(id) { for (var i = 0; i < WALLS.length; i++) if (WALLS[i].id === id) return WALLS[i]; return null; }
   function wallIndex(id) { for (var i = 0; i < WALLS.length; i++) if (WALLS[i].id === id) return i; return 0; }
   function frostClass(w) { var i = [.12, .20, .30, .36, .44].indexOf(w.frostVeil); return i > 0 ? ' fv-' + (i + 1) : ''; }
-  function wallClasses(w) { return frostClass(w) + (w.listColumn ? ' lc-' + w.listColumn : '') + (w.dockQuiet ? ' db-quiet' : '') + (w.clockMist ? ' tl-mist' : ''); }
+  function wallClasses(w) { return frostClass(w) + (w.dockQuiet ? ' db-quiet' : '') + (w.clockMist ? ' tl-mist' : ''); }
   function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
   function without(list, id) { return list.filter(function (x) { return x !== id; }); }
   function same(a, b) { if (a.length !== b.length) return false; for (var i = 0; i < a.length; i++) if (a[i] !== b[i]) return false; return true; }
@@ -408,298 +407,12 @@
   function dockLabelSize(id) { return S.c.apps === 'text' ? (textWidth(app(id).name, 40, 600, -.8, 'primary') > 264 ? 34 : 40) : textWidth(app(id).name, 36, 500, -.8, 'primary') > 280 ? 32 : 36; }
   function reducedDockLabel(id) { return S.c.apps !== 'icons' && dockLabelSize(id) === (S.c.apps === 'text' ? 34 : 32); }
   function actionWidth(text) { return clamp(Math.ceil(textWidth(text, 30, 500, -.3) + 40), 288, 400); }
-  function photoLabel(id, compact) {
-    var text = app(id).name, size = compact ? 56 : 88, limit = compact ? 640 : 992, width = textWidth(text, size, 600, -1.8, 'display');
-    if (!compact && width > limit) { size = 76; width = textWidth(text, size, 600, -1.8, 'display'); }
-    // Newsreader's ninth compact Type row otherwise enters the lower fade by .63px.
-    return { size: size, top: (compact ? 10.66 : size === 76 ? 10.36 : 9.68) + fontShift('display', size) - (compact && homeFont() === 'newsreader' ? .7 : 0), width: Math.min(limit, width), ellipsis: width > limit };
-  }
-  function listPlateWidth(id, compact) {
-    if (S.c.apps === 'icons') return compact ? 120 : 144;
-    var text = S.c.apps === 'text';
-    return clamp(Math.ceil(photoLabel(id, compact).width + (text ? 84 : compact ? 156 : 184)), text ? 280 : 360, text ? compact ? 724 : 1076 : compact ? 796 : 1176);
-  }
 
-  /* Keyed children: elements persist by key so transforms animate instead of re-creating.
-     Children are absolutely positioned, so DOM order never needs to change. */
-  function keyed(parent, items, update) {
-    var map = parent._k || (parent._k = {}), seen = {}, i, it, el, isNew, k;
-    for (i = 0; i < items.length; i++) {
-      it = items[i]; el = map[it.key]; isNew = !el;
-      if (isNew) { el = document.createElement('div'); map[it.key] = el; }
-      update(el, it, i);
-      if (isNew) parent.appendChild(el);
-      seen[it.key] = 1;
-    }
-    for (k in map) if (map.hasOwnProperty(k) && !seen[k]) { if (map[k].parentNode === parent) parent.removeChild(map[k]); delete map[k]; }
-  }
-  function setContent(el, sig, html) {
-    sig += '|' + catalog.revision + '|' + S.c.lang;
-    if (el._sig === sig) return;
-    el._sig = sig; el.innerHTML = html;
-    Array.prototype.forEach.call(el.querySelectorAll('[data-native-icon]'), function (img) {
-      function ready() { img.parentNode.classList.add('has-native-icon'); }
-      function failed() { img.style.display = 'none'; img.parentNode.classList.remove('has-native-icon'); }
-      img.onload = ready; img.onerror = failed;
-      if (img.complete) { if (img.naturalWidth) ready(); else failed(); }
-    });
-  }
-  function setHTML(el, html) { if (el._html !== html) { el._html = html; el.innerHTML = html; } }
-  function attrs(el, z, i, action) { el.setAttribute('data-z', z); el.setAttribute('data-i', String(i)); el.setAttribute('data-action', action); }
-
-  /* ---------- Saved preferences ---------- */
-  function safeId(id) { return typeof id === 'string' && /^[A-Za-z0-9][A-Za-z0-9._-]{0,160}$/.test(id) && ['constructor', 'prototype', '__proto__'].indexOf(id) < 0; }
-  function endpointId(id) { return typeof id === 'string' && /^[A-Za-z0-9][A-Za-z0-9._:#@-]{0,200}$/.test(id); }
-  function prefText(v, n) { return typeof v === 'string' ? v.slice(0, n) : ''; }
-  function prefTarget(t) { return t && typeof t === 'object' && (endpointId(t.id) || /^group:g[a-z0-9]{1,16}$/.test(t.id) || /^spotify:(toggle|next|prev)$/.test(t.id) || /^app:[A-Za-z0-9][A-Za-z0-9._-]{0,160}$/.test(t.id)) ? { id: t.id, name: prefText(t.name, 80) } : null; }
-  /* 0.13 kept one sensor and one light; they become the first reading and switch. */
-  function cleanReadings(s) {
-    var list = Array.isArray(s.alexaReadings) ? s.alexaReadings : endpointId(s.alexaTemp) ? [{ id: s.alexaTemp, key: 'temp', name: s.alexaTempName, label: 'Temperature' }] : [];
-    return list.filter(function (r) { return r && endpointId(r.id) && typeof r.key === 'string' && r.key.length < 120; }).slice(0, 3)
-      .map(function (r) { return { id: r.id, key: r.key, name: prefText(r.name, 80), label: prefText(r.label, 40) || 'Value' }; });
-  }
-  function cleanSwitches(s) {
-    var list = Array.isArray(s.alexaSwitches) ? s.alexaSwitches : endpointId(s.alexaLamp) ? [{ id: s.alexaLamp, name: s.alexaLampName }] : [];
-    return list.map(prefTarget).filter(function (t) { return t && !/^(spotify|app):/.test(t.id); }).slice(0, 4);
-  }
-  function cleanGroups(list) {
-    return (Array.isArray(list) ? list : []).filter(function (g) { return g && /^g[a-z0-9]{1,16}$/.test(g.id) && typeof g.name === 'string' && g.name.trim(); }).slice(0, 12)
-      .map(function (g) { return { id: g.id, name: g.name.slice(0, 24), members: (Array.isArray(g.members) ? g.members : []).map(prefTarget).filter(function (m) { return m && endpointId(m.id); }).slice(0, 20) }; });
-  }
-  function cleanKeys(k) { var out = {}; ['red', 'green', 'yellow', 'blue', 'chup', 'chdown', 'guide'].forEach(function (c) { out[c] = k && typeof k === 'object' ? prefTarget(k[c]) : null; }); return out; }
-  function safeIcon(path) { return typeof path === 'string' && path.length < 2048 && /^(?:\/[^\/]|file:\/\/\/|wgt-package:\/\/\/)/.test(path) ? path : ''; }
-  function load() {
-    var keys = [KEY, 'cleanframe.shore.v1'], raw, saved, i;
-    for (i = 0; i < keys.length; i++) {
-      try {
-        raw = localStorage.getItem(keys[i]);
-        if (!raw) continue;
-        saved = JSON.parse(raw);
-        if (saved && typeof saved === 'object' && !Array.isArray(saved)) return saved;
-      } catch (e) { storageOk = false; }
-    }
-    return null;
-  }
-  function clean(saved) {
-    var s = saved && typeof saved === 'object' ? saved : {}, modern = s.look && typeof s.look === 'object' ? s.look : s;
-    var legacyList = s.theme === 'list', h = [], recent = [], records = Array.isArray(s.appRecords) ? s.appRecords : [];
-    records.slice(0, 256).forEach(function (a) {
-      if (!a || !safeId(a.id) || !safeId(a.appId) || typeof a.name !== 'string' || !a.name.trim() || app(a.id)) return;
-      APPS.push({ id: a.id, appId: a.appId, name: a.name.slice(0, 160), brand: MARK_BRANDS.indexOf(a.brand) >= 0 ? a.brand : '', mark: MARK_BRANDS.indexOf(a.brand) >= 0, icon: safeIcon(a.icon) });
-    });
-    (Array.isArray(s.home) ? s.home : Array.isArray(s.dock) ? s.dock : []).forEach(function (id) {
-      if (!safeId(id) || h.indexOf(id) >= 0 || h.length >= CAP) return;
-      if (!app(id) && id.indexOf('.') > 0) APPS.push({ id: id, appId: id, name: id.split('.').pop(), mark: false });
-      if (app(id)) h.push(id);
-    });
-    if (!h.length) h = PRIMARY.slice();
-    (Array.isArray(s.recent) ? s.recent : []).forEach(function (id) { if (safeId(id) && app(id) && h.indexOf(id) < 0 && recent.indexOf(id) < 0 && recent.length < 5) recent.push(id); });
-    return {
-      bg: pick(modern.bg, LOOK_VALUES.bg, legacyList ? 'dark' : 'photo'), layout: pick(modern.layout, LOOK_VALUES.layout, legacyList ? 'list' : 'dock'),
-      apps: pick(modern.apps, LOOK_VALUES.apps, legacyList ? 'text' : 'both'), iconStyle: pick(modern.iconStyle, LOOK_VALUES.iconStyle, 'color'), controls: pick(modern.controls, LOOK_VALUES.controls, 'both'),
-      focus: pick(modern.focus, LOOK_VALUES.focus, legacyList ? 'type' : 'glass'), material: pick(modern.material, LOOK_VALUES.material, 'soft'),
-      font: pick(modern.font, LOOK_VALUES.font, 'manrope'), wall: wall(modern.wall || s.wallpaper) ? modern.wall || s.wallpaper : WALLS[0].id,
-      home: h, recent: recent, lastApp: h.indexOf(s.lastApp) >= 0 ? s.lastApp : h[0],
-      mode: pick(s.mode, MODES.map(function (m) { return m.id; }), 'fixed'),
-      wifiSsid: typeof s.wifiSsid === 'string' ? s.wifiSsid.slice(0, 32) : '',
-      wifiPass: typeof s.wifiPass === 'string' ? s.wifiPass.slice(0, 63) : '',
-      wifiSec: s.wifiSec === 'nopass' ? 'nopass' : 'WPA',
-      lang: pick(s.lang, PREF_VALUES.lang, 'en'), clock: pick(s.clock, PREF_VALUES.clock, '24'), clockPos: pick(s.clockPos, PREF_VALUES.clockPos, 'corner'), date: pick(s.date, PREF_VALUES.date, 'off'), weather: pick(s.weather, PREF_VALUES.weather, 'day'),
-      customAt: typeof s.customAt === 'number' && wall(CUSTOM) ? s.customAt : 0, customTone: s.customTone === 'light' ? 'light' : 'dark',
-      relayTopic: safeId(s.relayTopic) ? s.relayTopic : '', relayAt: typeof s.relayAt === 'number' ? s.relayAt : 0, relaySince: safeId(s.relaySince) ? s.relaySince : '',
-      alexaReadings: cleanReadings(s), alexaSwitches: cleanSwitches(s), alexaGroups: cleanGroups(s.alexaGroups), alexaKeys: cleanKeys(s.alexaKeys),
-      spotifyShow: pick(s.spotifyShow, PREF_VALUES.spotifyShow, 'on'), keyHints: pick(s.keyHints === 'on' || s.keyHints === 'top' ? 'auto' : s.keyHints, PREF_VALUES.keyHints, 'auto'), switchStyle: pick(s.switchStyle, PREF_VALUES.switchStyle, 'both'),
-      clockStyle: pick(s.clockStyle, PREF_VALUES.clockStyle, 'classic'), seconds: pick(s.seconds, PREF_VALUES.seconds, 'off'), dockStyle: s.dockStyle === 'tiles' ? 'tiles' : 'shelf',
-      holidays: pick(s.holidays, PREF_VALUES.holidays, 'off'), namedays: pick(s.namedays, PREF_VALUES.namedays, 'off'), calShow: pick(s.calShow, PREF_VALUES.calShow, 'on')
-    };
-  }
-  function serialise(c) {
-    var out = {}, id;
-    Object.keys(c).forEach(function (key) { out[key] = c[key]; });
-    out.version = 2; out.look = lookOf(c); out.dock = c.home.slice(); out.wallpaper = c.wall;
-    out.theme = c.layout === 'list' ? 'list' : 'shore';
-    out.appRecords = [];
-    c.home.concat(c.recent).forEach(function (key) {
-      var a = app(key);
-      if (a && PRIMARY.indexOf(key) < 0 && !out.appRecords.some(function (r) { return r.id === key; })) out.appRecords.push({ id: a.id, appId: a.appId, name: a.name, brand: a.brand || '', icon: a.icon || '' });
-    });
-    return out;
-  }
-  function initialise() {
-    var saved = load(), initial; S.c = clean(saved); initial = next(S.c.home.slice(), S.c.recent.slice());
-    S.stack = [{ id: 'home', f: { zone: 'apps', u: 0 } }];
-    S.sel = S.c.lastApp; S.selIdx = S.c.home.indexOf(S.sel);
-    if (saved && initial.mode === 'open') initial.wall = WALLS[(wallIndex(initial.wall) + 1) % WALLS.length].id;
-    // Keep the old schema keys alongside the builder values for in-place updates.
-    try { localStorage.setItem(KEY, JSON.stringify(serialise(initial))); S.c = initial; storageOk = true; } catch (e) { storageOk = false; }
-    registerTvKeys(); syncSlotKeys();
-    loadWeatherCache();
-  }
-  function registerTvKeys() {
-    if (!window.tizen || !tizen.tvinputdevice) return;
-    try {
-      if (tizen.tvinputdevice.registerKeyBatch) tizen.tvinputdevice.registerKeyBatch(['Back', 'XF86Back']);
-      else { tizen.tvinputdevice.registerKey('Back'); tizen.tvinputdevice.registerKey('XF86Back'); }
-    } catch (e) { /* optional on preview */ }
-    /* Colour buttons switch Alexa lights; registered one by one so a missing key cannot block the rest. */
-    if (FS) ['MediaPlayPause', 'MediaPlay', 'MediaPause', 'MediaFastForward', 'MediaRewind', 'MediaTrackNext', 'MediaTrackPrevious'].forEach(function (name) { try { tizen.tvinputdevice.registerKey(name); } catch (e) { /* not on this remote */ } });
-    if (FA || FS) ['ColorF0Red', 'ColorF1Green', 'ColorF2Yellow', 'ColorF3Blue'].forEach(function (name) { try { tizen.tvinputdevice.registerKey(name); } catch (e) { /* not on this remote */ } });
-  }
-  function clearSession() { S.undo = []; S.removedAt = {}; S.note = null; S.err = null; }
-  function begin() { S.note = null; }
-  function next(home, recent) {
-    var c = lookOf(S.c);
-    c.home = home; c.recent = recent; c.lastApp = S.c.lastApp; c.mode = S.c.mode;
-    c.wifiSsid = S.c.wifiSsid; c.wifiPass = S.c.wifiPass; c.wifiSec = S.c.wifiSec;
-    c.lang = S.c.lang; c.clock = S.c.clock; c.clockPos = S.c.clockPos; c.date = S.c.date; c.weather = S.c.weather;
-    c.customAt = S.c.customAt; c.customTone = S.c.customTone; c.relayTopic = S.c.relayTopic; c.relayAt = S.c.relayAt; c.relaySince = S.c.relaySince;
-    c.alexaReadings = S.c.alexaReadings; c.alexaSwitches = S.c.alexaSwitches; c.alexaGroups = S.c.alexaGroups; c.alexaKeys = S.c.alexaKeys; c.spotifyShow = S.c.spotifyShow; c.keyHints = S.c.keyHints; c.switchStyle = S.c.switchStyle; c.clockStyle = S.c.clockStyle; c.seconds = S.c.seconds; c.dockStyle = S.c.dockStyle; c.holidays = S.c.holidays; c.namedays = S.c.namedays; c.calShow = S.c.calShow;
-    return c;
-  }
-  function snap() { return { home: S.c.home.slice(), recent: S.c.recent.slice() }; }
-  function pushRecent(list, id) { return [id].concat(without(list, id)).slice(0, 5); }
-  function write(c, label) {
-    try { localStorage.setItem(KEY, JSON.stringify(serialise(c))); }
-    catch (e) { storageOk = false; S.failed++; S.err = label; log('Not saved: ' + label); return false; }
-    if (c.wall !== S.c.wall || c.mode !== S.c.mode) resetRotation();
-    storageOk = true; S.c = c; S.writes++; S.err = null; log('Saved: ' + label);
-    return true;
-  }
-  function statusHtml(def) {
-    if (S.err) return '<span class="warn error-chip">' + esc(T('Couldn’t save. Nothing changed.')) + '</span>';
-    return esc(T(S.note || def));
-  }
-
-  function ensureSel() {
-    var h = S.c.home, i;
-    if (!h.length) { S.sel = null; return -1; }
-    i = h.indexOf(S.sel);
-    if (i < 0) { i = clamp(S.selIdx, 0, h.length - 1); S.sel = h[i]; }
-    S.selIdx = i;
-    return i;
-  }
-  function setSel(id) { S.sel = id; S.selIdx = S.c.home.indexOf(id); }
-
-  /* Membership and order operations shared by B and C. A works on slots (below). */
-  function homeRemove(id) {
-    var a = app(id), i = S.c.home.indexOf(id), before = snap(), h;
-    if (i < 0) return false;
-    if (S.c.home.length <= 1) { S.note = LAST; return false; }
-    h = S.c.home.slice(); h.splice(i, 1);
-    if (!write(next(h, pushRecent(S.c.recent, id)), 'Remove ' + a.name + ' from Home')) return false;
-    S.removedAt[id] = i;
-    S.undo.push({ label: 'Remove ' + a.name, text: T('Remove {0}', a.name), snap: before });
-    return true;
-  }
-  function homeAdd(id) {
-    var a = app(id), before = snap(), h = S.c.home.slice(), at;
-    if (h.length >= CAP) { S.note = FULL; return false; }
-    at = S.removedAt.hasOwnProperty(id) ? Math.min(S.removedAt[id], h.length) : h.length;
-    h.splice(at, 0, id);
-    if (!write(next(h, without(S.c.recent, id)), 'Add ' + a.name + ' to Home')) return false;
-    S.undo.push({ label: 'Add ' + a.name, text: T('Add {0}', a.name), snap: before });
-    return true;
-  }
-  function homeMove(order, id, before) {
-    var a = app(id);
-    if (!write(next(order, S.c.recent.slice()), 'Move ' + a.name)) return false;
-    S.undo.push({ label: 'Move ' + a.name, text: T('Move {0}', a.name), snap: before });
-    return true;
-  }
-  function undoLast(arr) {
-    var u = S.undo[S.undo.length - 1];
-    if (!u) { S.note = 'Nothing to undo'; return false; }
-    if (!write(next(u.snap.home.slice(), u.snap.recent.slice()), 'Undo ' + u.label)) return false;
-    S.undo.pop();
-    S.note = T('Undone: {0}.', u.text);
-    return true;
-  }
-  function undoCaption() {
-    var u = S.undo[S.undo.length - 1];
-    if (!u) return T('Nothing to undo');
-    return T('Undo {0}', S.c.lang === 'en' ? u.text.charAt(0).toLowerCase() + u.text.slice(1) : u.text);
-  }
-  function editStatus(hint, move) {
-    if (S.err) return statusHtml('');
-    if (S.note === FULL || S.note === LAST) return '<span class="warn">' + esc(T(S.note)) + '</span>';
-    if (hint === FULL || hint === LAST) return '<span class="warn">' + esc(T(hint)) + '</span>';
-    return esc(move || hint || T(S.note || ''));
-  }
-
-  var busy = false, busyTimer = 0;
-  function release() { busy = false; clearTimeout(busyTimer); S.press = null; }
-  function message(title, line, note) {
-    push({ id: 'message', msg: 'error', content: { title: title, line: T(line), note: T(note || ''), actions: [['back', 'Back']] }, f: { b: 0 } });
-  }
-  function perform(title, run) {
-    if (busy) return;
-    busy = true; busyTimer = setTimeout(release, 10000);
-    run(function (err, meta) {
-      release();
-      if (!err && meta && meta.mode === 'inapp') S.hdmiInApp = true;
-      if (err) message(T(title), err.message || 'The TV could not open this screen.', err.detail || '');
-      render(); syncRotation();
-    });
-  }
-  function exitHdmiInApp() {
-    if (!S.hdmiInApp) return;
-    S.hdmiInApp = false;
-    if (FrameDevice.hideHdmiView) FrameDevice.hideHdmiView(function () { render(); syncRotation(); });
-    else { render(); syncRotation(); }
-  }
-  function hdmiBack(k) {
-    if (!S.hdmiInApp || k !== 'back') return false;
-    exitHdmiInApp();
-    return true;
-  }
-  function launch(id) {
-    var a = app(id), c;
-    if (!a || busy) return;
-    if (S.c.home.indexOf(id) >= 0) { c = next(S.c.home.slice(), S.c.recent.slice()); c.lastApp = id; write(c, 'Last app'); }
-    S.press = id; S.lastLaunch = a.name;
-    perform(a.name, function (done) { FrameDevice.launchApp(a.appId, done); });
-  }
-  function refreshCatalog() {
-    var request, oldFocus;
-    if (catalog.loading) return;
-    request = ++catalog.request; catalog.loading = true; catalog.error = null;
-    FrameDevice.apps(function (err, entries) {
-      if (request !== catalog.request) return;
-      catalog.loading = false;
-      if (err) { catalog.error = err.message || T('Could not read installed apps.'); if (!catalog.loaded) ALPHA = []; render(); return; }
-      oldFocus = top().id === 'apps' ? ALPHA[top().f.i] : null;
-      ALPHA = [];
-      entries.forEach(function (entry) {
-        var id = PRIMARY.indexOf(entry.brand) >= 0 ? entry.brand : entry.appId, a;
-        if (!safeId(id) || !safeId(entry.appId) || ALPHA.indexOf(id) >= 0) return;
-        a = app(id);
-        if (!a) { a = { id: id }; APPS.push(a); }
-        if (PRIMARY.indexOf(id) >= 0) {
-          var meta = PRIMARY_APPS[PRIMARY.indexOf(id)];
-          a.appId = meta.appId || entry.appId; a.brand = meta.brand || entry.brand || ''; a.mark = meta.mark;
-          a.name = meta.name;
-        } else {
-          a.appId = entry.appId; a.brand = entry.brand || ''; a.mark = !!entry.brand;
-          a.name = String(entry.name).slice(0, 160);
-        }
-        a.nativeIcon = safeIcon(entry.icon);
-        a.icon = a.nativeIcon;
-        ALPHA.push(id);
-      });
-      ALPHA.sort(function (a, b) { return app(a).name.toLowerCase().localeCompare(app(b).name.toLowerCase()); });
-      catalog.loaded = true; catalog.error = null; catalog.revision++;
-      if (top().id === 'apps' && oldFocus && ALPHA.indexOf(oldFocus) >= 0) top().f.i = ALPHA.indexOf(oldFocus);
-      norm(); render();
-    });
-  }
 
   /* ---------- Navigation targets ---------- */
   function utils() { return (alexaOn() ? liveTargets().map(function (t, i) { return 'sw' + i; }) : []).concat(['wifi', 'apps', 'settings']); }
   /* prev/next run along the apps; out goes to the controls, inn comes back (or to a per-app action). */
-  function axes() {
-    var v = S.c.layout === 'list';
-    return { prev: v ? 'up' : 'left', next: v ? 'down' : 'right', out: v ? 'right' : 'up', inn: v ? 'left' : 'down' };
-  }
+  function axes() { return { prev: 'left', next: 'right', out: 'up', inn: 'down' }; }
   function wifiReady() { return !!(S.c.wifiSsid && String(S.c.wifiSsid).trim()); }
   function wifiQrPayload() {
     var ssid = String(S.c.wifiSsid || '').trim(), pass = String(S.c.wifiPass || ''), sec = S.c.wifiSec === 'nopass' ? 'nopass' : 'WPA';
@@ -765,7 +478,6 @@
     key: function (t, k) {
       var f = t.f, h = S.c.home, U = utils(), x = axes(), i = ensureSel();
       if (hdmiBack(k)) return;
-      if (S.c.layout === 'list') { listHomeKey(t, k, i, U); return; }
       if (f.zone === 'music') {
         if (!musicVisible()) f.zone = 'apps';
         else {
@@ -802,36 +514,6 @@
       this.key(t, 'ok');
     }
   };
-  function listHomeKey(t, k, i, U) {
-    var f = t.f, h = S.c.home;
-    if (hdmiBack(k)) return;
-    if (f.zone === 'music') {
-      if (!musicVisible()) f.zone = 'apps';
-      else {
-        if (k === 'ok') openNowPlaying();
-        else if (k === 'down') { f.zone = 'util'; f.u = 0; }
-        else if (k === 'left' || k === 'back') f.zone = 'apps';
-        return;
-      }
-    }
-    if (f.zone === 'util') {
-      f.u = clamp(f.u, 0, U.length - 1);
-      if (k === 'up' && f.u > 0) f.u--;
-      else if (k === 'up' && musicVisible()) f.zone = 'music';
-      else if (k === 'down' && f.u < U.length - 1) f.u++;
-      else if (k === 'left' || k === 'back') f.zone = 'apps';
-      else if (k === 'ok') { S.lastUtil = f.u; utilAction(U[f.u]); return; }
-      S.lastUtil = f.u;
-      return;
-    }
-    f.zone = 'apps';
-    if (k === 'up' && i > 0) setSel(h[i - 1]);
-    else if (k === 'right') { f.zone = 'util'; f.u = clamp(S.lastUtil, 0, U.length - 1); }
-    else if (k === 'down' && i < h.length - 1) setSel(h[i + 1]);
-    else if (k === 'back') openMessage('leave');
-    else if (k === 'ok') { if (h.length) launch(S.sel); else addAppsRoute(); }
-  }
-
   /* ---------- Wallpaper child: focus previews, activation applies ---------- */
   function cancelWallpaperTimer(t) {
     clearTimeout(t.previewTimer); t.previewTimer = 0; t.previewDue = null;
@@ -1070,7 +752,7 @@
   function settingsRows() {
     var n = S.c.home.length;
     return [{ id: 'background', icon: 'art', label: T('Background'), value: S.c.bg === 'photo' ? T(wall(S.c.wall).name) : T(VALUE_NAMES[S.c.bg]) },
-      { id: 'layout', icon: 'layout', label: T('Layout'), value: T(S.c.layout === 'list' ? 'List' : S.c.dockStyle === 'tiles' ? 'Tiles' : 'Dock') },
+      { id: 'layout', icon: 'layout', label: T('Layout'), value: T(S.c.dockStyle === 'tiles' ? 'Tiles' : 'Dock') },
       { id: 'typography', icon: 'type', label: T('Typography'), value: FONTS[S.c.font].name },
       { id: 'focus', icon: 'focus', label: T('Focus'), value: T(VALUE_NAMES[S.c.focus]) + (materialApplies() ? ', ' + T(VALUE_NAMES[S.c.material]) : '') },
       { id: 'editor', icon: 'apps', label: T('Apps on Home'), value: T(n === 1 ? '{0} app' : '{0} apps', n) },
@@ -1130,7 +812,7 @@
     if (t.group === 'focus') return [
       { id: 'focus', title: T('Focus style'), horizontal: true, items: options('focus', ['type', 'glass']) },
       { id: 'material', title: T('Material'), horizontal: true, items: options('material', ['soft', 'frost', 'tint'], inactive),
-        reason: inactive ? flat ? T('Materials are available with a Photo background.') : T('Choose Glass focus or the Dock layout to use materials.') : '' }
+        reason: inactive ? T('Materials are available with a Photo background.') : '' }
     ];
     if (t.group === 'rotation') return [{ id: 'mode', title: '', items: options('mode', MODES.map(function (m) { return m.id; }), flat),
       reason: flat ? T('Choose Photo in Background to use rotation.') : T('Timed changes pause while Settings or another panel is open.') }];
@@ -1183,11 +865,10 @@
     c = next(S.c.home.slice(), S.c.recent.slice()); c.mode = value;
     if (!write(c, 'Wallpaper rotation')) S.lookError = { type: 'save', patch: { mode: value }, row: 'mode', transient: false };
   }
-  /* List, Dock or Tiles: Tiles is the Dock layout with separate tiles instead of the shelf. */
+  /* Dock or Tiles: Tiles is the Dock with a separate glass tile per app instead of the shelf. */
   function applyLayoutView(value) {
     S.err = null; S.lookError = null;
-    if (value !== 'list' && !savePrefs({ dockStyle: value === 'tiles' ? 'tiles' : 'shelf' }, 'Dock style')) return;
-    if (S.c.layout !== (value === 'list' ? 'list' : 'dock')) setLook({ layout: value === 'list' ? 'list' : 'dock' }, { row: 'layout' });
+    savePrefs({ dockStyle: value === 'tiles' ? 'tiles' : 'shelf' }, 'Dock style');
   }
   function applyPref(axis, value) {
     var c = next(S.c.home.slice(), S.c.recent.slice()), patch = {};
@@ -1527,7 +1208,7 @@
   function fitMusic(inCorner) {
     var box = stage.querySelector('.cap-music'), first = utilsEl.querySelector('.u'), sr, scale, limit = MUSIC_W;
     if (!box) return;
-    if (inCorner && first && S.c.layout === 'dock') {
+    if (inCorner && first) {
       sr = sceneEl.getBoundingClientRect(); scale = sr.width / 1920 || 1;
       limit = Math.max(320, Math.min(MUSIC_W, Math.floor((first.getBoundingClientRect().left - sr.left) / scale) - 112 - 40));
     }
@@ -1734,7 +1415,7 @@
   }
   function legendOn() { return S.c.keyHints === 'always' || S.c.keyHints === 'auto' && Date.now() < legend.until; }
   function keyLegendHtml() {
-    if (S.c.keyHints === 'off' || S.c.layout !== 'dock') return '';
+    if (S.c.keyHints === 'off') return '';
     return legendRows().map(function (c) {
       var t = S.c.alexaKeys[c], p = /^(spotify|app):/.test(t.id) ? null : targetPower(t.id);
       return '<span class="legend-chip' + (p ? ' is-on' : '') + '">' + keyBadge(c) + '<span class="legend-name">' + esc(targetName(t)) + '</span></span>';
@@ -2240,18 +1921,14 @@
   var $ = function (id) { return document.getElementById(id); };
   var alexaToast = $('alexaToast'), musicEl = $('music'), keyLegend = $('keyLegend');
   var stage = $('stage'), buildVersion = $('buildVersion'), homeEl = $('home'), caption = $('caption'), utilsEl = $('utils');
-  var utilFocusLabel = $('utilFocusLabel'), utilFocusKey = '', appFocusName = $('appFocusName');
+  var utilFocusLabel = $('utilFocusLabel'), utilFocusKey = '';
   var dock = $('dock'), shelf = $('shelf'), track = $('track'), plate = $('plate'), matScrim = $('matScrim'), dockEmpty = $('dockEmpty');
   var cueL = $('cueL'), cueR = $('cueR'), dockAction = $('dockAction');
   var focusStatus = $('focusStatus'), sceneEl = $('scene'), appearanceEl = $('appearance'), appearanceRows = $('appearanceRows'), appearanceDesc = $('appearanceDesc');
   var appearanceBack = $('appearanceBack'), appearanceTitle = $('appearanceTitle'), appearanceStatus = $('appearanceStatus');
-  var phScene = $('phScene'), phPlate = $('phPlate'), phField = $('phField'), phList = $('phList'), phRows = $('phRows'), phAction = $('phAction'), phEmpty = $('phEmpty');
-  var phPlates = [phPlate, $('phPlateAlt')], phFields = [phField, $('phFieldAlt')], photoPlateIndex = 0, photoPlateKey = null;
-  var utPlates = [$('utLens'), $('utLensAlt')], utFields = [$('utField'), $('utFieldAlt')], utPlateIndex = 0, utPlateKey = null;
-  var photoMode = null, photoTransitionToken = 0;
   var sheetEl = $('sheet'), sheetView = $('sheetView');
   var wifiQrEl = $('wifiQr'), wifiQrCanvas = $('wifiQrCanvas'), wifiQrSsid = $('wifiQrSsid'), wifiQrCard = $('wifiQrCard'), wifiQrTitle = $('wifiQrTitle'), wifiQrBg = $('wifiQrBg');
-  var IMG = { photo: $('photo'), mat: $('matImg'), bg: $('sheetBg'), field: $('phFieldImg'), fieldAlt: $('phFieldImgAlt'), utility: $('utFieldImg'), utilityAlt: $('utFieldImgAlt') };
+  var IMG = { photo: $('photo'), mat: $('matImg'), bg: $('sheetBg') };
   var sheetKey = '', slotEls = {}, dockAnchorCenter = 960;
   var appliedPalette = null, appliedPhoto = null, appliedFont = null, appliedFontMetrics = null;
 
@@ -2283,8 +1960,8 @@
   function render() {
     var t = top(), sheet = !!V[t.id].sheet, shown = wall(S.shown ? S.shown.wall : S.c.wall), palette = ADAPTIVE_INK[shown.id];
     var adaptive = applyAdaptiveInk(palette), tr = adaptive && palette.tr ? palette.tr.pol : shown.ut.tr, br = adaptive && palette.br ? palette.br.pol : shown.ut.br;
-    S.c.layoutView = S.c.layout === 'list' ? 'list' : S.c.dockStyle === 'tiles' ? 'tiles' : 'dock';
-    stage.className = 'stage bg-' + S.c.bg + ' l-' + S.c.layout + (S.c.layout === 'dock' ? ' dock-' + S.c.dockStyle : '') + ' clockstyle-' + S.c.clockStyle + ' m-' + (materialApplies() ? S.c.material : 'none') + ' f-' + S.c.focus + ' a-' + S.c.apps + ' i-' + S.c.iconStyle + ' u-' + S.c.controls + ' clock-' + S.c.clockPos + (S.c.clockPos !== 'corner' ? ' clock-big' : '') + ' tone-' + shown.tone + ' tr-' + tr + ' br-' + br + wallClasses(shown) + inkRungClasses(palette, adaptive) + ' at-' + t.id + ' font-' + homeFont() + (homeFont() !== 'manrope' ? ' font-custom' : '') + (S.fontSwitch ? ' is-font-switch' : '') + (adaptive ? ' has-adaptive-ink adaptive-tl-' + palette.tl.pol : '') + (!adaptive && shown.clockInk ? ' has-clock-ink' : '') + (!adaptive && shown.dockClockInk ? ' has-dock-clock-ink' : '') + (registeredMaterial(shown.id) ? ' registered-material' : '') + (sheet ? ' is-sheet' : '') + (t.id === 'wifiqr' ? ' is-wifi-qr' : '') + (S.hdmiInApp ? ' is-hdmi-input' : '') + (S.reflow ? ' is-reflow' : '');
+    S.c.layoutView = S.c.dockStyle === 'tiles' ? 'tiles' : 'dock';
+    stage.className = 'stage bg-' + S.c.bg + ' l-dock dock-' + S.c.dockStyle + ' clockstyle-' + S.c.clockStyle + ' m-' + (materialApplies() ? S.c.material : 'none') + ' f-' + S.c.focus + ' a-' + S.c.apps + ' i-' + S.c.iconStyle + ' u-' + S.c.controls + ' clock-' + S.c.clockPos + (S.c.clockPos !== 'corner' ? ' clock-big' : '') + ' tone-' + shown.tone + ' tr-' + tr + ' br-' + br + wallClasses(shown) + inkRungClasses(palette, adaptive) + ' at-' + t.id + ' font-' + homeFont() + (homeFont() !== 'manrope' ? ' font-custom' : '') + (S.fontSwitch ? ' is-font-switch' : '') + (adaptive ? ' has-adaptive-ink adaptive-tl-' + palette.tl.pol : '') + (!adaptive && shown.clockInk ? ' has-clock-ink' : '') + (!adaptive && shown.dockClockInk ? ' has-dock-clock-ink' : '') + (registeredMaterial(shown.id) ? ' registered-material' : '') + (sheet ? ' is-sheet' : '') + (t.id === 'wifiqr' ? ' is-wifi-qr' : '') + (S.hdmiInApp ? ' is-hdmi-input' : '') + (S.reflow ? ' is-reflow' : '');
     if (!adaptive && shown.clockInk) stage.style.setProperty('--clock-ink', shown.clockInk);
     else stage.style.removeProperty('--clock-ink');
     if (!adaptive && shown.dockClockInk) stage.style.setProperty('--dock-clock-ink', shown.dockClockInk);
@@ -2383,10 +2060,8 @@
     var hs = homeState(t);
     renderCaption(t, hs);
     renderUtils(hs);
-    fitMusic(S.c.clockPos !== 'corner' && S.c.layout === 'dock');
-    if (S.c.layout === 'list') renderList(hs);
-    else { photoMode = null; renderDock(hs); keyLegend.style.bottom = (1080 - dockTopY + 18) + 'px'; alexaToast.style.bottom = (1080 - dockTopY + 18 + 64) + 'px'; }
-    renderAppFocusName(hs);
+    fitMusic(S.c.clockPos !== 'corner');
+    renderDock(hs); keyLegend.style.bottom = (1080 - dockTopY + 18) + 'px'; alexaToast.style.bottom = (1080 - dockTopY + 18 + 64) + 'px';
   }
 
   /* Weather: Open-Meteo current conditions plus today's range, cached for an hour per place. */
@@ -2644,18 +2319,18 @@
     var ch = '';
     var weatherHtml = weatherCaptionHtml() + readingsCaptionHtml(), date = dateLineHtml(), calLine = calendarLineHtml(), html;
     // Centred: date and weather share one smaller line under the clock. Corner: the date is a quiet second line.
-    if (S.c.clockPos !== 'corner' && S.c.layout === 'dock') html = '<span class="caption-head"><span class="clock">' + ch + '</span>' + (date || weatherHtml ? '<span class="caption-sub">' + date + weatherHtml + '</span>' : '') + '</span>';
+    if (S.c.clockPos !== 'corner') html = '<span class="caption-head"><span class="clock">' + ch + '</span>' + (date || weatherHtml ? '<span class="caption-sub">' + date + weatherHtml + '</span>' : '') + '</span>';
     else html = '<span class="caption-head"><span class="clock">' + ch + '</span>' + weatherHtml + '</span>' + date;
     var pills = namedayLineHtml() + calLine;
     if (pills) html += '<span class="cap-pills">' + pills + '</span>';
     /* With the clock in the centre, the song sits alone in the top-left corner. */
-    var musicInCorner = S.c.clockPos !== 'corner' && S.c.layout === 'dock';
+    var musicInCorner = S.c.clockPos !== 'corner';
     if (musicInCorner) setHTML(musicEl, musicHtml(hs.zone === 'music'));
     else { setHTML(musicEl, ''); html += musicHtml(hs.zone === 'music'); }
     setHTML(keyLegend, keyLegendHtml());
     keyLegend.className = 'key-legend' + (legendOn() && legendRows().length ? ' is-on' : '');
     caption.setAttribute('data-weather', S.c.weather === 'off' || weather.temp === null ? '' : String(weather.temp));
-    if (S.c.apps !== 'icons' && !(S.c.clockPos !== 'corner' && S.c.layout === 'dock') && hs.items[hs.i] && (S.c.layout === 'list' ? photoLabel(hs.items[hs.i].id, false).size < 88 || photoLabel(hs.items[hs.i].id, false).ellipsis : hs.zone === 'apps' && reducedDockLabel(hs.items[hs.i].id))) html += '<span class="cap-line full-name">' + esc(app(hs.items[hs.i].id).name) + '</span>';
+    if (S.c.apps !== 'icons' && S.c.clockPos === 'corner' && hs.items[hs.i] && hs.zone === 'apps' && reducedDockLabel(hs.items[hs.i].id)) html += '<span class="cap-line full-name">' + esc(app(hs.items[hs.i].id).name) + '</span>';
     setHTML(caption, html);
     patchClock();
     fitMusic(musicInCorner);
@@ -2690,7 +2365,6 @@
       if (focus) focused = b;
     });
     renderUtilFocusLabel(focused && (/ u-compact/.test(focused.className) || iconsOnly && !/ u-lamp/.test(focused.className)) ? focused : null);
-    renderUtilityLens(focused || (hs.zone === 'music' ? stage.querySelector('.cap-music.is-focus') : null), iconsOnly && !!focused);
   }
   function renderUtilFocusLabel(button) {
     var text, key, r, sr, scale, width, x;
@@ -2704,59 +2378,11 @@
     }
     r = button.getBoundingClientRect(); sr = sceneEl.getBoundingClientRect(); scale = sr.width / 1920 || 1;
     width = Math.ceil(textWidth(text, 28, 500, -.2) + 8); x = (r.left + r.width / 2 - sr.left) / scale - width / 2;
-    if (S.c.layout === 'list') x = 1730 - width;
     utilFocusLabel.style.width = width + 'px'; utilFocusLabel.style.left = clamp(x, 112, 1808 - width) + 'px';
-    utilFocusLabel.style.top = ((S.c.layout === 'list' ? (r.top + r.height / 2 - sr.top) / scale - 19 : 116) + fontShift('ui', 28)) + 'px';
+    utilFocusLabel.style.top = (116 + fontShift('ui', 28)) + 'px';
     utilFocusLabel.className = 'util-focus-label is-on';
   }
-  function renderUtilityLens(button, iconsOnly) {
-    var r, label, sr, scale, x, y, width, key, el;
-    if (!button || S.c.focus !== 'glass' || S.c.layout === 'dock') {
-      utPlates.forEach(function (plateEl) { plateEl.className = 'ph-plate ut-lens is-outgoing'; });
-      utPlateKey = null;
-      return;
-    }
-    r = button.getBoundingClientRect(); sr = sceneEl.getBoundingClientRect(); scale = sr.width / 1920 || 1;
-    var tall = / cap-music/.test(' ' + button.className), height = tall ? Math.round(r.height / scale) : 60;
-    y = (r.top - sr.top) / scale + (tall ? 0 : 2);
-    if (tall) { x = (r.left - sr.left) / scale; width = r.width / scale; }
-    else if (S.c.layout === 'list') {
-      label = iconsOnly ? utilFocusLabel : button.querySelector('.u-label');
-      x = (label.getBoundingClientRect().left - sr.left) / scale - 24;
-      width = 1800 - x;
-    } else {
-      // Dock icons keep a fixed lens; the separate caption cannot overlap its neighbours.
-      x = (r.left - sr.left) / scale; width = r.width / scale;
-    }
-    key = button.getAttribute('data-action') + '|' + x + '|' + y + '|' + width + '|' + height;
-    if (key !== utPlateKey) {
-      utPlates[utPlateIndex].className = 'ph-plate ut-lens is-outgoing';
-      utPlateIndex = 1 - utPlateIndex; el = utPlates[utPlateIndex];
-      el.className = 'ph-plate ut-lens is-preparing' + (tall ? ' is-tall' : '');
-      el.style.width = width + 'px'; el.style.height = height + 'px'; el.style.transform = 'translate3d(' + x + 'px,' + y + 'px,0)';
-      fieldTransform(utFields[utPlateIndex], x, y, width, height);
-      el.offsetWidth;
-      utPlateKey = key;
-    }
-    fieldTransform(utFields[utPlateIndex], x, y, width, height);
-    utPlates[utPlateIndex].className = 'ph-plate ut-lens is-current on-focus' + (tall ? ' is-tall' : '');
-  }
   var dockTopY = 776;
-  function renderAppFocusName(hs) {
-    var it = hs.items[hs.i], width, x, y, placement;
-    if (S.c.apps !== 'icons' || S.c.layout !== 'list' || hs.mode !== 'browse' || hs.zone !== 'apps' || !it) { appFocusName.className = 'app-focus-name'; return; }
-    appFocusName.textContent = app(it.id).name;
-    width = Math.min(S.c.layout === 'list' ? 1056 : 1640, Math.ceil(textWidth(app(it.id).name, S.c.layout === 'list' ? 40 : 36, 500, -.6, 'primary') + 8));
-    appFocusName.style.width = width + 'px';
-    if (S.c.layout === 'list') {
-      x = 280; placement = phFields[photoPlateIndex]._placement;
-      y = placement.y + placement.height / 2 - 24;
-    } else {
-      x = clamp(dockAnchorCenter - width / 2, 140, 1780 - width); y = dockTopY - 60;
-    }
-    appFocusName.style.left = x + 'px'; appFocusName.style.top = (y + fontShift('primary', S.c.layout === 'list' ? 40 : 36)) + 'px';
-    appFocusName.className = 'app-focus-name is-on';
-  }
 
   /* Everything on one shelf when it fits. Otherwise show five whole tiles and move the
      window one tile when focus passes an edge; the side cues show that more apps exist. */
@@ -2840,99 +2466,6 @@
       dockAction.removeAttribute('data-z'); dockAction.removeAttribute('data-action');
     }
     setHTML(dockEmpty, empty ? '<p>' + T('No apps on Home') + '</p><button type="button" tabindex="-1" class="btn' + (hs.zone === 'empty' ? ' is-focus' : '') + '" data-z="empty" data-i="0" data-action="home.add-apps">' + icon('plus') + '<span>' + T('Add apps') + '</span></button>' : '');
-  }
-
-  function photoModeTransition(compact) {
-    if (photoMode !== null && photoMode !== compact) {
-      var ghost = phScene.cloneNode(true), token = ++photoTransitionToken;
-      ghost.removeAttribute('id'); ghost.setAttribute('aria-hidden', 'true');
-      Array.prototype.forEach.call(ghost.querySelectorAll('[id],[data-action],[data-z]'), function (el) {
-        el.removeAttribute('id'); el.removeAttribute('data-action'); el.removeAttribute('data-z');
-      });
-      ghost.className = 'ph-scene ph-ghost';
-      phScene.parentNode.appendChild(ghost);
-      phScene.className = 'ph-scene ph-incoming';
-      setTimeout(function () {
-        if (ghost.parentNode) ghost.parentNode.removeChild(ghost);
-        if (token === photoTransitionToken) phScene.className = 'ph-scene';
-      }, 180);
-    }
-    photoMode = compact;
-  }
-  /* Each plate keeps a stationary, stage-registered field while its opacity changes.
-     Reuse the hidden group for the next label; never animate plate width or position. */
-  function renderPhotoPlate(id, width, height, y, state) {
-    var key = id + '|' + width + '|' + height + '|' + y, plateEl, fieldEl;
-    if (key !== photoPlateKey) {
-      phPlates[photoPlateIndex].className = phPlates[photoPlateIndex].className.replace(' is-current', '') + ' is-outgoing';
-      photoPlateIndex = 1 - photoPlateIndex;
-      plateEl = phPlates[photoPlateIndex]; fieldEl = phFields[photoPlateIndex];
-      plateEl.className = 'ph-plate is-preparing';
-      plateEl.style.width = width + 'px'; plateEl.style.height = height + 'px';
-      plateEl.style.transform = 'translate3d(0,' + y + 'px,0)';
-      fieldTransform(fieldEl, 112, y, width, height);
-      plateEl.offsetWidth; // Establish zero opacity before the incoming crossfade.
-      photoPlateKey = key;
-    }
-    fieldTransform(phFields[photoPlateIndex], 112, y, width, height);
-    phPlates[photoPlateIndex].className = 'ph-plate is-current' + (state ? ' ' + state : '');
-  }
-  function fieldTransform(el, x, y, width, height) {
-    el._placement = { x: x, y: y, width: width, height: height };
-    el.style.transformOrigin = (x + width / 2) + 'px ' + (y + height / 2) + 'px';
-    el.style.transform = 'translate3d(' + (-x) + 'px,' + (-y) + 'px,0)' + (S.c.bg === 'photo' && S.c.material === 'tint' && !REDUCED_MOTION ? ' scale(1.04)' : '');
-  }
-  function renderList(hs) {
-    var items = hs.items, n = items.length, compact = hs.mode === 'arrange', pitch = compact ? PH_COMPACT_PITCH : PH_PITCH;
-    var anchor = clamp(hs.i, 0, Math.max(0, n - 1)), first, off, width, slot, y, s, label, aw, plateState;
-    var rowFocus = hs.zone === 'apps' || hs.zone === 'tiles', remembered = hs.zone === 'util' || hs.zone === 'act' || hs.zone === 'ctl' || hs.zone === 'preview';
-    photoModeTransition(compact);
-    if (compact) {
-      first = clamp(scroll.photoArrange, anchor - 7, anchor - 1);
-      first = clamp(first, 0, Math.max(0, n - PH_COMPACT_VISIBLE));
-      scroll.photoArrange = first;
-    } else {
-      first = clamp(scroll.photo, anchor - 3, anchor - 1);
-      first = clamp(first, 0, Math.max(0, n - PH_FULL));
-      scroll.photo = first;
-    }
-    off = first * pitch; slot = anchor - first;
-    width = items[anchor] ? listPlateWidth(items[anchor].id, compact) : 360;
-    phList.className = 'ph-list' + (compact ? ' is-compact' : '');
-    phList.style.height = PH_HEIGHT + 'px';
-    phRows.style.top = (compact ? 72 : 148) + 'px';
-    keyed(phRows, items, function (row, it, i) {
-      var typography = photoLabel(it.id, compact), focus = rowFocus && i === anchor, lifted = hs.lifted && i === anchor, markImage, body = '';
-      if (S.c.apps !== 'text') body += appMark(app(it.id), S.c.apps === 'icons' ? compact ? 64 : 88 : compact ? 60 : 84, S.c.apps === 'icons' ? compact ? 64 : 88 : compact ? 44 : 64, S.c.apps === 'icons' ? compact ? 52 : 72 : compact ? 42 : 54);
-      if (S.c.apps !== 'icons') body += '<span class="ph-name" style="font-size:' + typography.size + 'px;top:' + typography.top + 'px">' + esc(app(it.id).name) + '</span>';
-      setContent(row, it.id + '|' + typography.size + '|' + S.c.bg + '|' + S.c.apps + '|' + S.c.iconStyle + '|' + homeFont(), '<span class="ph-group">' + body + '</span><span class="ph-move ph-move-up">' + icon('up') + '</span><span class="ph-move ph-move-down">' + icon('down') + '</span>');
-      markImage = row.querySelector('.mark img');
-      if (markImage) {
-        markImage.onerror = function () { this.style.visibility = 'hidden'; };
-        if (markImage.complete && !markImage.naturalWidth) markImage.style.visibility = 'hidden';
-      }
-      row.className = 'ph-row k-' + it.kind + (focus ? ' is-focus' : '') + (remembered && i === anchor ? ' is-sel' : '') + (lifted ? ' is-lifted' : '')
-        + (lifted && i === 0 ? ' no-up' : '') + (lifted && i === n - 1 ? ' no-down' : '')
-        + (it.kind === 'app' && S.press === it.id ? ' is-press' : '');
-      row.style.width = (compact ? listPlateWidth(it.id, compact) : 1200) + 'px'; row.style.height = pitch + 'px';
-      row.style.transform = 'translate3d(0,' + (i * pitch) + 'px,0)';
-      row.setAttribute('role', 'button'); row.setAttribute('aria-label', app(it.id).name);
-      attrs(row, compact ? 'tile' : 'app', i, compact ? 'arrange.' + (it.kind === 'ph' ? 'placeholder.' : 'tile.') + it.id : 'home.app.' + it.id);
-    });
-    phRows.style.transform = 'translate3d(0,' + (-off) + 'px,0)';
-    y = (compact ? PH_COMPACT_TOP + 2 : PH_TOP + 1) + slot * pitch;
-    plateState = !n || hs.zone === null ? '' : hs.lifted ? 'on-lift' : S.c.focus === 'glass' && rowFocus ? 'on-focus' : S.c.focus === 'glass' && remembered ? 'on-sel' : '';
-    renderPhotoPlate(items[anchor] ? items[anchor].id : '', width, compact ? 88 : 134, y, plateState);
-    if (compact && !hs.lifted && (hs.zone === 'tiles' || hs.zone === 'act') && items[anchor]) {
-      s = hs.arr.slots[anchor]; label = T(s.removed ? 'Restore {0}' : 'Remove {0}', app(s.id).name); aw = actionWidth(label);
-      setHTML(phAction, '<span>' + esc(label) + '</span>');
-      phAction.className = 'ph-action is-on' + (hs.zone === 'act' ? ' is-focus' : '');
-      phAction.style.width = aw + 'px';
-      phAction.style.transform = 'translate3d(' + (112 + width + 24) + 'px,' + (PH_COMPACT_TOP + slot * pitch + 12) + 'px,0)';
-      attrs(phAction, 'act', anchor, 'arrange.' + (s.removed ? 'restore.' : 'remove.') + s.id);
-    } else { phAction.className = 'ph-action'; phAction.removeAttribute('data-z'); phAction.removeAttribute('data-action'); }
-    phEmpty.className = 'ph-empty' + (!compact && !n ? ' is-on' : '');
-    setHTML(phEmpty, !compact && !n ? '<p>No apps on Home</p><button type="button" tabindex="-1" class="btn' + (hs.zone === 'empty' ? ' is-focus' : '') + '" data-z="empty" data-i="0" data-action="home.add-apps">' + icon('plus') + '<span>Add apps</span></button>' : '');
   }
 
   /* Sheets: a frame is built once per view/mode; fill() updates its slots. Persistent
@@ -3039,7 +2572,7 @@
      shares its position without changing the control's identity or key behaviour. */
   function renderFocusStatus(t) {
     if (isSettingsDetail(t)) { focusStatus.className = 'focus-status'; return; }
-    var root = isSettingsDetail(top()) ? appearanceEl : sheetEl.hidden ? homeEl : sheetEl, active = root.querySelectorAll('.is-focus[data-action]'), target = null, text = S.err ? T('Not saved. OK tries again.') : '', i, r, sr, scale, x, y, w, action, solid, photoRow = false, photoFree = false;
+    var root = isSettingsDetail(top()) ? appearanceEl : sheetEl.hidden ? homeEl : sheetEl, active = root.querySelectorAll('.is-focus[data-action]'), target = null, text = S.err ? T('Not saved. OK tries again.') : '', i, r, sr, scale, x, y, w, action, solid;
     Array.prototype.forEach.call(stage.querySelectorAll('.has-local-status'), function (el) { el.className = el.className.replace(/\s+has-local-status/g, ''); });
     for (i = 0; i < active.length; i++) if (renderedAction(active[i])) { target = active[i]; break; }
     if (!text && t.id === 'arrange' && (t.f.zone === 'act' || t.f.zone === 'tiles')) {
@@ -3048,24 +2581,17 @@
     }
     if (!text && S.note === LAST && t.id === 'arrange') text = T(LAST);
     if (!target || !text) { focusStatus.className = 'focus-status'; return; }
-    if (target.parentNode === utilsEl && utilsEl.className.indexOf('is-icons') >= 0) { renderUtilFocusLabel(target); focusStatus.className = 'focus-status'; return; }
-    // Photo action pills stay on one line; the header already carries this status.
-    if (S.c.layout === 'list' && t.id === 'arrange' && !t.lifted && (t.f.zone === 'act' || t.f.zone === 'tiles')) { focusStatus.className = 'focus-status'; return; }
-    photoRow = S.c.layout === 'list' && target.className.indexOf('ph-row') >= 0;
-    if (photoRow && phAction.className.indexOf('is-on') >= 0) target = phAction;
-    else if (photoRow) photoFree = true;
+    if (utilsEl.contains(target) && utilsEl.className.indexOf('is-icons') >= 0) { renderUtilFocusLabel(target); focusStatus.className = 'focus-status'; return; }
     target.className += ' has-local-status';
     action = target.getAttribute('data-action');
     r = target.getBoundingClientRect(); sr = stage.getBoundingClientRect(); scale = sr.width / 1920 || 1;
     x = (r.left - sr.left) / scale; y = (r.top - sr.top) / scale; w = r.width / scale;
-    if (photoFree) { x = 112 + parseFloat(phPlates[photoPlateIndex].style.width) + 24; y += (r.height / scale - 28) / 2; w = 400; }
-    else if (action.indexOf('home.app.') === 0 || action.indexOf('arrange.tile.') === 0 || action.indexOf('arrange.placeholder.') === 0) y += 171;
+    if (action.indexOf('home.app.') === 0 || action.indexOf('arrange.tile.') === 0 || action.indexOf('arrange.placeholder.') === 0) y += 171;
     else if (action.indexOf('apps.order.') === 0) y += 86;
     else if (action.indexOf('apps.toggle.') === 0 || action.indexOf('apps.add.') === 0) y += 164;
     else if (action.indexOf('layout.') === 0) y += 54;
     else y += action.indexOf('arrange.remove.') === 0 || action.indexOf('arrange.restore.') === 0 ? 43 : 40;
-    solid = /(?:^|\s)(?:u|btn|er-rm|dock-action|set-row|ph-action)(?:\s|$)/.test(target.className) && target.parentNode !== utilsEl && target.parentNode.className.indexOf('s-head') < 0;
-    if (target === phAction && target.className.indexOf('is-focus') < 0) solid = false;
+    solid = /(?:^|\s)(?:u|btn|er-rm|dock-action|set-row)(?:\s|$)/.test(target.className) && !utilsEl.contains(target) && target.parentNode.className.indexOf('s-head') < 0;
     focusStatus.className = 'focus-status is-on' + (solid ? ' dark-ink' : '') + (photoFree ? ' photo-status' : '');
     focusStatus.textContent = text;
     focusStatus.style.left = clamp(x + 8, 112, 1808 - Math.min(w - 16, 800)) + 'px';
@@ -3332,7 +2858,6 @@
     return 'assets/materials/' + id + '-' + kind + '.jpg';
   }
   function matSrc(id, material) { return wallAsset(id, material === 'soft' ? 'study-soft' : material === 'tint' ? 'field-clear' : 'field-frost'); }
-  function fieldSrc(id, material) { return wallAsset(id, material === 'soft' ? 'field-blur' : material === 'tint' ? 'field-clear' : 'field-frost'); }
   function makeImg(cls, src, key) {
     var im = document.createElement('img'); im.className = cls; im.alt = ''; im._src = src;
     im.src = key && !/^(?:blob|data):/.test(src) ? src + (src.indexOf('?') >= 0 ? '&' : '?') + 'cf=' + encodeURIComponent(key) : src;
@@ -3350,10 +2875,6 @@
   function loadBundle(look, token, done) {
     var key = bundleKey(look), imgs = { photo: makeImg('photo', wallAsset(look.wall, 'photo'), key), bg: makeImg('sheet-bg', wallAsset(look.wall, 'panel'), key) }, keys, left, allOk = true;
     imgs.mat = makeImg('mat-img', matSrc(look.wall, look.material), key);
-    imgs.field = makeImg('ph-field-img', fieldSrc(look.wall, look.material), key);
-    imgs.fieldAlt = makeImg('ph-field-img', fieldSrc(look.wall, look.material), key);
-    imgs.utility = makeImg('ph-field-img', fieldSrc(look.wall, look.material), key);
-    imgs.utilityAlt = makeImg('ph-field-img', fieldSrc(look.wall, look.material), key);
     keys = Object.keys(imgs); left = keys.length;
     keys.forEach(function (k) { whenReady(imgs[k], function (ok) {
       allOk = allOk && ok;
@@ -3367,7 +2888,6 @@
       S.bundleKey = bundle.key;
     }
     S.shown = { bg: look.bg, wall: look.wall, material: look.material, font: look.font };
-    phFields.concat(utFields).forEach(function (el) { var p = el._placement; if (p) fieldTransform(el, p.x, p.y, p.width, p.height); });
     S.wallShown = look.wall; S.wallPending = null; S.wallError = null;
   }
   function cleanPatch(patch) {

@@ -107,9 +107,7 @@ try {
   report.startupMs = Date.now() - start;
   const startupResources = await page.evaluate(() => performance.getEntriesByType('resource').map(r => r.name));
   check('No wallpaper gallery thumbnail fetch at startup', !startupResources.some(u => /-thumb\./.test(u)));
-  await look({ bg: 'photo', layout: 'list', apps: 'both', controls: 'icons', focus: 'glass', material: 'soft', font: 'manrope' });
-  await sample('Photo List navigation', ['down', 'down', 'down', 'up', 'up', 'up']);
-  await look({ layout: 'dock' });
+  await look({ bg: 'photo', layout: 'dock', apps: 'both', controls: 'icons', focus: 'glass', material: 'soft', font: 'manrope' });
   await sample('Photo Dock navigation', ['right', 'right', 'right', 'left', 'left', 'left']);
   await call('nav', 'up');
   await sample('Dock utilities', ['right', 'right', 'left', 'left']);
@@ -126,10 +124,10 @@ try {
   await scene('appearance');
   await sample('Appearance row navigation', ['down', 'down', 'down', 'up', 'up', 'up']);
   await scene('home');
-  await look({ font: 'newsreader', layout: 'list', apps: 'text', controls: 'text' });
-  await sample('Newsreader List navigation', ['down', 'down', 'down', 'up', 'up', 'up']);
-  await call('nav', 'right');
-  await sample('Newsreader Home controls', ['up', 'up', 'down', 'down']);
+  await look({ font: 'newsreader', apps: 'text', controls: 'text' });
+  await sample('Newsreader Dock navigation', ['right', 'right', 'right', 'left', 'left', 'left']);
+  await call('nav', 'up');
+  await sample('Newsreader Home controls', ['right', 'right', 'left', 'left']);
 
   const walls = await page.evaluate(() => CleanFrameWallpapers.map(w => w.id));
   const loadTimes = [];

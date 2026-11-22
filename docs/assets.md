@@ -2,24 +2,23 @@
 
 The app includes all runtime JPEGs, thumbnails, registered material fields, public fonts and icons. A clone can preview the current app without the original Downloads folder or any generation step. Keep photo and icon credits and third-party licences with the assets. The private Pangram overlay is described in [development](development.md).
 
-## Current List and Dock materials
+## Current Dock materials
 
-The 0.6 runtime uses fifteen photographs. Each has a background, a thumbnail, a small panel backdrop and four full-stage material JPEGs. The runtime never generates blur or reads photo pixels. Generate selected materials with:
+The 0.6 runtime uses fifteen photographs. Each has a background, a thumbnail, a small panel backdrop and three full-stage material JPEGs (Soft, Frost and Clear tint). The runtime never generates blur or reads photo pixels. Generate selected materials with:
 
 ```sh
 node scripts/build-materials.mjs summit,goldcoast,sydney,amber,mint,alpine
 ```
 
-Omit the argument to regenerate every catalogue entry. Output goes to ignored `.local/materials/builder/`. Review it, then copy `*-panel.jpg` to `app/assets/wallpapers/` and the other four JPEGs to `app/assets/materials/`.
+Omit the argument to regenerate every catalogue entry. Output goes to ignored `.local/materials/builder/`. Review it, then copy `*-panel.jpg` to `app/assets/wallpapers/` and the other three JPEGs to `app/assets/materials/`.
 
-- `field-blur`: 28px blur, saturation .92, mirrored edge padding and highlight soft clipping.
-- `field-frost`: the same registered crop with 42px blur.
+- `field-frost`: 42px blur, saturation .92, mirrored edge padding and highlight soft clipping.
 - `field-clear`: 2px blur and saturation 1.06, with no baked veil.
 - `study-soft`: the retained name for the reviewed Dock Soft recipe, including the lower scrim, 14px blur and compressed local variation. The original nine preserve their calibrated tint. New photos use a bounded tint selected from the dock band.
 
 All fields use the centred 1920 x 1080 crop. The small panel backdrop comes from that same Frost field. The six new backgrounds use baseline sRGB JPEG at quality 90 with full chroma; thumbnails use quality 85. Their originals remain unchanged.
 
-`app/assets/wallpapers/catalog.js` stores names and surface parameters; `app/assets/adaptive-ink.js` stores offline colour choices. New photographs need a rendered review of their List, Dock, clock, controls and all three materials before their metadata is accepted. An average image colour alone does not establish readable text.
+`app/assets/wallpapers/catalog.js` stores names and surface parameters; `app/assets/adaptive-ink.js` stores offline colour choices. New photographs need a rendered review of their Dock and Tiles, clock, controls and all three materials before their metadata is accepted. An average image colour alone does not establish readable text.
 
 ## Icon metrics
 

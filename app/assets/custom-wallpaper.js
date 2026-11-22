@@ -78,10 +78,6 @@
       },
       function (next) { var t = canvas(512, 288); t.getContext('2d').drawImage(photo, 0, 0, 512, 288); toBlob(t, .82, function (b) { files.thumb = b; next(); }); },
       function (next) {
-        var p = padded(half, HW, HH, 48), c = crop(blurred(p, HW + 96, HH + 96, 14, .92), HW, HH, 48);
-        softenHighlights(c); toBlob(c, .82, function (b) { files['field-blur'] = b; next(); });
-      },
-      function (next) {
         var p = padded(half, HW, HH, 48);
         fr = crop(blurred(p, HW + 96, HH + 96, 21, .92), HW, HH, 48);
         softenHighlights(fr); toBlob(fr, .82, function (b) { files['field-frost'] = b; next(); });

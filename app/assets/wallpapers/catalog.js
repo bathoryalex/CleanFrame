@@ -11,7 +11,6 @@ window.CleanFrameWallpapers = [
       "br": "mist"
     },
     "frostVeil": 0.2,
-    "listColumn": 0,
     "dockQuiet": false,
     "clockMist": false
   },
@@ -26,7 +25,6 @@ window.CleanFrameWallpapers = [
       "br": "mist"
     },
     "frostVeil": 0.12,
-    "listColumn": 0,
     "dockQuiet": false,
     "clockMist": true
   },
@@ -41,7 +39,6 @@ window.CleanFrameWallpapers = [
       "br": "light"
     },
     "frostVeil": 0.12,
-    "listColumn": 0,
     "dockQuiet": false,
     "clockMist": true
   },
@@ -56,7 +53,6 @@ window.CleanFrameWallpapers = [
       "br": "light"
     },
     "frostVeil": 0.12,
-    "listColumn": 3,
     "dockQuiet": false,
     "clockMist": false
   },
@@ -71,7 +67,6 @@ window.CleanFrameWallpapers = [
       "br": "light"
     },
     "frostVeil": 0.2,
-    "listColumn": 0,
     "dockQuiet": false,
     "clockMist": false
   },
@@ -86,7 +81,6 @@ window.CleanFrameWallpapers = [
       "br": "mist"
     },
     "frostVeil": 0.36,
-    "listColumn": 2,
     "dockQuiet": true,
     "clockMist": false,
     "clockInk": "#3a586e",
@@ -103,7 +97,6 @@ window.CleanFrameWallpapers = [
       "br": "mist"
     },
     "frostVeil": 0.44,
-    "listColumn": 0,
     "dockQuiet": false,
     "clockMist": false
   },
@@ -118,7 +111,6 @@ window.CleanFrameWallpapers = [
       "br": "light"
     },
     "frostVeil": 0.12,
-    "listColumn": 0,
     "dockQuiet": false,
     "clockMist": true
   },
@@ -133,7 +125,6 @@ window.CleanFrameWallpapers = [
       "br": "mist"
     },
     "frostVeil": 0.3,
-    "listColumn": 2,
     "dockQuiet": true,
     "clockMist": true
   },
@@ -148,7 +139,6 @@ window.CleanFrameWallpapers = [
       "br": "light"
     },
     "frostVeil": 0.2,
-    "listColumn": 0,
     "dockQuiet": false,
     "clockMist": false
   },
@@ -163,7 +153,6 @@ window.CleanFrameWallpapers = [
       "br": "mist"
     },
     "frostVeil": 0.2,
-    "listColumn": 3,
     "dockQuiet": false,
     "clockMist": false
   },
@@ -178,7 +167,6 @@ window.CleanFrameWallpapers = [
       "br": "mist"
     },
     "frostVeil": 0.44,
-    "listColumn": 3,
     "dockQuiet": false,
     "clockMist": true
   },
@@ -193,7 +181,6 @@ window.CleanFrameWallpapers = [
       "br": "light"
     },
     "frostVeil": 0.2,
-    "listColumn": 0,
     "dockQuiet": false,
     "clockMist": false
   },
@@ -208,7 +195,6 @@ window.CleanFrameWallpapers = [
       "br": "light"
     },
     "frostVeil": 0.44,
-    "listColumn": 3,
     "dockQuiet": false,
     "clockMist": false
   },
@@ -223,7 +209,6 @@ window.CleanFrameWallpapers = [
       "br": "light"
     },
     "frostVeil": 0.2,
-    "listColumn": 0,
     "dockQuiet": false,
     "clockMist": false
   },
@@ -238,7 +223,6 @@ window.CleanFrameWallpapers = [
       "br": "light"
     },
     "frostVeil": 0.2,
-    "listColumn": 0,
     "dockQuiet": false,
     "clockMist": false
   },
@@ -253,7 +237,6 @@ window.CleanFrameWallpapers = [
       "br": "light"
     },
     "frostVeil": 0.16,
-    "listColumn": 0,
     "dockQuiet": false,
     "clockMist": true
   }

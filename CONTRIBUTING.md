@@ -21,7 +21,7 @@ Keep runtime JavaScript ES5-compatible. Use existing focus, panel and preference
 
 For a bug, describe the trigger, expected result and actual result. Include browser/viewport or TV model and full firmware version. For a new feature, explain the task it helps someone complete from the sofa. Open an issue before changing the app model or introducing a new service dependency.
 
-A pull request should explain the resulting behaviour, the checks run and any untested device result. Include a public-font screenshot for visual changes. Check both List and Dock, single focus, panel Back behaviour and saved-preference recovery when relevant. The TV remote remains the final check for remote feel; browser throttling is only a comparison.
+A pull request should explain the resulting behaviour, the checks run and any untested device result. Include a public-font screenshot for visual changes. Check both Dock and Tiles, single focus, panel Back behaviour and saved-preference recovery when relevant. The TV remote remains the final check for remote feel; browser throttling is only a comparison.
 
 ## Device work and privacy
 

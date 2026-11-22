@@ -9,7 +9,7 @@ npx playwright install chromium
 npm run check:browser
 ```
 
-`check` validates JavaScript syntax, package identity/version and bundled resources. It does not contact a TV. `check:browser` uses a fresh Playwright Chromium profile and its own loopback preview. It checks List and Dock navigation, single focus, Home controls, grouped Settings, explicit OK application, applied checkmarks, pending-load cancellation, retries, persistence, all wallpaper bundles, language/clock/weather preferences, available fonts, 720p scaling, migrations, the Home editor and honest browser-only launch errors. Reports and screenshots are in ignored `.local/qa/`. A failed assertion exits with a nonzero status.
+`check` validates JavaScript syntax, package identity/version and bundled resources. It does not contact a TV. `check:browser` uses a fresh Playwright Chromium profile and its own loopback preview. It checks Dock and Tiles navigation, single focus, Home controls, grouped Settings, explicit OK application, applied checkmarks, pending-load cancellation, retries, persistence, all wallpaper bundles, language/clock/weather preferences, available fonts, 720p scaling, migrations, the Home editor and honest browser-only launch errors. Reports and screenshots are in ignored `.local/qa/`. A failed assertion exits with a nonzero status.
 
 For public-source validation, set `CLEANFRAME_PUBLIC_FONTS=1` when running `check:browser`; the preview helper then excludes the local proprietary overlay. Run `npm run check:public` for the bounded source/history checks and `npm run export:public` for a widget that always excludes private fonts. The GitHub Actions workflow uses this public path. Browser/package checks do not clear third-party asset rights or validate TV behaviour.
 
@@ -22,7 +22,7 @@ PLAYWRIGHT_BROWSERS_PATH="$PWD/.local/playwright" npm run check:browser
 
 To use an already installed Chromium instead, set `CLEANFRAME_CHROMIUM` to its executable. The weather request is answered locally during browser checks, so they never contact Open-Meteo.
 
-For manual review, use `npm run dev` and open `/home/`. Use the arrow keys, Enter and Escape. Check the changed flow in List and Dock, on Photo, Light and Dark backgrounds. Check a single app and all nine apps when changing app layout. In Settings, browse without applying, apply with OK, return with both Back routes, and cancel a pending resource load. Check editor placement/undo, wallpaper rotation pausing during panels/background time, and restored focus on return when those flows change. Browser preferences are separate from TV preferences.
+For manual review, use `npm run dev` and open `/home/`. Use the arrow keys, Enter and Escape. Check the changed flow in Dock and Tiles, on Photo, Light and Dark backgrounds. Check a single app and all nine apps when changing app layout. In Settings, browse without applying, apply with OK, return with both Back routes, and cancel a pending resource load. Check editor placement/undo, wallpaper rotation pausing during panels/background time, and restored focus on return when those flows change. Browser preferences are separate from TV preferences.
 
 ## Physical TV checks
 

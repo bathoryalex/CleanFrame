@@ -16,23 +16,23 @@ try {
   page.on('response', r => { if (r.status() >= 400) errors.push(r.status() + ' ' + r.url()); });
   const walls = process.env.GALLERY_IDS ? process.env.GALLERY_IDS.split(',') : ['summit', 'goldcoast', 'sydney', 'amber', 'mint', 'alpine'];
   const fonts = process.env.GALLERY_FONTS ? process.env.GALLERY_FONTS.split(',') : ['manrope'];
-  for (const font of fonts) for (const wall of walls) for (const layout of ['list', 'dock']) for (const material of ['soft', 'frost', 'tint']) for (const end of [false, true]) {
+  for (const font of fonts) for (const wall of walls) for (const layout of ['dock']) for (const material of ['soft', 'frost', 'tint']) for (const end of [false, true]) {
     await page.goto(preview.baseURL + '/home/');
     await page.waitForFunction(() => window.ShoreQA && ShoreQA.ready());
     await page.evaluate(look => ShoreQA.look(look), { bg: 'photo', wall, layout, material, font, focus: 'glass', apps: 'both', controls: 'text' });
     await page.waitForFunction(() => ShoreQA.ready());
     await page.evaluate(() => ShoreQA.scene('home'));
-    await page.evaluate(({ layout, end }) => ShoreQA.nav(Array(8).fill(layout === 'list' ? end ? 'down' : 'up' : end ? 'right' : 'left')), { layout, end });
+    await page.evaluate(({ layout, end }) => ShoreQA.nav(Array(8).fill(end ? 'right' : 'left')), { layout, end });
     await page.addStyleTag({ content: '#stage *{transition:none!important;animation:none!important}' });
     await page.waitForTimeout(120);
     const rows = await page.evaluate(layout => {
       const result = [], dock = document.querySelector('#dock').getBoundingClientRect();
-      for (const row of document.querySelectorAll(layout === 'list' ? '.ph-row' : '#dock .tile')) {
-        const el = row.querySelector(layout === 'list' ? '.ph-name' : '.label-ink'); if (!el) continue;
+      for (const row of document.querySelectorAll('#dock .tile')) {
+        const el = row.querySelector('.label-ink'); if (!el) continue;
         const b = row.getBoundingClientRect(), r = el.getBoundingClientRect(), style = getComputedStyle(el);
         if (!r.width || !r.height || style.visibility === 'hidden') continue;
-        const context = layout === 'list' ? b.y < 219 || b.y > 733 : b.x < dock.x + 16 || b.right > dock.right - 16;
-        if (layout === 'list' ? r.y < 72 || r.bottom > 1016 : b.right < dock.x || b.x > dock.right) continue;
+        const context = b.x < dock.x + 16 || b.right > dock.right - 16;
+        if (b.right < dock.x || b.x > dock.right) continue;
         const selected = row.classList.contains('is-focus');
         result.push({ x: r.x, y: r.y, width: r.width, height: r.height, fontSize: parseFloat(style.fontSize), kind: 'text', text: el.textContent, selected, context, target: context ? null : selected ? 4.5 : 3 });
       }
@@ -40,7 +40,7 @@ try {
     }, layout);
     const key = [font, wall, layout, material, end ? 'end' : 'start'].join('-');
     await page.screenshot({ path: out + key + '-actual.png' });
-    const target = layout === 'list' ? '#stage .ph-name' : '#dock .label-ink';
+    const target = '#dock .label-ink';
     const hidden = await page.addStyleTag({ content: target + '{visibility:hidden!important}' });
     await page.screenshot({ path: out + key + '-background.png' }); await hidden.evaluate(e => e.remove());
     await page.addStyleTag({ content: '#stage{background:#000!important}#stage *{visibility:hidden!important;background:transparent!important;box-shadow:none!important;border-color:transparent!important;text-shadow:none!important;opacity:1!important;transition:none!important;-webkit-mask-image:none!important;mask-image:none!important}' + target + '{visibility:visible!important;color:#fff!important}' });

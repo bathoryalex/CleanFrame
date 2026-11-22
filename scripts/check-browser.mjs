@@ -255,7 +255,7 @@ const wallpaperSaved = () => current.evaluate(() => {
     backdrop: { src: bg.currentSrc || bg.src, opacity: bgStyle.opacity, filter: bgStyle.filter, veil: veilStyle.background, veilOpacity: veilStyle.opacity } };
 });
 const wallpaperApplied = () => current.locator('.wallpaper-choice[aria-checked="true"]').evaluateAll(elements => elements.map(e => e.getAttribute('data-action')));
-const wallpaperBundle = () => current.evaluate(() => Object.fromEntries(['photo', 'matImg', 'phFieldImg', 'phFieldImgAlt', 'utFieldImg', 'utFieldImgAlt'].map(id => [id, document.getElementById(id).currentSrc || document.getElementById(id).src])));
+const wallpaperBundle = () => current.evaluate(() => Object.fromEntries(['photo', 'matImg'].map(id => [id, document.getElementById(id).currentSrc || document.getElementById(id).src])));
 const previewFrame = () => current.evaluate(() => {
   const e = document.getElementById('scene'), r = e.getBoundingClientRect(), css = getComputedStyle(e);
   return { x: r.x, y: r.y, width: r.width, height: r.height, radius: css.borderRadius, transform: css.transform };
@@ -291,11 +291,14 @@ try {
       await page({ seed: baseline({ theme, dock: ['youtube', 'spotify'], wallpaper: walls[1].id, lastApp: 'youtube', mode: '15' }) });
       const s = await state();
       check(theme + ' preserves order, wallpaper and rotation', same(s.dock, ['youtube', 'spotify']) && s.wallpaper === walls[1].id && s.mode === '15' && s.lastApp === 'youtube', s);
-      check(theme + ' maps to intended two-layout appearance', s.look.layout === (theme === 'list' ? 'list' : 'dock') && s.look.bg === (theme === 'list' ? 'dark' : 'photo'), s.look);
+      check(theme + ' opens the Dock on a photo (the List layout is gone)', s.look.layout === 'dock' && s.look.bg === 'photo', s.look);
       await closePage();
     }
     await page({ seed: undefined, legacy: baseline({ theme: 'list', dock: ['youtube'], lastApp: 'youtube' }) });
-    check('Old shore key is read', (await state()).dock.length === 1 && (await state()).look.layout === 'list');
+    check('Old shore key is read', (await state()).dock.length === 1 && (await state()).look.layout === 'dock');
+    await closePage();
+    await page({ seed: baseline({ look: { layout: 'list', bg: 'photo', apps: 'text', controls: 'both', focus: 'glass', material: 'soft', font: 'manrope', wall: walls[0].id } }) });
+    check('A saved List layout opens as the Dock', (await state()).look.layout === 'dock' && await current.evaluate(() => /\bl-dock\b/.test(document.getElementById('stage').className)));
     await look({ controls: 'text' });
     check('Next completed edit writes stable home key', (await stored()).dock[0] === 'youtube');
     await current.reload(); await ready();
@@ -407,7 +410,7 @@ try {
   });
   await run('Appearance axes, fonts, scaling and matching materials', async () => {
     await page();
-    for (const bg of ['dark', 'light', 'photo']) for (const layout of ['list', 'dock']) for (const focus of ['type', 'glass']) {
+    for (const bg of ['dark', 'light', 'photo']) for (const layout of ['dock']) for (const focus of ['type', 'glass']) {
       await look({ bg, layout, focus }); const s = await state();
       check('Independent axes ' + [bg, layout, focus].join('/'), s.look.bg === bg && s.look.layout === layout && s.look.focus === focus && s.shown.bg === bg, s.look);
     }
@@ -418,16 +421,16 @@ try {
     for (const font of fonts) {
       await look({ font }); check('Font ' + font + ' settles', (await state()).look.font === font && (await state()).shown.font === font);
       if (font === 'newsreader') {
-        for (const layout of ['list', 'dock']) for (const controls of ['icons', 'both', 'text']) {
+        for (const layout of ['dock']) for (const controls of ['icons', 'both', 'text']) {
           await look({ layout, controls });
-          const wrong = await current.evaluate(() => [...document.querySelectorAll('.home .clock, .home .u, .home .u-label, .home .ph-name, .home .tile .label, .home .app-focus-name, .home .util-focus-label, .home .wall-keep')].filter(e => !/Newsreader/.test(getComputedStyle(e).fontFamily)).map(e => ({ cls: e.className, font: getComputedStyle(e).fontFamily })));
+          const wrong = await current.evaluate(() => [...document.querySelectorAll('.home .clock, .home .u, .home .u-label, .home .tile .label, .home .util-focus-label, .home .wall-keep')].filter(e => !/Newsreader/.test(getComputedStyle(e).fontFamily)).map(e => ({ cls: e.className, font: getComputedStyle(e).fontFamily })));
           check('Newsreader covers Home text ' + layout + '/' + controls, wrong.length === 0, wrong);
         }
       }
     }
     await look({ font: 'manrope' });
     for (const wall of walls) { await look({ wall: wall.id }); check('Wallpaper ' + wall.id + ' has matching bundle', (await state()).shown.wall === wall.id && (await state()).wallpaper === wall.id); }
-    for (const layout of ['list', 'dock']) for (const width of [1920, 1280]) {
+    for (const layout of ['dock']) for (const width of [1920, 1280]) {
       await current.setViewportSize({ width, height: width * 9 / 16 }); await look({ layout });
       await current.waitForFunction(w => Math.abs(document.getElementById('stage').getBoundingClientRect().width - w) < 1, width);
       const g = await current.evaluate(() => { const b = document.getElementById('stage').getBoundingClientRect(); return { x: b.x, y: b.y, width: b.width, height: b.height, focus: ShoreQA.where().focusCount }; });
@@ -444,7 +447,7 @@ try {
     check('Overview has all seven settings groups', same((await call('actions')).filter(a => expected.includes(a)).sort(), expected.slice().sort()));
     const specs = {
       background: { bg: ['dark', 'light', 'photo'] },
-      layout: { layoutView: ['list', 'dock', 'tiles'], apps: ['icons', 'both', 'text'], controls: ['icons', 'both', 'text'] },
+      layout: { layoutView: ['dock', 'tiles'], apps: ['icons', 'both', 'text'], controls: ['icons', 'both', 'text'] },
       typography: { font: (await state()).fonts.available },
       focus: { focus: ['type', 'glass'], material: ['soft', 'frost', 'tint'] }
     };
@@ -691,10 +694,8 @@ try {
     check('Thin draws stroked digits', await current.evaluate(() => document.querySelectorAll('.caption .clock-thin .clock-glyph').length === 6));
     await group('layout'); await act('choice.layoutView.tiles');
     await current.waitForFunction(() => ShoreQA.ready && ShoreQA.ready());
-    await act('choice.layoutView.list'); await current.waitForFunction(() => ShoreQA.ready && ShoreQA.ready());
-    check('List from the same row switches to the List layout', (await stored()).layout === 'list');
-    await act('choice.layoutView.tiles'); await current.waitForFunction(() => ShoreQA.ready && ShoreQA.ready());
-    check('Tiles is a third layout and is saved', (await stored()).dockStyle === 'tiles' && (await stored()).layout === 'dock' && await current.evaluate(() => document.getElementById('stage').className.indexOf('dock-tiles') >= 0));
+    check('Layout offers only Dock and Tiles', same(await current.evaluate(() => [...document.querySelectorAll('[data-action^="choice.layoutView."]')].map(e => e.getAttribute('data-action'))), ['choice.layoutView.dock', 'choice.layoutView.tiles']));
+    check('Tiles is saved as the Dock with separate tiles', (await stored()).dockStyle === 'tiles' && (await stored()).layout === 'dock' && await current.evaluate(() => document.getElementById('stage').className.indexOf('dock-tiles') >= 0));
     await scene('home');
     const ring = async () => current.evaluate(() => getComputedStyle(document.querySelector('.dock .tile.is-focus'), '::before').boxShadow);
     const glassRing = await ring();
@@ -783,7 +784,7 @@ try {
     check('The picture becomes the saved photo background', after.bg === 'photo' && after.customAt > 0 && after.relaySince === 'Ab12Cd34Ef56', after);
     await current.waitForTimeout(3500);
     check('An already handled message is not processed again', (await state()).customAt === after.customAt && !(await state()).pending);
-    check('Every material is generated on the TV', await current.evaluate(() => ['photo', 'matImg', 'phFieldImg', 'sheetBg'].every(id => { const im = document.getElementById(id); return im && /^blob:/.test(im.src) && im.naturalWidth > 0; })));
+    check('Every material is generated on the TV', await current.evaluate(() => ['photo', 'matImg', 'sheetBg'].every(id => { const im = document.getElementById(id); return im && /^blob:/.test(im.src) && im.naturalWidth > 0; })));
     await current.waitForFunction(() => /Done|Kész/.test(document.querySelector('.phone-status').textContent));
     await nav('ok');
     check('Done returns to Background', (await state()).settingsGroup === 'background');
@@ -1064,7 +1065,7 @@ try {
   });
   await run('Settings inactive Material retains its choice', async () => {
     await page(); await look({ material: 'tint' });
-    for (const patch of [{ bg: 'dark' }, { bg: 'light' }, { bg: 'photo', layout: 'list', focus: 'type' }]) {
+    for (const patch of [{ bg: 'dark' }, { bg: 'light' }]) {
       await look(patch); await group('focus'); const before = await settingsSnapshot();
       const materials = (await radios()).filter(r => r.action.startsWith('choice.material.'));
       check('Material stays visible but inactive for ' + JSON.stringify(patch), materials.length === 3 && materials.every(r => r.disabled) && materials.some(r => r.action === 'choice.material.tint' && r.checked === 'true'), materials);
@@ -1211,7 +1212,7 @@ try {
   });
   await run('Wallpaper child keeps the Settings frame at both sizes', async () => {
     await page();
-    for (const width of [1920, 1280]) for (const layout of ['list', 'dock']) {
+    for (const width of [1920, 1280]) for (const layout of ['dock']) {
       await scene('home'); await look({ layout });
       await current.setViewportSize({ width, height: width * 9 / 16 });
       await current.waitForFunction(w => Math.abs(document.getElementById('stage').getBoundingClientRect().width - w) < 1, width);
@@ -1418,11 +1419,11 @@ try {
     await current.waitForFunction(id => ShoreQA.state().wallpaper !== id, hidden, { timeout: 4000 });
     await look({ bg: 'dark' }); const flat = (await state()).wallpaper; await current.waitForTimeout(850);
     check('Flat background retains photo without rotation', (await state()).wallpaper === flat);
-    await look({ bg: 'photo', layout: 'list' }); const photoList = (await state()).wallpaper;
-    await current.waitForFunction(id => ShoreQA.state().wallpaper !== id, photoList, { timeout: 4000 });
-    check('Photo List rotates too', (await state()).look.layout === 'list');
+    await look({ bg: 'photo' }); const photoAgain = (await state()).wallpaper;
+    await current.waitForFunction(id => ShoreQA.state().wallpaper !== id, photoAgain, { timeout: 4000 });
+    check('Photo background rotates again', (await state()).look.bg === 'photo');
     await current.evaluate(() => { __setHidden(true); document.getElementById('stage').blur(); __setHidden(false); window.dispatchEvent(new Event('focus')); });
-    const focus = (await state()).focusAction; await current.keyboard.press('ArrowDown');
+    const focus = (await state()).focusAction; await current.keyboard.press('ArrowUp');
     check('Warm return restores remote focus', (await state()).focusAction !== focus && (await call('where')).focusCount === 1);
     const clock = await current.locator('#caption .clock').textContent();
     check('Live 12-hour clock has no AM/PM', /^\s*\d{1,2}:\d{2}\s*$/.test(clock), clock);
