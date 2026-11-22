@@ -4,7 +4,7 @@
 
   /* ---------- Bundled data ---------- */
   var ASSETS = 'assets/', ICONS = ASSETS + 'icons/', WP = ASSETS + 'wallpapers/';
-  var APP_VERSION = '0.27.2';
+  var APP_VERSION = '0.28.0';
   var CAP = 9, SCRIM_Y = 560, DOCK_BOTTOM = 1032; // the Dock sits 48 px above the bottom edge; names and actions go above it
   var DOCK_MODES = { both: { tw: 288, th: 200, pitch: 296 }, text: { tw: 288, th: 104, pitch: 296 }, icons: { tw: 200, th: 156, pitch: 206 } }; // icons-only tiles leave room under the icon for the focused app's name
   var GRID_ROW = 240, GRID_COL = 344, COLS = 5;
@@ -30,8 +30,8 @@
   }
   window.FrameText = T;
   /* Saved preferences outside the appearance bundle: they apply at once and load nothing. */
-  var PREF_VALUES = { lang: ['en', 'hu'], clock: ['24', '12'], date: ['off', 'on'], clockPos: ['corner', 'center', 'large'], weather: ['off', 'now', 'day'], spotifyShow: ['on', 'off'], keyHints: ['auto', 'pressed', 'always', 'off'], switchStyle: ['both', 'icons', 'text'], clockStyle: ['classic', 'thin', 'led', 'flip'], seconds: ['off', 'on'], layoutView: ['dock', 'tiles'], holidays: ['off', 'on'], namedays: ['off', 'on'], calShow: ['on', 'off'], topStyle: ['cards', 'bar'] };
-  var PREF_NAMES = { en: 'English', hu: 'Magyar', '24': '24-hour', '12': '12-hour', corner: 'Corner', center: 'Centre', large: 'Large', off: 'Off', on: 'On', now: 'Basic', day: 'Full', both: 'Both', icons: 'Icons', text: 'Text', classic: 'Classic', thin: 'Thin', led: 'LED', flip: 'Flip', list: 'List', dock: 'Dock', tiles: 'Tiles', cards: 'Separate widgets', bar: 'Dock' };
+  var PREF_VALUES = { lang: ['en', 'hu'], clock: ['24', '12'], date: ['off', 'on'], clockPos: ['corner', 'center', 'large'], weather: ['off', 'now', 'day'], spotifyShow: ['on', 'off'], keyHints: ['auto', 'pressed', 'always', 'off'], switchStyle: ['both', 'icons', 'text'], clockStyle: ['classic', 'thin', 'led', 'flip'], seconds: ['off', 'on'], layoutView: ['dock', 'tiles', 'modern'], holidays: ['off', 'on'], namedays: ['off', 'on'], calShow: ['on', 'off'], topStyle: ['cards', 'bar'] };
+  var PREF_NAMES = { en: 'English', hu: 'Magyar', '24': '24-hour', '12': '12-hour', corner: 'Corner', center: 'Centre', large: 'Large', off: 'Off', on: 'On', now: 'Basic', day: 'Full', both: 'Both', icons: 'Icons', text: 'Text', classic: 'Classic', thin: 'Thin', led: 'LED', flip: 'Flip', list: 'List', dock: 'Dock', tiles: 'Tiles', modern: 'Modern dock', cards: 'Separate widgets', bar: 'Dock' };
   WALLS.forEach(function (w) { w.ut = w.ut || { tr: 'light', br: 'light' }; w.frostVeil = w.frostVeil || .12; });
   var MODES = [
     { id: 'fixed', name: 'Fixed', min: 0 }, { id: 'open', name: 'Each time Home opens', min: 0 },
@@ -512,7 +512,7 @@
       relayTopic: safeId(s.relayTopic) ? s.relayTopic : '', relayAt: typeof s.relayAt === 'number' ? s.relayAt : 0, relaySince: safeId(s.relaySince) ? s.relaySince : '',
       alexaReadings: cleanReadings(s), alexaSwitches: cleanSwitches(s), alexaGroups: cleanGroups(s.alexaGroups), alexaKeys: cleanKeys(s.alexaKeys), alexaIcons: cleanIcons(s.alexaIcons),
       spotifyShow: pick(s.spotifyShow, PREF_VALUES.spotifyShow, 'on'), keyHints: pick(s.keyHints === 'on' || s.keyHints === 'top' ? 'auto' : s.keyHints, PREF_VALUES.keyHints, 'auto'), switchStyle: pick(s.switchStyle, PREF_VALUES.switchStyle, 'both'),
-      clockStyle: pick(s.clockStyle, PREF_VALUES.clockStyle, 'classic'), seconds: pick(s.seconds, PREF_VALUES.seconds, 'off'), dockStyle: s.dockStyle === 'tiles' ? 'tiles' : 'shelf',
+      clockStyle: pick(s.clockStyle, PREF_VALUES.clockStyle, 'classic'), seconds: pick(s.seconds, PREF_VALUES.seconds, 'off'), dockStyle: s.dockStyle === 'tiles' || s.dockStyle === 'modern' ? s.dockStyle : 'shelf',
       holidays: pick(s.holidays, PREF_VALUES.holidays, 'off'), namedays: pick(s.namedays, PREF_VALUES.namedays, 'off'), calShow: pick(s.calShow, PREF_VALUES.calShow, 'on'), topStyle: pick(s.topStyle, PREF_VALUES.topStyle, 'cards')
     };
   }
@@ -1039,7 +1039,7 @@
   function settingsRows() {
     var n = S.c.home.length;
     return [{ id: 'background', icon: 'art', label: T('Background'), value: S.c.bg === 'photo' ? T(wall(S.c.wall).name) : T(VALUE_NAMES[S.c.bg]) },
-      { id: 'layout', icon: 'layout', label: T('Layout'), value: T(S.c.dockStyle === 'tiles' ? 'Tiles' : 'Dock') + (S.c.topStyle === 'bar' ? ', ' + T('Top dock') : '') },
+      { id: 'layout', icon: 'layout', label: T('Layout'), value: T(S.c.dockStyle === 'tiles' ? 'Tiles' : S.c.dockStyle === 'modern' ? 'Modern dock' : 'Dock') + (S.c.topStyle === 'bar' ? ', ' + T('Top dock') : '') },
       { id: 'typography', icon: 'type', label: T('Typography'), value: FONTS[S.c.font].name },
       { id: 'focus', icon: 'focus', label: T('Focus'), value: T(VALUE_NAMES[S.c.focus]) + (materialApplies() ? ', ' + T(VALUE_NAMES[S.c.material]) : '') },
       { id: 'editor', icon: 'apps', label: T('Apps on Home'), value: T(n === 1 ? '{0} app' : '{0} apps', n) },
@@ -1156,7 +1156,7 @@
   /* Dock or Tiles: Tiles is the Dock with a separate glass tile per app instead of the shelf. */
   function applyLayoutView(value) {
     S.err = null; S.lookError = null;
-    savePrefs({ dockStyle: value === 'tiles' ? 'tiles' : 'shelf' }, 'Dock style');
+    savePrefs({ dockStyle: value === 'tiles' || value === 'modern' ? value : 'shelf' }, 'Dock style');
   }
   function applyPref(axis, value) {
     var c = next(S.c.home.slice(), S.c.recent.slice()), patch = {};
@@ -1846,7 +1846,16 @@
       });
     } else if (t.mode === 'icons') rows = liveTargets().map(function (x) { return { id: x.id, label: targetName(x), value: T(SWITCH_ICON_NAMES[switchIcon(x.id)]), forward: true, icon: switchIcon(x.id) }; });
     else if (t.mode === 'icon') rows = SWITCH_ICONS.map(function (name) { return { id: name, label: T(SWITCH_ICON_NAMES[name]), ticked: switchIcon(t.target) === name, icon: name }; });
-    else if (t.mode === 'switches') rows = switchRows(function (id) { return S.c.alexaSwitches.some(function (x) { return x.id === id; }); });
+    else if (t.mode === 'switches') {
+      /* The switches on Home come first, in their Home order; the rest follow under a heading. */
+      var all = switchRows(function (id) { return S.c.alexaSwitches.some(function (x) { return x.id === id; }); });
+      rows = S.c.alexaSwitches.map(function (sw, n) {
+        var r = all.filter(function (x) { return x.id === sw.id; })[0] || { id: sw.id, label: targetName(sw) || sw.id, value: '', ticked: true, group: isGroup(sw.id) };
+        r.order = n + 1; r.lifted = t.lift === sw.id; return r;
+      });
+      var rest = all.filter(function (x) { return !x.ticked; });
+      if (rest.length) rows = rows.concat([{ id: 'h-more', label: T('More devices and groups'), header: true }]).concat(rest);
+    }
     else if (t.mode === 'keys') rows = SLOTS.map(function (c) { var tg = S.c.alexaKeys[c]; return { id: c, colour: c, label: T(COLOUR_NAMES[c]), value: tg && targetName(tg) || T('Not set') }; })
       .concat([{ id: 'hints', label: T('Show the buttons on Home'), value: T({ auto: 'When Home opens and a button is pressed', pressed: 'Only when a button is pressed', always: 'Always', off: 'Off' }[S.c.keyHints]) }])
       .concat([{ id: 'test', label: T('Test the remote buttons'), value: '', forward: true }]);
@@ -1882,7 +1891,7 @@
     var g = t.gid ? groupOf(t.gid) : null;
     return {
       readings: [T('Readings'), T('Choose up to {0} values to show beside the clock.', MAX_READINGS)],
-      switches: [T('Switches'), T('Choose up to {0} devices or groups for the Home controls.', maxSwitches()) + (S.c.topStyle === 'bar' ? '' : ' ' + T('Up to {0} with the top Dock bar.', MAX_SWITCHES))],
+      switches: [T('Switches'), T('Choose up to {0} devices or groups for the Home controls.', maxSwitches()) + (S.c.topStyle === 'bar' ? '' : ' ' + T('Up to {0} with the top Dock bar.', MAX_SWITCHES)) + ' ' + T('Right on a chosen one moves it with Up and Down.')],
       icons: [T('Switch icons'), T('Choose how each switch looks on Home: a light, a fan, air conditioning and more.')],
       icon: [t.tname || T('Switch icons'), T('Choose an icon for this switch.')],
       keys: [T('Remote buttons'), T('The colour buttons, CH +, CH − and Guide can each switch a light or group, control Spotify or open an app. CH and Guide keep their usual job until you assign them.')],
@@ -1950,9 +1959,25 @@
   var ALEXA_VISIBLE = 7;
   V.alexalist = {
     sheet: true,
-    norm: function (t) { t.f.i = clamp(t.f.i, 0, Math.max(0, alexaRows(t).length - 1)); },
+    norm: function (t) { var rows = alexaRows(t); t.f.i = clamp(t.f.i, 0, Math.max(0, rows.length - 1)); while (rows[t.f.i] && rows[t.f.i].header && t.f.i < rows.length - 1) t.f.i++; },
     key: function (t, k) {
-      var rows = alexaRows(t);
+      var rows = alexaRows(t), row = rows[t.f.i], id, i;
+      if (t.mode === 'switches' && t.lift) {
+        /* Moving a switch: Up/Down change its place on Home; OK, Back, Left or Right put it down. */
+        i = S.c.alexaSwitches.map(function (x) { return x.id; }).indexOf(t.lift);
+        if ((k === 'up' && i > 0) || (k === 'down' && i >= 0 && i < S.c.alexaSwitches.length - 1)) {
+          var list = S.c.alexaSwitches.slice(), j = k === 'up' ? i - 1 : i + 1, tmp = list[i];
+          list[i] = list[j]; list[j] = tmp;
+          if (saveAlexa({ alexaSwitches: list }, 'Alexa switch order')) t.f.i = j;
+        } else if (k === 'ok' || k === 'back' || k === 'left' || k === 'right') t.lift = null;
+        return;
+      }
+      if (t.mode === 'switches' && k === 'right' && row && row.ticked) { t.lift = row.id; return; }
+      if (t.mode === 'switches' && k === 'ok' && row && !row.header) {
+        id = row.id; alexaListOk(t, row); rows = alexaRows(t);
+        for (i = 0; i < rows.length; i++) if (rows[i].id === id) t.f.i = i;
+        return;
+      }
       if (k === 'back') pop();
       else if (k === 'up' && t.f.i > 0) { t.f.i--; while (t.f.i > 0 && rows[t.f.i].header) t.f.i--; }
       else if (k === 'down' && t.f.i < rows.length - 1) { t.f.i++; while (t.f.i < rows.length - 1 && rows[t.f.i].header) t.f.i++; }
@@ -2303,7 +2328,7 @@
   function render() {
     var t = top(), sheet = !!V[t.id].sheet, shown = wall(S.shown ? S.shown.wall : S.c.wall), palette = ADAPTIVE_INK[shown.id];
     var adaptive = applyAdaptiveInk(palette), tr = adaptive && palette.tr ? palette.tr.pol : shown.ut.tr, br = adaptive && palette.br ? palette.br.pol : shown.ut.br;
-    S.c.layoutView = S.c.dockStyle === 'tiles' ? 'tiles' : 'dock';
+    S.c.layoutView = S.c.dockStyle === 'shelf' ? 'dock' : S.c.dockStyle;
     stage.className = 'stage bg-' + S.c.bg + ' l-dock dock-' + S.c.dockStyle + ' clockstyle-' + S.c.clockStyle + ' m-' + (materialApplies() ? S.c.material : 'none') + ' f-' + S.c.focus + ' a-' + S.c.apps + ' i-' + S.c.iconStyle + ' u-' + S.c.controls + ' clock-' + S.c.clockPos + (S.c.clockPos !== 'corner' ? ' clock-big' : '') + ' top-' + S.c.topStyle + ' tone-' + shown.tone + ' tr-' + tr + ' br-' + br + wallClasses(shown) + inkRungClasses(palette, adaptive) + ' at-' + t.id + ' font-' + homeFont() + (homeFont() !== 'manrope' ? ' font-custom' : '') + (S.fontSwitch ? ' is-font-switch' : '') + (adaptive ? ' has-adaptive-ink adaptive-tl-' + palette.tl.pol : '') + (!adaptive && shown.clockInk ? ' has-clock-ink' : '') + (!adaptive && shown.dockClockInk ? ' has-dock-clock-ink' : '') + (registeredMaterial(shown.id) ? ' registered-material' : '') + (sheet ? ' is-sheet' : '') + (t.id === 'wifiqr' ? ' is-wifi-qr' : '') + (S.hdmiInApp ? ' is-hdmi-input' : '') + (S.reflow ? ' is-reflow' : '');
     if (!adaptive && shown.clockInk) stage.style.setProperty('--clock-ink', shown.clockInk);
     else stage.style.removeProperty('--clock-ink');
@@ -2731,9 +2756,9 @@
   /* Everything on one shelf when it fits. Otherwise show five whole tiles and move the
      window one tile when focus passes an edge; the side cues show that more apps exist. */
   /* Tiles: the same row with a gap between separate tiles. */
-  function dockMode() { var m = DOCK_MODES[S.c.apps]; return S.c.dockStyle === 'tiles' ? { tw: m.tw, th: m.th, pitch: m.pitch + 12 } : m; }
+  function dockMode() { var m = DOCK_MODES[S.c.apps]; return S.c.dockStyle !== 'shelf' ? { tw: m.tw, th: m.th, pitch: m.pitch + 12 } : m; }
   function dockGeom(n) {
-    var m = dockMode(), contentW = n > 0 ? (n - 1) * m.pitch + m.tw : 0, fits = n > 0 && contentW <= (S.c.dockStyle === 'tiles' ? 1760 : 1696);
+    var m = dockMode(), contentW = n > 0 ? (n - 1) * m.pitch + m.tw : 0, fits = n > 0 && contentW <= (S.c.dockStyle !== 'shelf' ? 1760 : 1696);
     var vis = fits ? n : Math.max(1, Math.min(5, n)), shelfW = fits ? contentW : vis * m.pitch - 8, w = shelfW + 32;
     if (n < 0) { w = 912; shelfW = 880; vis = 0; }
     return { x: Math.round((1920 - w) / 2), y: DOCK_BOTTOM - m.th - 32, h: m.th + 32, w: w, shelf: shelfW, vis: vis, empty: n < 0, tw: m.tw, th: m.th, pitch: m.pitch };
@@ -3167,9 +3192,10 @@
       for (i = t.top; i < Math.min(rows.length, t.top + ALEXA_VISIBLE); i++) {
         r = rows[i];
         if (r.header) { html += '<div class="alexa-head">' + esc(r.label) + '</div>'; continue; }
-        html += '<button type="button" tabindex="-1" class="alexa-row' + (i === t.f.i ? ' is-focus' : '') + (r.ticked ? ' is-applied' : '') + (r.disabled ? ' is-disabled' : '') + (r.info ? ' is-info' : '') + '" data-z="pick" data-i="' + i + '" data-action="alexa.row.' + i + '"'
+        html += '<button type="button" tabindex="-1" class="alexa-row' + (r.lifted ? ' is-lifted' : '') + (i === t.f.i ? ' is-focus' : '') + (r.ticked ? ' is-applied' : '') + (r.disabled ? ' is-disabled' : '') + (r.info ? ' is-info' : '') + '" data-z="pick" data-i="' + i + '" data-action="alexa.row.' + i + '"'
           + (r.ticked !== undefined ? ' role="checkbox" aria-checked="' + !!r.ticked + '"' : '') + '>'
-          + '<span class="alexa-tick" aria-hidden="true">' + (r.colour ? keyBadge(r.colour) : r.add ? icon('plus') : r.ticked ? icon('check') : '') + '</span>'
+          + '<span class="alexa-tick" aria-hidden="true">' + (r.lifted ? icon('updown') : r.colour ? keyBadge(r.colour) : r.add ? icon('plus') : r.ticked ? icon('check') : '') + '</span>'
+          + (r.order ? '<span class="alexa-order" aria-hidden="true">' + r.order + '</span>' : '')
           + (r.icon ? '<span class="alexa-icon" aria-hidden="true">' + icon(r.icon === 'light' ? 'lamp' : r.icon) + '</span>' : '')
           + '<span class="alexa-name">' + esc(r.label) + '</span><span class="alexa-value">' + esc(r.value || '') + '</span>' + (r.forward ? icon('right', 'alexa-forward') : '') + '</button>';
       }

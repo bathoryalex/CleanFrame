@@ -16,7 +16,7 @@ Settings opens a grouped overview of large cards in a grid of four columns (each
 | Group | Choices |
 | --- | --- |
 | Background | Photo, Light, Dark; Wallpaper and Rotation when Photo is active; Picture from phone |
-| Layout | Two titled groups. Bottom bar: Dock or Tiles, app display (Text, Icons, Both), colour or minimal icons. Top bar: Separate widgets or Dock, and Text, Icons or Both for Wi‑Fi/All apps/Settings and for Alexa switches |
+| Layout | Two titled groups. Bottom bar: Dock, Tiles or Modern dock, app display (Text, Icons, Both), colour or minimal icons. Top bar: Separate widgets or Dock, and Text, Icons or Both for Wi‑Fi/All apps/Settings and for Alexa switches |
 | Typography | Manrope, Neue Montreal, Mori, Pangram Sans, Geist and Newsreader, when available |
 | Focus | Type or Glass; Soft, Frost or Clear tint material |
 | Apps on Home | Membership and arrangement editor |
@@ -168,4 +168,12 @@ In the Dock bar every Alexa switch tile is 132 px wide (88 px with icons only), 
 ## 0.27.2
 
 Switches: up to six devices or groups with the top Dock bar (the separate widget row shows the first four); the Switches text says devices, not lights. The Dock bar is lighter glass that fades out over its lower 60 px instead of ending in a line. Switches that are on use a soft warm tint (thin warm edge, muted toggle) instead of bright yellow, in both top bar styles.
+
+## 0.28
+
+**Switches** list: the switches on Home come first, numbered in their Home order, then a "More devices and groups" heading and the rest. OK adds or removes one and keeps the focus on it. Right on a chosen one lifts it (warm outline, up/down mark); Up/Down move it and save the new order at once; OK, Back, Left or Right put it down.
+
+**Top Dock bar** fade: the glass holds to just below the tiles and then thins out along an eased curve over about 110 px (no hard step that reads as a light stripe); the photo's own top shade is off under the bar so two gradients do not overlap.
+
+**Modern dock** (Settings → Layout → Bottom bar → Layout): a full-width glass bar along the bottom edge (380 px, fading upwards with the same eased curve), the photo's bottom scrim off, and app tiles drawn like the top widgets: flat light glass with 16 px corners and a white 3 px ring with lighter glass on focus (in both Focus styles). Geometry, paging and names are those of Tiles.
 

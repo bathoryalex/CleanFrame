@@ -449,7 +449,7 @@ try {
     check('Overview has all seven settings groups', same((await call('actions')).filter(a => expected.includes(a)).sort(), expected.slice().sort()));
     const specs = {
       background: { bg: ['dark', 'light', 'photo'] },
-      layout: { layoutView: ['dock', 'tiles'], apps: ['icons', 'both', 'text'], controls: ['icons', 'both', 'text'] },
+      layout: { layoutView: ['dock', 'tiles', 'modern'], apps: ['icons', 'both', 'text'], controls: ['icons', 'both', 'text'] },
       typography: { font: (await state()).fonts.available },
       focus: { focus: ['type', 'glass'], material: ['soft', 'frost', 'tint'] }
     };
@@ -718,7 +718,7 @@ try {
     check('Thin draws stroked digits', await current.evaluate(() => document.querySelectorAll('.caption .clock-thin .clock-glyph').length === 6));
     await group('layout'); await act('choice.layoutView.tiles');
     await current.waitForFunction(() => ShoreQA.ready && ShoreQA.ready());
-    check('Layout offers only Dock and Tiles', same(await current.evaluate(() => [...document.querySelectorAll('[data-action^="choice.layoutView."]')].map(e => e.getAttribute('data-action'))), ['choice.layoutView.dock', 'choice.layoutView.tiles']));
+    check('Layout offers Dock, Tiles and Modern dock', same(await current.evaluate(() => [...document.querySelectorAll('[data-action^="choice.layoutView."]')].map(e => e.getAttribute('data-action'))), ['choice.layoutView.dock', 'choice.layoutView.tiles', 'choice.layoutView.modern']));
     check('Tiles is saved as the Dock with separate tiles', (await stored()).dockStyle === 'tiles' && (await stored()).layout === 'dock' && await current.evaluate(() => document.getElementById('stage').className.indexOf('dock-tiles') >= 0));
     await scene('home');
     const ring = async () => current.evaluate(() => getComputedStyle(document.querySelector('.dock .tile.is-focus'), '::before').boxShadow);
@@ -856,6 +856,27 @@ try {
     check('The Switches text says devices, up to 6', /up to 6 devices or groups|Legfeljebb 6 eszközt/.test(await current.evaluate(() => document.querySelector('.alexa-pick').textContent)));
     await group('layout'); await act('choice.topStyle.cards'); await scene('home');
     check('Separate widgets show the first four', await current.evaluate(() => document.querySelectorAll('.u-lamp').length) === 4);
+  });
+  await run('Switches: chosen ones first, and they can be reordered', async () => {
+    await page({ seed: baseline({ alexaSwitches: [{ id: 'amzn1.alexa.endpoint.lamp-1', name: 'Left lamp' }, { id: 'amzn1.alexa.endpoint.lamp-3', name: 'Piano lamp' }] }) });
+    await current.evaluate(() => localStorage.setItem('cleanframe.alexa.v1', JSON.stringify({ serial: 'X', domain: 'com', site: 'com', refresh: 'Atzr|test', access: 'Atza|test', at: Date.now() })));
+    await current.reload(); await ready();
+    await group('connections'); await act('conn.alexa'); await act('alexa.list.switches');
+    await current.waitForFunction(() => document.querySelectorAll('.alexa-row').length >= 3);
+    const names = async () => current.evaluate(() => [...document.querySelectorAll('.alexa-row .alexa-name')].map(e => e.textContent));
+    const first = await names();
+    check('The chosen switches come first, in their Home order', first[0] === 'Left lamp' && first[1] === 'Piano lamp' && await current.evaluate(() => !!document.querySelector('.alexa-head')), first);
+    await nav('right', 'down', 'ok');
+    check('Right, then Down moves the first switch below the second', (await stored()).alexaSwitches.map(x => x.name).join() === 'Piano lamp,Left lamp' && (await names())[0] === 'Piano lamp', (await stored()).alexaSwitches);
+    await scene('home');
+    check('Home shows them in the new order', await current.evaluate(() => document.querySelector('[data-action="util.sw0"]').getAttribute('aria-label').indexOf('Piano lamp') === 0));
+  });
+  await run('Modern dock: a bottom bar like the top Dock bar', async () => {
+    await page(); await group('layout'); await act('choice.layoutView.modern'); await scene('home'); await current.waitForTimeout(300);
+    const m = await current.evaluate(() => { const st = document.getElementById('stage'), b = document.getElementById('bottomBar'), r = b.getBoundingClientRect(), s = st.getBoundingClientRect(), tile = document.querySelector('.dock .tile.is-focus');
+      return { cls: st.className.indexOf('dock-modern') >= 0, shown: getComputedStyle(b).display === 'block', bottom: Math.round(r.bottom - s.bottom), left: Math.round(r.left - s.left), width: Math.round(r.width), fade: /rgba\(12, 16, 18, 0\) 100%/.test(getComputedStyle(b).backgroundImage), ring: tile ? getComputedStyle(tile, '::before').boxShadow : '' }; });
+    check('Modern dock is saved and draws a full-width bar from the bottom edge that fades upwards', (await stored()).dockStyle === 'modern' && m.cls && m.shown && m.bottom === 0 && m.left === 0 && m.width === 1920 && m.fade, m);
+    check('Its focused app has the same white ring as the top widgets', /255, 255, 255\) 0px 0px 0px 3px inset|inset 0px 0px 0px 3px rgb\(255, 255, 255\)/.test(m.ring), m.ring);
   });
   await run('A remote button can open the Home screen', async () => {
     await page({ seed: baseline({ alexaKeys: { red: { id: 'frame:home', name: '' } } }) });

@@ -1023,3 +1023,28 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000}
 .stage.top-bar .topbar-bg{height:156px;background:linear-gradient(180deg,rgba(12,16,18,.58) 0,rgba(12,16,18,.46) 62%,rgba(12,16,18,.22) 82%,rgba(12,16,18,0) 100%);box-shadow:none}
 .stage.bg-light.top-bar .topbar-bg{background:linear-gradient(180deg,rgba(255,255,255,.56) 0,rgba(255,255,255,.44) 62%,rgba(255,255,255,.18) 82%,rgba(255,255,255,0) 100%);box-shadow:none}
 .stage.bg-dark.top-bar .topbar-bg{background:linear-gradient(180deg,rgba(255,255,255,.06) 0,rgba(255,255,255,.04) 62%,rgba(255,255,255,0) 100%);box-shadow:none}
+/* Switches list: the chosen ones first with their place on Home; a lifted one moves with Up/Down. */
+.alexa-order{flex:none;min-width:30px;margin-right:6px;font-size:22px;font-weight:600;font-variant-numeric:tabular-nums;opacity:.55}
+.alexa-row.is-lifted{box-shadow:inset 0 0 0 3px rgba(255,222,176,.85)}
+.alexa-row.is-lifted .alexa-tick{color:#f2d8ad}
+/* Top Dock bar fade without a visible band: the glass holds to just below the tiles, then thins out
+   along an eased curve over about 110 px. The photo's own top shade is left out under the bar, so
+   two gradients no longer overlap into a lighter stripe. */
+.stage.top-bar .topbar-bg{height:220px;background:linear-gradient(180deg,rgba(12,16,18,.54) 0,rgba(12,16,18,.50) 50%,rgba(12,16,18,.45) 56%,rgba(12,16,18,.38) 62%,rgba(12,16,18,.30) 68%,rgba(12,16,18,.22) 74%,rgba(12,16,18,.15) 80%,rgba(12,16,18,.09) 86%,rgba(12,16,18,.045) 92%,rgba(12,16,18,.015) 97%,rgba(12,16,18,0) 100%)}
+.stage.bg-light.top-bar .topbar-bg{height:220px;background:linear-gradient(180deg,rgba(255,255,255,.52) 0,rgba(255,255,255,.48) 50%,rgba(255,255,255,.36) 62%,rgba(255,255,255,.20) 74%,rgba(255,255,255,.08) 86%,rgba(255,255,255,.02) 95%,rgba(255,255,255,0) 100%)}
+.stage.top-bar .bg .shade{display:none!important}
+/* Modern dock (apps): the same glass as the top Dock bar, anchored to the bottom edge and fading out
+   upwards, with app tiles styled like the top widgets (flat glass, 16 px corners, white focus ring). */
+.bottombar-bg{display:none}
+.stage.dock-modern .bottombar-bg{display:block;position:absolute;left:0;bottom:0;width:1920px;height:380px;pointer-events:none;background:linear-gradient(0deg,rgba(12,16,18,.54) 0,rgba(12,16,18,.50) 56%,rgba(12,16,18,.45) 61%,rgba(12,16,18,.38) 66%,rgba(12,16,18,.30) 71%,rgba(12,16,18,.22) 76%,rgba(12,16,18,.15) 81%,rgba(12,16,18,.09) 87%,rgba(12,16,18,.045) 92%,rgba(12,16,18,.015) 97%,rgba(12,16,18,0) 100%)}
+.stage.bg-light.dock-modern .bottombar-bg{background:linear-gradient(0deg,rgba(255,255,255,.52) 0,rgba(255,255,255,.48) 56%,rgba(255,255,255,.36) 66%,rgba(255,255,255,.20) 76%,rgba(255,255,255,.08) 87%,rgba(255,255,255,.02) 95%,rgba(255,255,255,0) 100%)}
+.stage.bg-dark.dock-modern .bottombar-bg{background:linear-gradient(0deg,rgba(255,255,255,.06) 0,rgba(255,255,255,.04) 56%,rgba(255,255,255,0) 100%)}
+.stage.dock-modern .bg .scrim{display:none}
+.dock-modern .dock .mat,.dock-modern .dock .mat-img,.dock-modern .dock .mat-scrim,.dock-modern .dock .plate{display:none}
+.dock-modern .dock{background:none!important;box-shadow:none!important}
+.dock-modern .dock::before,.dock-modern .dock::after{display:none}
+.dock-modern .dock .tile::before{content:"";position:absolute;inset:0;z-index:-1;border-radius:16px;background:rgba(255,255,255,.07);box-shadow:none;transition:background 160ms linear,box-shadow 160ms linear}
+.dock-modern .dock .tile.is-focus::before{background:rgba(255,255,255,.18);box-shadow:inset 0 0 0 3px #fff,0 8px 22px rgba(4,8,10,.28)}
+.bg-light.dock-modern .dock .tile::before{background:rgba(255,255,255,.55)}
+.bg-light.dock-modern .dock .tile.is-focus::before{background:rgba(255,255,255,.85);box-shadow:inset 0 0 0 3px #1d1a16}
+.dock-modern .dock .tile .tile-content{opacity:1}
