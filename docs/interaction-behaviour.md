@@ -124,3 +124,9 @@ Settings → Connections → **Remote buttons** lists the red, green, yellow and
 
 Alexa switches on Home are toggle tiles: a rounded glass rectangle with the lamp and a small switch, warm when on; the focused one gets a white ring and a slight lift. A group shows as on only when every one of its lights is on; OK on a group that is not fully on turns every light on. Their state is read every 5 seconds while Home is visible, so lights switched elsewhere (for example by voice) catch up. The glass focus behind the Home controls and the song is a rounded rectangle too. The message after a button sits above the legend row, above the Dock. The song widget is always 570 px wide (less only when the Home controls would be closer). In Now playing, Up from the controls focuses the progress bar: Left/Right move 10 seconds and the song jumps there 0.7 seconds after the last press (OK jumps at once). With lyrics open the device line stays, long titles scroll, and lyric lines keep a margin so the enlarged current line is never clipped.
 
+## Clock styles, seconds and Tiles
+
+Settings → Typography → **Clock style**: Classic (the chosen font), Thin (single-stroke SVG numerals), LED (seven-segment SVG digits with faint unlit segments) or Flip (dark split cards; a changing digit's top half folds down over 0.6 s). Settings → Language and clock → **Seconds** adds seconds to every style. With seconds or Flip, only the time is repainted each second, never the rest of the caption.
+
+Settings → Layout → Layout offers **List**, **Dock** and **Tiles**. Tiles is the Dock row without the shelf: every app is its own rounded glass tile with a 12 px gap (one row fits up to 1760 px), using the same focus, paging and names as the Dock. While focus is in the Home controls or on the song, no app tile looks selected; Down still returns to the app last used. Titles keep room for descenders (g, y, p).
+

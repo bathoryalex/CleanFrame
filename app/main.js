@@ -4,7 +4,7 @@
 
   /* ---------- Bundled data ---------- */
   var ASSETS = 'assets/', ICONS = ASSETS + 'icons/', WP = ASSETS + 'wallpapers/';
-  var APP_VERSION = '0.20.1';
+  var APP_VERSION = '0.21.0';
   var CAP = 9, SCRIM_Y = 560, DOCK_BOTTOM = 1032; // the Dock sits 48 px above the bottom edge; names and actions go above it
   var DOCK_MODES = { both: { tw: 288, th: 200, pitch: 296 }, text: { tw: 288, th: 104, pitch: 296 }, icons: { tw: 200, th: 156, pitch: 206 } }; // icons-only tiles leave room under the icon for the focused app's name
   var GRID_ROW = 240, GRID_COL = 344, COLS = 5;
@@ -31,8 +31,8 @@
   }
   window.FrameText = T;
   /* Saved preferences outside the appearance bundle: they apply at once and load nothing. */
-  var PREF_VALUES = { lang: ['en', 'hu'], clock: ['24', '12'], date: ['off', 'on'], clockPos: ['corner', 'center', 'large'], weather: ['off', 'now', 'day'], spotifyShow: ['on', 'off'], keyHints: ['auto', 'always', 'off'], switchStyle: ['both', 'icons', 'text'] };
-  var PREF_NAMES = { en: 'English', hu: 'Magyar', '24': '24-hour', '12': '12-hour', corner: 'Corner', center: 'Centre', large: 'Large', off: 'Off', on: 'On', now: 'Basic', day: 'Full', both: 'Both', icons: 'Icons', text: 'Text' };
+  var PREF_VALUES = { lang: ['en', 'hu'], clock: ['24', '12'], date: ['off', 'on'], clockPos: ['corner', 'center', 'large'], weather: ['off', 'now', 'day'], spotifyShow: ['on', 'off'], keyHints: ['auto', 'always', 'off'], switchStyle: ['both', 'icons', 'text'], clockStyle: ['classic', 'thin', 'led', 'flip'], seconds: ['off', 'on'], layoutView: ['list', 'dock', 'tiles'] };
+  var PREF_NAMES = { en: 'English', hu: 'Magyar', '24': '24-hour', '12': '12-hour', corner: 'Corner', center: 'Centre', large: 'Large', off: 'Off', on: 'On', now: 'Basic', day: 'Full', both: 'Both', icons: 'Icons', text: 'Text', classic: 'Classic', thin: 'Thin', led: 'LED', flip: 'Flip', list: 'List', dock: 'Dock', tiles: 'Tiles' };
   WALLS.forEach(function (w) { w.ut = w.ut || { tr: 'light', br: 'light' }; w.frostVeil = w.frostVeil || .12; });
   var MODES = [
     { id: 'fixed', name: 'Fixed', min: 0 }, { id: 'open', name: 'Each time Home opens', min: 0 },
@@ -503,7 +503,8 @@
       customAt: typeof s.customAt === 'number' && wall(CUSTOM) ? s.customAt : 0, customTone: s.customTone === 'light' ? 'light' : 'dark',
       relayTopic: safeId(s.relayTopic) ? s.relayTopic : '', relayAt: typeof s.relayAt === 'number' ? s.relayAt : 0, relaySince: safeId(s.relaySince) ? s.relaySince : '',
       alexaReadings: cleanReadings(s), alexaSwitches: cleanSwitches(s), alexaGroups: cleanGroups(s.alexaGroups), alexaKeys: cleanKeys(s.alexaKeys),
-      spotifyShow: pick(s.spotifyShow, PREF_VALUES.spotifyShow, 'on'), keyHints: pick(s.keyHints === 'on' || s.keyHints === 'top' ? 'auto' : s.keyHints, PREF_VALUES.keyHints, 'auto'), switchStyle: pick(s.switchStyle, PREF_VALUES.switchStyle, 'both')
+      spotifyShow: pick(s.spotifyShow, PREF_VALUES.spotifyShow, 'on'), keyHints: pick(s.keyHints === 'on' || s.keyHints === 'top' ? 'auto' : s.keyHints, PREF_VALUES.keyHints, 'auto'), switchStyle: pick(s.switchStyle, PREF_VALUES.switchStyle, 'both'),
+      clockStyle: pick(s.clockStyle, PREF_VALUES.clockStyle, 'classic'), seconds: pick(s.seconds, PREF_VALUES.seconds, 'off'), dockStyle: s.dockStyle === 'tiles' ? 'tiles' : 'shelf'
     };
   }
   function serialise(c) {
@@ -546,7 +547,7 @@
     c.wifiSsid = S.c.wifiSsid; c.wifiPass = S.c.wifiPass; c.wifiSec = S.c.wifiSec;
     c.lang = S.c.lang; c.clock = S.c.clock; c.clockPos = S.c.clockPos; c.date = S.c.date; c.weather = S.c.weather;
     c.customAt = S.c.customAt; c.customTone = S.c.customTone; c.relayTopic = S.c.relayTopic; c.relayAt = S.c.relayAt; c.relaySince = S.c.relaySince;
-    c.alexaReadings = S.c.alexaReadings; c.alexaSwitches = S.c.alexaSwitches; c.alexaGroups = S.c.alexaGroups; c.alexaKeys = S.c.alexaKeys; c.spotifyShow = S.c.spotifyShow; c.keyHints = S.c.keyHints; c.switchStyle = S.c.switchStyle;
+    c.alexaReadings = S.c.alexaReadings; c.alexaSwitches = S.c.alexaSwitches; c.alexaGroups = S.c.alexaGroups; c.alexaKeys = S.c.alexaKeys; c.spotifyShow = S.c.spotifyShow; c.keyHints = S.c.keyHints; c.switchStyle = S.c.switchStyle; c.clockStyle = S.c.clockStyle; c.seconds = S.c.seconds; c.dockStyle = S.c.dockStyle;
     return c;
   }
   function snap() { return { home: S.c.home.slice(), recent: S.c.recent.slice() }; }
@@ -1063,7 +1064,7 @@
   function settingsRows() {
     var n = S.c.home.length;
     return [{ id: 'background', icon: 'art', label: T('Background'), value: S.c.bg === 'photo' ? T(wall(S.c.wall).name) : T(VALUE_NAMES[S.c.bg]) },
-      { id: 'layout', icon: 'layout', label: T('Layout'), value: T(VALUE_NAMES[S.c.layout]) },
+      { id: 'layout', icon: 'layout', label: T('Layout'), value: T(S.c.layout === 'list' ? 'List' : S.c.dockStyle === 'tiles' ? 'Tiles' : 'Dock') },
       { id: 'typography', icon: 'type', label: T('Typography'), value: FONTS[S.c.font].name },
       { id: 'focus', icon: 'focus', label: T('Focus'), value: T(VALUE_NAMES[S.c.focus]) + (materialApplies() ? ', ' + T(VALUE_NAMES[S.c.material]) : '') },
       { id: 'editor', icon: 'apps', label: T('Apps on Home'), value: T(n === 1 ? '{0} app' : '{0} apps', n) },
@@ -1113,12 +1114,13 @@
       { id: 'rotation', title: T('Rotation'), items: [{ action: 'background.rotation', label: T(mode().name), disabled: flat }], reason: flat ? T('Choose Photo to use wallpaper and rotation.') : '' }
     ];
     if (t.group === 'layout') return [
-      { id: 'layout', title: T('Layout'), horizontal: true, items: options('layout', ['list', 'dock']) },
+      { id: 'layout', title: T('Layout'), horizontal: true, items: options('layoutView', PREF_VALUES.layoutView) },
       { id: 'apps', title: T('App display'), horizontal: true, items: options('apps', ['text', 'icons', 'both']) },
       { id: 'iconStyle', title: T('Icon style'), horizontal: true, items: options('iconStyle', ['color', 'minimal']) },
       { id: 'controls', title: T('Wi‑Fi, All apps and Settings'), horizontal: true, items: options('controls', ['text', 'icons', 'both']) }
     ].concat(FA ? [{ id: 'switchStyle', title: T('Alexa switches'), horizontal: true, items: options('switchStyle', ['text', 'icons', 'both']) }] : []);
-    if (t.group === 'typography') return [{ id: 'font', title: '', items: options('font', LOOK_VALUES.font) }];
+    if (t.group === 'typography') return [{ id: 'clockStyle', title: T('Clock style'), horizontal: true, items: options('clockStyle', PREF_VALUES.clockStyle) },
+      { id: 'font', title: T('Font'), items: options('font', LOOK_VALUES.font) }];
     if (t.group === 'focus') return [
       { id: 'focus', title: T('Focus style'), horizontal: true, items: options('focus', ['type', 'glass']) },
       { id: 'material', title: T('Material'), horizontal: true, items: options('material', ['soft', 'frost', 'tint'], inactive),
@@ -1131,6 +1133,7 @@
       { id: 'clock', title: T('Time format'), horizontal: true, items: options('clock', PREF_VALUES.clock) },
       { id: 'date', title: T('Date'), horizontal: true, items: options('date', PREF_VALUES.date) },
       { id: 'clockPos', title: T('Clock'), horizontal: true, items: options('clockPos', PREF_VALUES.clockPos) },
+      { id: 'seconds', title: T('Seconds'), horizontal: true, items: options('seconds', PREF_VALUES.seconds) },
       { id: 'weather', title: T('Weather') + ' · ' + WEATHER_PLACE.name, horizontal: true, items: options('weather', PREF_VALUES.weather) }
     ];
     if (t.group === 'alexa') return alexaSections();
@@ -1172,14 +1175,22 @@
     c = next(S.c.home.slice(), S.c.recent.slice()); c.mode = value;
     if (!write(c, 'Wallpaper rotation')) S.lookError = { type: 'save', patch: { mode: value }, row: 'mode', transient: false };
   }
+  /* List, Dock or Tiles: Tiles is the Dock layout with separate tiles instead of the shelf. */
+  function applyLayoutView(value) {
+    S.err = null; S.lookError = null;
+    if (value !== 'list' && !savePrefs({ dockStyle: value === 'tiles' ? 'tiles' : 'shelf' }, 'Dock style')) return;
+    if (S.c.layout !== (value === 'list' ? 'list' : 'dock')) setLook({ layout: value === 'list' ? 'list' : 'dock' }, { row: 'layout' });
+  }
   function applyPref(axis, value) {
     var c = next(S.c.home.slice(), S.c.recent.slice()), patch = {};
+    if (axis === 'layoutView') { applyLayoutView(value); return; }
     S.err = null; S.lookError = null;
     if (S.c[axis] === value) return;
     c[axis] = value; patch[axis] = value;
     if (!write(c, 'Preference ' + axis)) { S.lookError = { type: 'save', patch: patch, row: axis, transient: false }; return; }
     if (axis === 'lang') applyLanguage();
     if (axis === 'weather' && value !== 'off') refreshWeather(function () { render(); });
+    if (axis === 'clockStyle' || axis === 'seconds') { flip.shown = ''; updateClock(); }
     if (axis === 'spotifyShow') { if (value === 'off') spot.now = null; spotifyPoll(true); }
   }
   function applyLanguage() {
@@ -2195,7 +2206,8 @@
   function render() {
     var t = top(), sheet = !!V[t.id].sheet, shown = wall(S.shown ? S.shown.wall : S.c.wall), palette = ADAPTIVE_INK[shown.id];
     var adaptive = applyAdaptiveInk(palette), tr = adaptive && palette.tr ? palette.tr.pol : shown.ut.tr, br = adaptive && palette.br ? palette.br.pol : shown.ut.br;
-    stage.className = 'stage bg-' + S.c.bg + ' l-' + S.c.layout + ' m-' + (materialApplies() ? S.c.material : 'none') + ' f-' + S.c.focus + ' a-' + S.c.apps + ' i-' + S.c.iconStyle + ' u-' + S.c.controls + ' clock-' + S.c.clockPos + (S.c.clockPos !== 'corner' ? ' clock-big' : '') + ' tone-' + shown.tone + ' tr-' + tr + ' br-' + br + wallClasses(shown) + inkRungClasses(palette, adaptive) + ' at-' + t.id + ' font-' + homeFont() + (homeFont() !== 'manrope' ? ' font-custom' : '') + (S.fontSwitch ? ' is-font-switch' : '') + (adaptive ? ' has-adaptive-ink adaptive-tl-' + palette.tl.pol : '') + (!adaptive && shown.clockInk ? ' has-clock-ink' : '') + (!adaptive && shown.dockClockInk ? ' has-dock-clock-ink' : '') + (registeredMaterial(shown.id) ? ' registered-material' : '') + (sheet ? ' is-sheet' : '') + (t.id === 'wifiqr' ? ' is-wifi-qr' : '') + (S.hdmiInApp ? ' is-hdmi-input' : '') + (S.reflow ? ' is-reflow' : '');
+    S.c.layoutView = S.c.layout === 'list' ? 'list' : S.c.dockStyle === 'tiles' ? 'tiles' : 'dock';
+    stage.className = 'stage bg-' + S.c.bg + ' l-' + S.c.layout + (S.c.layout === 'dock' ? ' dock-' + S.c.dockStyle : '') + ' clockstyle-' + S.c.clockStyle + ' m-' + (materialApplies() ? S.c.material : 'none') + ' f-' + S.c.focus + ' a-' + S.c.apps + ' i-' + S.c.iconStyle + ' u-' + S.c.controls + ' clock-' + S.c.clockPos + (S.c.clockPos !== 'corner' ? ' clock-big' : '') + ' tone-' + shown.tone + ' tr-' + tr + ' br-' + br + wallClasses(shown) + inkRungClasses(palette, adaptive) + ' at-' + t.id + ' font-' + homeFont() + (homeFont() !== 'manrope' ? ' font-custom' : '') + (S.fontSwitch ? ' is-font-switch' : '') + (adaptive ? ' has-adaptive-ink adaptive-tl-' + palette.tl.pol : '') + (!adaptive && shown.clockInk ? ' has-clock-ink' : '') + (!adaptive && shown.dockClockInk ? ' has-dock-clock-ink' : '') + (registeredMaterial(shown.id) ? ' registered-material' : '') + (sheet ? ' is-sheet' : '') + (t.id === 'wifiqr' ? ' is-wifi-qr' : '') + (S.hdmiInApp ? ' is-hdmi-input' : '') + (S.reflow ? ' is-reflow' : '');
     if (!adaptive && shown.clockInk) stage.style.setProperty('--clock-ink', shown.clockInk);
     else stage.style.removeProperty('--clock-ink');
     if (!adaptive && shown.dockClockInk) stage.style.setProperty('--dock-clock-ink', shown.dockClockInk);
@@ -2369,9 +2381,9 @@
     return html + '</span>';
   }
   function clockParts() {
-    var d = new Date(), h = d.getHours(), m = d.getMinutes(), suffix = '';
+    var d = new Date(), h = d.getHours(), m = d.getMinutes(), sec = d.getSeconds(), suffix = '';
     if (S.c.clock === '12') { suffix = h < 12 ? 'AM' : 'PM'; h = h % 12 || 12; }
-    return { text: h + ':' + (m < 10 ? '0' : '') + m, suffix: suffix };
+    return { text: h + ':' + (m < 10 ? '0' : '') + m + (S.c.seconds === 'on' ? ':' + (sec < 10 ? '0' : '') + sec : ''), suffix: suffix };
   }
   var MONTHS = { en: ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'],
     hu: ['Január', 'Február', 'Március', 'Április', 'Május', 'Június', 'Július', 'Augusztus', 'Szeptember', 'Október', 'November', 'December'] };
@@ -2380,19 +2392,72 @@
     var d = new Date(), month = (MONTHS[S.c.lang] || MONTHS.en)[d.getMonth()];
     return S.c.lang === 'hu' ? month + ' ' + d.getDate() : d.getDate() + ' ' + month;
   }
+  /* ---------- Clock styles: Classic (the font), Thin and LED (drawn as SVG), Flip (cards) ---------- */
+  /* Thin numerals: single-stroke geometric digits in a 60 x 100 box, drawn with currentColor. */
+  var THIN = {
+    '0': '<rect x="7" y="4" width="46" height="92" rx="23"/>',
+    '1': '<path d="M18 20 34 5v91"/>',
+    '2': '<path d="M9 26C9 12 19 4 31 4s22 9 22 22c0 14-11 24-44 70h45"/>',
+    '3': '<path d="M10 15c4-7 11-11 20-11 13 0 21 8 21 21s-10 21-24 21c15 0 27 9 27 25 0 16-11 25-25 25-10 0-18-5-22-13"/>',
+    '4': '<path d="M42 96V4L5 69h51"/>',
+    '5': '<path d="M50 4H15l-4 42c5-5 12-8 20-8 14 0 23 12 23 28 0 18-11 30-25 30-10 0-18-5-22-13"/>',
+    '6': '<path d="M47 11c-5-5-10-7-17-7C15 4 7 22 7 50c0 30 8 46 23 46 14 0 24-11 24-26S44 44 30 44c-11 0-19 6-23 18"/>',
+    '7': '<path d="M6 4h48L22 96"/>',
+    '8': '<circle cx="30" cy="25" r="21"/><circle cx="30" cy="71" r="25"/>',
+    '9': '<path d="M13 89c5 5 10 7 17 7 15 0 23-18 23-46C53 20 45 4 30 4 16 4 6 15 6 30s10 26 24 26c11 0 19-6 23-18"/>'
+  };
+  /* LED: seven segments; unlit ones stay faintly visible, like a real display. */
+  var SEG_ON = { '0': 'abcdef', '1': 'bc', '2': 'abged', '3': 'abgcd', '4': 'fgbc', '5': 'afgcd', '6': 'afgedc', '7': 'abc', '8': 'abcdefg', '9': 'abcdfg' };
+  function hSeg(y) { return '12,' + y + ' 16,' + (y - 4) + ' 44,' + (y - 4) + ' 48,' + y + ' 44,' + (y + 4) + ' 16,' + (y + 4); }
+  function vSeg(x, a, b) { return x + ',' + a + ' ' + (x + 4) + ',' + (a + 4) + ' ' + (x + 4) + ',' + (b - 4) + ' ' + x + ',' + b + ' ' + (x - 4) + ',' + (b - 4) + ' ' + (x - 4) + ',' + (a + 4); }
+  var SEGS = { a: hSeg(8), g: hSeg(50), d: hSeg(92), f: vSeg(8, 10, 48), b: vSeg(52, 10, 48), e: vSeg(8, 52, 90), c: vSeg(52, 52, 90) };
+  function ledDigit(d) {
+    return '<svg class="clock-glyph" viewBox="0 0 60 100" aria-hidden="true">' + 'abcdefg'.split('').map(function (k) {
+      return '<polygon class="' + (SEG_ON[d].indexOf(k) >= 0 ? 'on' : 'off') + '" points="' + SEGS[k] + '"/>';
+    }).join('') + '</svg>';
+  }
+  function thinDigit(d) { return '<svg class="clock-glyph" viewBox="0 0 60 100" aria-hidden="true">' + THIN[d] + '</svg>'; }
+  function sepGlyph() { return '<svg class="clock-sep" viewBox="0 0 20 100" aria-hidden="true"><circle cx="10" cy="32" r="5"/><circle cx="10" cy="70" r="5"/></svg>'; }
+  /* Flip: one card per digit. When a digit changes, the old top half folds down onto the new one. */
+  var flip = { shown: '', from: '', at: 0 };
+  function flipCards(text) {
+    var digits = text.replace(/\D/g, ''), now = Date.now(), moving, i = 0, html = '';
+    if (digits !== flip.shown) { flip.from = flip.shown; flip.shown = digits; flip.at = now; }
+    moving = now - flip.at < 700 && flip.from.length === digits.length;
+    text.split('').forEach(function (ch) {
+      if (ch === ':') { html += '<span class="flip-sep" aria-hidden="true"><i></i><i></i></span>'; return; }
+      var old = moving ? flip.from.charAt(i) : ch, turn = moving && old !== ch;
+      html += '<span class="flip' + (turn ? ' is-flipping' : '') + '" aria-hidden="true"><span class="flip-half flip-top"><b>' + ch + '</b></span><span class="flip-half flip-bottom"><b>' + (turn ? old : ch) + '</b></span>'
+        + (turn ? '<span class="flip-half flip-top flip-leaf-top"><b>' + old + '</b></span><span class="flip-half flip-bottom flip-leaf-bottom"><b>' + ch + '</b></span>' : '') + '</span>';
+      i++;
+    });
+    return '<span class="flip-clock">' + html + '</span>';
+  }
+  function styledTime(text) {
+    var st = S.c.clockStyle;
+    if (st === 'flip') return flipCards(text);
+    if (st === 'thin' || st === 'led') return '<span class="clock-svg clock-' + st + '">' + text.split('').map(function (ch) { return ch === ':' ? sepGlyph() : st === 'led' ? ledDigit(ch) : thinDigit(ch); }).join('') + '</span>';
+    return null;
+  }
+  /* With seconds (or a flip clock about to turn) only the time is repainted, not the whole caption. */
+  function patchClock() {
+    var els = caption.querySelectorAll('.clock'), html = clockHtml(), i;
+    for (i = 0; i < els.length; i++) if (els[i]._html !== html) { els[i].innerHTML = html; els[i]._html = html; }
+  }
   function clockHtml() {
-    var parts = clockParts(), text = parts.text, metrics = fontMetrics[homeFont()], suffix;
-    if (metrics && metrics.digitCell) text = text.replace(/[0-9]/g, function (digit) { return '<span class="clock-digit">' + digit + '</span>'; });
+    var parts = clockParts(), text = styledTime(parts.text) || parts.text, metrics = fontMetrics[homeFont()], suffix;
+    if (S.c.clockStyle === 'classic' && metrics && metrics.digitCell) text = text.replace(/[0-9]/g, function (digit) { return '<span class="clock-digit">' + digit + '</span>'; });
     if (!parts.suffix) return text;
     // Hungarian writes the period first ("du. 3:07"); English after ("3:07 PM").
     suffix = '<span class="clock-period">' + esc(T(parts.suffix)) + '</span>';
     return S.c.lang === 'hu' ? suffix + text : text + suffix;
   }
   function renderCaption(t, hs) {
+    var ch = clockHtml();
     var weatherHtml = weatherCaptionHtml() + readingsCaptionHtml(), date = S.c.date === 'on' ? '<span class="cap-date">' + esc(dateText()) + '</span>' : '', html;
     // Centred: date and weather share one smaller line under the clock. Corner: the date is a quiet second line.
-    if (S.c.clockPos !== 'corner' && S.c.layout === 'dock') html = '<span class="caption-head"><span class="clock">' + clockHtml() + '</span>' + (date || weatherHtml ? '<span class="caption-sub">' + date + weatherHtml + '</span>' : '') + '</span>';
-    else html = '<span class="caption-head"><span class="clock">' + clockHtml() + '</span>' + weatherHtml + '</span>' + date;
+    if (S.c.clockPos !== 'corner' && S.c.layout === 'dock') html = '<span class="caption-head"><span class="clock">' + ch + '</span>' + (date || weatherHtml ? '<span class="caption-sub">' + date + weatherHtml + '</span>' : '') + '</span>';
+    else html = '<span class="caption-head"><span class="clock">' + ch + '</span>' + weatherHtml + '</span>' + date;
     /* With the clock in the centre, the song sits alone in the top-left corner. */
     var musicInCorner = S.c.clockPos !== 'corner' && S.c.layout === 'dock';
     if (musicInCorner) setHTML(musicEl, musicHtml(hs.zone === 'music'));
@@ -2402,6 +2467,7 @@
     caption.setAttribute('data-weather', S.c.weather === 'off' || weather.temp === null ? '' : String(weather.temp));
     if (S.c.apps !== 'icons' && !(S.c.clockPos !== 'corner' && S.c.layout === 'dock') && hs.items[hs.i] && (S.c.layout === 'list' ? photoLabel(hs.items[hs.i].id, false).size < 88 || photoLabel(hs.items[hs.i].id, false).ellipsis : hs.zone === 'apps' && reducedDockLabel(hs.items[hs.i].id))) html += '<span class="cap-line full-name">' + esc(app(hs.items[hs.i].id).name) + '</span>';
     setHTML(caption, html);
+    Array.prototype.forEach.call(caption.querySelectorAll('.clock'), function (el) { el._html = ch; });
     fitMusic(musicInCorner);
   }
 
@@ -2498,8 +2564,10 @@
 
   /* Everything on one shelf when it fits. Otherwise show five whole tiles and move the
      window one tile when focus passes an edge; the side cues show that more apps exist. */
+  /* Tiles: the same row with a gap between separate tiles. */
+  function dockMode() { var m = DOCK_MODES[S.c.apps]; return S.c.dockStyle === 'tiles' ? { tw: m.tw, th: m.th, pitch: m.pitch + 12 } : m; }
   function dockGeom(n) {
-    var m = DOCK_MODES[S.c.apps], contentW = n > 0 ? (n - 1) * m.pitch + m.tw : 0, fits = n > 0 && contentW <= 1696;
+    var m = dockMode(), contentW = n > 0 ? (n - 1) * m.pitch + m.tw : 0, fits = n > 0 && contentW <= (S.c.dockStyle === 'tiles' ? 1760 : 1696);
     var vis = fits ? n : Math.max(1, Math.min(5, n)), shelfW = fits ? contentW : vis * m.pitch - 8, w = shelfW + 32;
     if (n < 0) { w = 912; shelfW = 880; vis = 0; }
     return { x: Math.round((1920 - w) / 2), y: DOCK_BOTTOM - m.th - 32, h: m.th + 32, w: w, shelf: shelfW, vis: vis, empty: n < 0, tw: m.tw, th: m.th, pitch: m.pitch };
@@ -2523,7 +2591,8 @@
     var items = hs.items, n = items.length, empty = hs.mode !== 'arrange' && !n, g = dockGeom(empty ? -1 : n);
     var anchor = clamp(hs.i, 0, Math.max(0, n - 1)), off = empty ? 0 : dockOffset(n, anchor, g);
     var full = hs.arr ? live(hs.arr.slots).length >= CAP : false, ns = hs.arr ? hs.arr.slots.length : n;
-    var tileFocus = hs.zone === 'apps' || hs.zone === 'tiles', tileSel = hs.zone === 'util' || hs.zone === 'act' || hs.zone === 'ctl' || hs.zone === 'preview';
+    /* With focus up in the Home controls or on the song, no tile looks selected; Down still returns to it. */
+    var tileFocus = hs.zone === 'apps' || hs.zone === 'tiles', tileSel = hs.zone === 'act' || hs.zone === 'ctl' || hs.zone === 'preview';
     var focusItem = items[anchor], s, ax, label, width;
 
     dock.className = 'dock' + (empty ? ' is-empty' : '');
@@ -3208,6 +3277,13 @@
       if (rotationActive()) setLook({ wall: WALLS[(wallIndex(S.c.wall) + 1) % WALLS.length].id }, { row: 'bg' });
     }, Math.max(10, mode().min * QA.minuteMs - activeMs));
   }
+  /* Seconds (and a flip clock finishing its turn) repaint only the time, every second. */
+  var secondTimer = null;
+  function secondTick() {
+    clearTimeout(secondTimer);
+    if (document.hidden || S.c.seconds !== 'on' && S.c.clockStyle !== 'flip') return;
+    secondTimer = setTimeout(function () { if (top().id === 'home' || isSettingsDetail(top())) patchClock(); secondTick(); }, S.c.clockStyle === 'flip' && Date.now() - flip.at < 900 ? 750 : 1000 - (Date.now() % 1000) + 15);
+  }
   function updateClock() {
     clearTimeout(clockTimer);
     if (document.hidden) return;
@@ -3217,6 +3293,7 @@
     paintCaption();
     refreshWeather(paintCaption);
     clockTimer = setTimeout(updateClock, 60000 - (Date.now() % 60000) + 30);
+    secondTick();
   }
   function focusStage() { try { stage.focus({ preventScroll: true }); } catch (e) { stage.focus(); } }
   function after() { norm(); render(); syncRotation(); }
@@ -3295,7 +3372,7 @@
   document.addEventListener('visibilitychange', function () {
     heldKeys = {};
     if (document.hidden) {
-      pauseRotation(); clearTimeout(clockTimer); stopRelay(); syncVideo(); clearTimeout(alexa.timer); alexa.timer = null; clearTimeout(spot.timer); spot.timer = null;
+      pauseRotation(); clearTimeout(clockTimer); stopRelay(); syncVideo(); clearTimeout(alexa.timer); alexa.timer = null; clearTimeout(spot.timer); spot.timer = null; clearTimeout(secondTimer);
       if (S.hdmiInApp) { S.hdmiInApp = false; if (FrameDevice.hideHdmiView) FrameDevice.hideHdmiView(); }
     }
     else { release(); after(); updateClock(); focusStage(); startRelay(); alexaPoll(true); spotifyPoll(true); showLegend(6000); }

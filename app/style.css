@@ -917,4 +917,50 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000}
 .quiet-utils .u.u-lamp{transition:opacity 140ms linear,transform 180ms cubic-bezier(.22,1,.28,1),box-shadow 140ms linear}
 .quiet-utils .u.u-lamp.is-focus{opacity:1;transform:scale(1.06);box-shadow:inset 0 0 0 3px #fff,0 10px 28px rgba(4,8,10,.35)}
 .quiet-utils .u.u-lamp.is-lit.is-focus{box-shadow:inset 0 0 0 3px #fff,0 0 0 1px rgba(255,214,150,.6),0 10px 28px rgba(4,8,10,.35)}
+/* Descenders (g, y, p) stay inside clipped titles. */
+.np-title{padding-bottom:.12em}
+.mq{padding-bottom:.16em;margin-bottom:-.16em}
+.detail-region .appearance-rows{top:220px}
+.detail-region .setting-section+.setting-section{margin-top:16px}
+.detail-region .is-horizontal .setting-choice{min-height:60px}
+.detail-typography .appearance-rows{top:236px}
+.detail-typography .is-horizontal .setting-choice{min-height:72px;font-size:30px}
+/* Clock styles. Thin and LED are SVG glyphs in currentColor, sized from the clock's font size. */
+.clock-svg{display:inline-flex;align-items:center;gap:.07em;vertical-align:-.06em}
+.clock-glyph{width:.5em;height:.82em;overflow:visible}
+.clock-sep{width:.16em;height:.82em;overflow:visible;fill:currentColor}
+.clock-thin .clock-glyph{fill:none;stroke:currentColor;stroke-width:3.6;stroke-linecap:round;stroke-linejoin:round}
+.clock-thin .clock-sep circle{r:3.4px}
+.clock-led{gap:.09em}
+.clock-led .clock-glyph{transform:skewX(-7deg);fill:currentColor}
+.clock-led .clock-glyph .off{opacity:.09}
+.clock-led .clock-glyph .on{filter:drop-shadow(0 0 3px currentColor)}
+.clock-led .clock-sep{transform:skewX(-7deg)}
+/* Flip clock: dark cards split in the middle; a changing digit folds its top half down. */
+.flip-clock{display:inline-flex;align-items:center;gap:.06em;vertical-align:-.1em;perspective:6em}
+.flip{position:relative;display:inline-block;width:.74em;height:1.08em;border-radius:.1em;background:#16191b;box-shadow:0 .06em .18em rgba(0,0,0,.45),inset 0 0 0 1px rgba(255,255,255,.06);color:#f3f1ec;font-weight:600;text-shadow:none}
+.flip-half{position:absolute;left:0;right:0;height:50%;overflow:hidden;background:linear-gradient(#202427,#191c1e);backface-visibility:hidden;-webkit-backface-visibility:hidden}
+.flip-top{top:0;border-radius:.1em .1em 0 0;transform-origin:50% 100%}
+.flip-bottom{bottom:0;border-radius:0 0 .1em .1em;transform-origin:50% 0;background:linear-gradient(#17191b,#121415)}
+.flip-half b{position:absolute;left:0;right:0;height:1.08em;line-height:1.08em;text-align:center;font-weight:inherit;font-variant-numeric:tabular-nums}
+.flip-top b{top:0}
+.flip-bottom b{bottom:0}
+.flip::after{content:"";position:absolute;left:0;right:0;top:50%;height:2px;margin-top:-1px;background:rgba(0,0,0,.55);z-index:3}
+.flip-leaf-top{z-index:2;animation:flip-top 300ms ease-in both}
+.flip-leaf-bottom{z-index:2;animation:flip-bottom 300ms ease-out 300ms both}
+@keyframes flip-top{from{transform:rotateX(0)}to{transform:rotateX(-90deg)}}
+@keyframes flip-bottom{from{transform:rotateX(90deg)}to{transform:rotateX(0)}}
+.flip-sep{display:inline-flex;flex-direction:column;justify-content:center;gap:.22em;width:.16em;height:1.08em;align-items:center}
+.flip-sep i{display:block;width:.1em;height:.1em;border-radius:50%;background:currentColor;opacity:.85}
+.clockstyle-flip .clock-period{margin-left:.3em}
+.clock-big .flip-clock{gap:.08em}
+@media(prefers-reduced-motion:reduce){.flip-leaf-top,.flip-leaf-bottom{animation:none;display:none}}
+/* Tiles: no shelf behind the apps; each app is its own glass tile with a gap between. */
+.dock-tiles .dock .mat,.dock-tiles .dock .mat-img,.dock-tiles .dock .mat-scrim{display:none}
+.dock-tiles .dock{background:none!important;box-shadow:none!important}
+.dock-tiles .dock::before,.dock-tiles .dock::after{display:none}
+.dock-tiles .dock .tile::before{content:"";position:absolute;inset:0;z-index:-1;border-radius:28px;background:rgba(14,18,20,.42);box-shadow:inset 0 0 0 1px rgba(255,255,255,.12),0 14px 34px rgba(4,8,10,.28);transition:background-color 160ms linear}
+.bg-light.dock-tiles .dock .tile::before{background:rgba(255,255,255,.55);box-shadow:inset 0 0 0 1px rgba(29,26,22,.08),0 10px 26px rgba(4,8,10,.12)}
+.dock-tiles .dock .tile.is-focus::before{background:rgba(255,255,255,.16)}
+.dock-tiles .dock .plate{border-radius:28px}
 

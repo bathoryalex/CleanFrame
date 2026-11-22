@@ -433,7 +433,7 @@ try {
     check('Overview has all seven settings groups', same((await call('actions')).filter(a => expected.includes(a)).sort(), expected.slice().sort()));
     const specs = {
       background: { bg: ['dark', 'light', 'photo'] },
-      layout: { layout: ['list', 'dock'], apps: ['icons', 'both', 'text'], controls: ['icons', 'both', 'text'] },
+      layout: { layoutView: ['list', 'dock', 'tiles'], apps: ['icons', 'both', 'text'], controls: ['icons', 'both', 'text'] },
       typography: { font: (await state()).fonts.available },
       focus: { focus: ['type', 'glass'], material: ['soft', 'frost', 'tint'] }
     };
@@ -644,6 +644,25 @@ try {
       await phone.goto(pageUrl + '?code=AQcode&state=someone-else');
       check('A code for another channel is not sent', posts.length === 1 && /not from Frame Home|nem a Frame Home/.test(await phone.textContent('#status')));
     } finally { await phone.close(); }
+  });
+  await run('Clock styles, seconds and the Tiles layout', async () => {
+    await page({ seed: baseline({ clockPos: 'center', seconds: 'on', clockStyle: 'flip' }) });
+    check('Flip shows six cards with seconds', await current.evaluate(() => document.querySelectorAll('.caption .flip').length === 6));
+    const before = await current.evaluate(() => document.querySelector('.caption .clock').textContent);
+    await current.waitForTimeout(2200);
+    check('Seconds tick without re-rendering the caption', await current.evaluate(() => document.querySelector('.caption .clock').textContent) !== before);
+    await group('typography'); await act('choice.clockStyle.led'); await scene('home');
+    check('LED draws seven segments per digit', await current.evaluate(() => document.querySelectorAll('.caption .clock-led .clock-glyph').length === 6 && document.querySelectorAll('.caption .clock-led .clock-glyph polygon').length === 42));
+    await group('typography'); await act('choice.clockStyle.thin'); await scene('home');
+    check('Thin draws stroked digits', await current.evaluate(() => document.querySelectorAll('.caption .clock-thin .clock-glyph').length === 6));
+    await group('layout'); await act('choice.layoutView.tiles');
+    await current.waitForFunction(() => ShoreQA.ready && ShoreQA.ready());
+    await act('choice.layoutView.list'); await current.waitForFunction(() => ShoreQA.ready && ShoreQA.ready());
+    check('List from the same row switches to the List layout', (await stored()).layout === 'list');
+    await act('choice.layoutView.tiles'); await current.waitForFunction(() => ShoreQA.ready && ShoreQA.ready());
+    check('Tiles is a third layout and is saved', (await stored()).dockStyle === 'tiles' && (await stored()).layout === 'dock' && await current.evaluate(() => document.getElementById('stage').className.indexOf('dock-tiles') >= 0));
+    await scene('home'); await nav('up');
+    check('With focus in the top row no app looks selected', await current.evaluate(() => !document.querySelector('.dock .tile.is-sel') && !document.querySelector('.dock .tile.is-focus')));
   });
   await run('Remote buttons can open apps and use CH and Guide', async () => {
     await page({ seed: baseline({ alexaKeys: { chup: { id: 'app:9Ur5IzDKqV.TizenYouTube', name: 'YouTube' } } }) });
@@ -929,7 +948,6 @@ try {
     await page();
     const specs = [
       ['background', 'bg', ['dark', 'light', 'photo']],
-      ['layout', 'layout', ['list', 'dock']],
       ['layout', 'apps', ['icons', 'text', 'both']],
       ['layout', 'controls', ['text', 'both', 'icons']],
       ['typography', 'font', (await state()).fonts.available],
