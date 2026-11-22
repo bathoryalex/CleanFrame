@@ -221,6 +221,11 @@ window.CleanFrameI18n = {
     'Alpine glow': 'Alpesi fény',
     'Bliss': 'Bliss',
     /* Alexa */
+    'Show the buttons on Home': 'Gombok mutatása a Kezdőlapon',
+    'Playing on {0}': 'Lejátszás itt: {0}',
+    'Pause': 'Szünet',
+    'Play': 'Lejátszás',
+    'Nothing is playing on Spotify.': 'Most semmi nem szól a Spotifyon.',
     'Connections': 'Kapcsolatok',
     'Connect Spotify': 'Spotify összekapcsolása',
     'Spotify: play or pause': 'Spotify: lejátszás vagy szünet',

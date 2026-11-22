@@ -106,3 +106,11 @@ On Home, the readings follow the weather in the caption. The switches come first
 
 Settings → Connections → Spotify shows **Connect Spotify** until the TV is signed in; OK opens the same QR screen as Alexa. Once connected the group has **Now playing on Home** (On/Off), **Colour buttons** (the shared list, which then also offers Spotify play or pause, next track and previous track) and **Sign out of Spotify** (asks first; also clears colour buttons set to Spotify). On Home the song shows under the clock (and the date) with its cover; paused songs are dimmed with a pause mark. Media keys work from every screen except the keyboard: Play/Pause toggles (Play and Pause keys do what they say), Fast-forward/Next skips forward, Rewind/Previous skips back. Each press shows a short message; while one request is on its way a further press is ignored. Without Premium, with nothing playing, or with an expired sign-in the message says so and the shown state reverts.
 
+## Home layout and Now playing
+
+The Dock sits 48 px above the bottom edge and the clock and Home controls 52 px below the top; the Arrange action and the icons-only app name go above the Dock. The Dock's glass is cropped from the full-frame material at its position, so it follows the move.
+
+When Spotify shows a song, the song is a focusable Home element: Left from the first Home control (Up in the List layout) focuses it, Right (Down) returns to the controls, Down/Back (Left/Back) go to the apps, OK or a click opens **Now playing**. Now playing shows the large cover, device, title, artists, album, a progress bar and three buttons (previous, play/pause, next; play/pause focused first); Left/Right move, OK presses, Back returns. Progress moves every second without a full render; when a song ends, Spotify is asked for the next one.
+
+With colour buttons assigned, a small legend (coloured dot, name and, for lights, an on/off dot) sits at the bottom left above the Dock, beside where the remote's on-screen colour picker appears. Colour buttons → Show the buttons on Home turns it off. The Dock layout only.
+

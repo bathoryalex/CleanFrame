@@ -60,9 +60,10 @@
       });
     });
   }
-  function artUrl(images) {
-    var best = null;
-    (images || []).forEach(function (im) { if (im && /^https:\/\/i\.scdn\.co\//.test(im.url) && (!best || (im.width >= 64 && im.width < best.width))) best = im; });
+  /* The smallest cover of at least `min` pixels (or the largest there is). */
+  function artUrl(images, min) {
+    var ok = (images || []).filter(function (im) { return im && /^https:\/\/i\.scdn\.co\//.test(im.url); }), best = null;
+    ok.forEach(function (im) { if (!best || (best.width < min ? im.width > best.width : im.width >= min && im.width < best.width)) best = im; });
     return best ? best.url : '';
   }
   /* done(err, now) with now null when nothing is playing anywhere. */
@@ -74,7 +75,9 @@
       done(null, {
         id: item.id || item.uri || '', playing: !!j.is_playing, title: item.name || '',
         artist: (item.artists || []).map(function (a) { return a.name; }).join(', ') || item.show && item.show.name || '',
-        art: artUrl(item.album ? item.album.images : item.images), device: j.device && j.device.name || ''
+        art: artUrl(item.album ? item.album.images : item.images, 64), artBig: artUrl(item.album ? item.album.images : item.images, 600),
+        album: item.album && item.album.name || '', device: j.device && j.device.name || '',
+        progress: typeof j.progress_ms === 'number' ? j.progress_ms : 0, duration: item.duration_ms || 0, at: Date.now()
       });
     });
   }

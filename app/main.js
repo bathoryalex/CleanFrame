@@ -4,8 +4,8 @@
 
   /* ---------- Bundled data ---------- */
   var ASSETS = 'assets/', ICONS = ASSETS + 'icons/', WP = ASSETS + 'wallpapers/';
-  var APP_VERSION = '0.15.0';
-  var CAP = 9, SCRIM_Y = 560;
+  var APP_VERSION = '0.16.0';
+  var CAP = 9, SCRIM_Y = 560, DOCK_BOTTOM = 1032; // the Dock sits 48 px above the bottom edge; names and actions go above it
   var DOCK_MODES = { both: { tw: 288, th: 200, pitch: 296 }, text: { tw: 288, th: 104, pitch: 296 }, icons: { tw: 176, th: 144, pitch: 184 } };
   var GRID_ROW = 240, GRID_COL = 344, COLS = 5;
   var ED_ROW = 80, ED_SEP = 56, ED_VIEW = 752, STRIP_PITCH = 188;
@@ -31,7 +31,7 @@
   }
   window.FrameText = T;
   /* Saved preferences outside the appearance bundle: they apply at once and load nothing. */
-  var PREF_VALUES = { lang: ['en', 'hu'], clock: ['24', '12'], date: ['off', 'on'], clockPos: ['corner', 'center', 'large'], weather: ['off', 'now', 'day'], spotifyShow: ['on', 'off'] };
+  var PREF_VALUES = { lang: ['en', 'hu'], clock: ['24', '12'], date: ['off', 'on'], clockPos: ['corner', 'center', 'large'], weather: ['off', 'now', 'day'], spotifyShow: ['on', 'off'], keyHints: ['on', 'off'] };
   var PREF_NAMES = { en: 'English', hu: 'Magyar', '24': '24-hour', '12': '12-hour', corner: 'Corner', center: 'Centre', large: 'Large', off: 'Off', on: 'On', now: 'Basic', day: 'Full' };
   WALLS.forEach(function (w) { w.ut = w.ut || { tr: 'light', br: 'light' }; w.frostVeil = w.frostVeil || .12; });
   var MODES = [
@@ -88,6 +88,9 @@
     alexa: '<path d="M3.5 11.2 12 4.5l8.5 6.7"/><path d="M5.8 9.6V19a1 1 0 0 0 1 1h10.4a1 1 0 0 0 1-1V9.6"/><path d="M9.4 14.6a3.7 3.7 0 0 1 5.2 0"/><path d="M7.6 12.6a6.2 6.2 0 0 1 8.8 0"/><circle cx="12" cy="16.9" r=".9"/>',
     note: '<path d="M9 17.5V6l10-2v11.5"/><circle cx="6.5" cy="17.5" r="2.5"/><circle cx="16.5" cy="15.5" r="2.5"/>',
     pause: '<path d="M8.5 5.5v13M15.5 5.5v13"/>',
+    play: '<path d="M8 5.2v13.6L19 12Z"/>',
+    prev: '<path d="M6.5 5.5v13"/><path d="M18 5.8 9 12l9 6.2Z"/>',
+    next: '<path d="M17.5 5.5v13"/><path d="M6 5.8 15 12l-9 6.2Z"/>',
     drop: '<path d="M12 3.6c-3.2 4-5.6 7.3-5.6 10.1a5.6 5.6 0 0 0 11.2 0c0-2.8-2.4-6.1-5.6-10.1Z"/>',
     plus: '<path d="M12 5v14M5 12h14"/>',
     indoor: '<path d="M4 11 12 4.5l8 6.5v8a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1Z"/><path d="M12 10.5v5.2"/><circle cx="12" cy="16.6" r="1.4"/>',
@@ -499,7 +502,7 @@
       customAt: typeof s.customAt === 'number' && wall(CUSTOM) ? s.customAt : 0, customTone: s.customTone === 'light' ? 'light' : 'dark',
       relayTopic: safeId(s.relayTopic) ? s.relayTopic : '', relayAt: typeof s.relayAt === 'number' ? s.relayAt : 0, relaySince: safeId(s.relaySince) ? s.relaySince : '',
       alexaReadings: cleanReadings(s), alexaSwitches: cleanSwitches(s), alexaGroups: cleanGroups(s.alexaGroups), alexaKeys: cleanKeys(s.alexaKeys),
-      spotifyShow: pick(s.spotifyShow, PREF_VALUES.spotifyShow, 'on')
+      spotifyShow: pick(s.spotifyShow, PREF_VALUES.spotifyShow, 'on'), keyHints: pick(s.keyHints, PREF_VALUES.keyHints, 'on')
     };
   }
   function serialise(c) {
@@ -542,7 +545,7 @@
     c.wifiSsid = S.c.wifiSsid; c.wifiPass = S.c.wifiPass; c.wifiSec = S.c.wifiSec;
     c.lang = S.c.lang; c.clock = S.c.clock; c.clockPos = S.c.clockPos; c.date = S.c.date; c.weather = S.c.weather;
     c.customAt = S.c.customAt; c.customTone = S.c.customTone; c.relayTopic = S.c.relayTopic; c.relayAt = S.c.relayAt; c.relaySince = S.c.relaySince;
-    c.alexaReadings = S.c.alexaReadings; c.alexaSwitches = S.c.alexaSwitches; c.alexaGroups = S.c.alexaGroups; c.alexaKeys = S.c.alexaKeys; c.spotifyShow = S.c.spotifyShow;
+    c.alexaReadings = S.c.alexaReadings; c.alexaSwitches = S.c.alexaSwitches; c.alexaGroups = S.c.alexaGroups; c.alexaKeys = S.c.alexaKeys; c.spotifyShow = S.c.spotifyShow; c.keyHints = S.c.keyHints;
     return c;
   }
   function snap() { return { home: S.c.home.slice(), recent: S.c.recent.slice() }; }
@@ -755,9 +758,19 @@
       var f = t.f, h = S.c.home, U = utils(), x = axes(), i = ensureSel();
       if (hdmiBack(k)) return;
       if (S.c.layout === 'list') { listHomeKey(t, k, i, U); return; }
+      if (f.zone === 'music') {
+        if (!musicVisible()) f.zone = 'apps';
+        else {
+          if (k === 'ok') openNowPlaying();
+          else if (k === 'right') { f.zone = 'util'; f.u = 0; }
+          else if (k === 'down' || k === 'back') f.zone = 'apps';
+          return;
+        }
+      }
       if (f.zone === 'util') {
         f.u = clamp(f.u, 0, U.length - 1);
         if (k === x.prev && f.u > 0) f.u--;
+        else if (k === x.prev && musicVisible()) f.zone = 'music';
         else if (k === x.next && f.u < U.length - 1) f.u++;
         else if (k === x.inn || k === 'back') f.zone = 'apps';
         else if (k === 'ok') { S.lastUtil = f.u; utilAction(U[f.u]); return; }
@@ -773,6 +786,7 @@
       else if (k === 'ok') launch(S.sel);
     },
     point: function (t, z, i) {
+      if (z === 'music') { t.f.zone = 'music'; openNowPlaying(); return; }
       if (z === 'util') { t.f.zone = 'util'; t.f.u = i; S.lastUtil = i; }
       else if (z === 'app') { t.f.zone = 'apps'; setSel(S.c.home[i]); }
       else if (z === 'empty') t.f.zone = 'apps';
@@ -783,9 +797,19 @@
   function listHomeKey(t, k, i, U) {
     var f = t.f, h = S.c.home;
     if (hdmiBack(k)) return;
+    if (f.zone === 'music') {
+      if (!musicVisible()) f.zone = 'apps';
+      else {
+        if (k === 'ok') openNowPlaying();
+        else if (k === 'down') { f.zone = 'util'; f.u = 0; }
+        else if (k === 'left' || k === 'back') f.zone = 'apps';
+        return;
+      }
+    }
     if (f.zone === 'util') {
       f.u = clamp(f.u, 0, U.length - 1);
       if (k === 'up' && f.u > 0) f.u--;
+      else if (k === 'up' && musicVisible()) f.zone = 'music';
       else if (k === 'down' && f.u < U.length - 1) f.u++;
       else if (k === 'left' || k === 'back') f.zone = 'apps';
       else if (k === 'ok') { S.lastUtil = f.u; utilAction(U[f.u]); return; }
@@ -1425,12 +1449,53 @@
       spotifyPoll(act === 'next' || act === 'prev' ? 800 : 1500);
     });
   }
-  function musicCaptionHtml() {
+  function musicVisible() { return !!(spotifyOn() && S.c.spotifyShow !== 'off' && spot.now && spot.now.title); }
+  function musicPos(n) { var p = n.progress + (n.playing ? Date.now() - n.at : 0); return Math.max(0, Math.min(n.duration || p, p)); }
+  function fmtTime(ms) { var sec = Math.floor(ms / 1000), m = Math.floor(sec / 60); return m + ':' + (sec % 60 < 10 ? '0' : '') + sec % 60; }
+  function progressHtml(n) {
+    if (!n.duration) return '';
+    var pos = musicPos(n);
+    return '<span class="music-progress"><span class="music-time" data-music-pos>' + fmtTime(pos) + '</span><span class="music-bar"><i data-music-bar style="width:' + (pos / n.duration * 100).toFixed(2) + '%"></i></span><span class="music-time">' + fmtTime(n.duration) + '</span></span>';
+  }
+  /* The Home widget: OK on it opens the large Now playing screen. */
+  function musicHtml(focus) {
     var n = spot.now;
-    if (!spotifyOn() || S.c.spotifyShow === 'off' || !n || !n.title) return '';
-    return '<span class="cap-music' + (n.playing ? ' is-playing' : ' is-paused') + '" aria-label="' + esc(T(n.playing ? 'Playing' : 'Paused') + ': ' + n.title + (n.artist ? ', ' + n.artist : '')) + '">'
+    if (!musicVisible()) return '';
+    return '<span class="cap-music' + (n.playing ? ' is-playing' : ' is-paused') + (focus ? ' is-focus' : '') + '" data-z="music" data-i="0" data-action="home.music" role="button" aria-label="' + esc(T(n.playing ? 'Playing' : 'Paused') + ': ' + n.title + (n.artist ? ', ' + n.artist : '')) + '">'
       + (n.art ? '<img class="music-art" src="' + esc(n.art) + '" alt="">' : '<span class="music-art music-art-empty">' + icon('note') + '</span>')
-      + '<span class="music-text"><span class="music-title">' + (n.playing ? '' : icon('pause', 'music-paused')) + esc(n.title) + '</span>' + (n.artist ? '<span class="music-artist">' + esc(n.artist) + '</span>' : '') + '</span></span>';
+      + '<span class="music-text"><span class="music-title">' + (n.playing ? '' : icon('pause', 'music-paused')) + esc(n.title) + '</span>' + (n.artist ? '<span class="music-artist">' + esc(n.artist) + '</span>' : '') + progressHtml(n) + '</span></span>';
+  }
+  /* Progress moves every second without a full render; a finished song asks Spotify for the next one. */
+  var musicTicker = setInterval(function () {
+    var n = spot.now, pos, i, els;
+    if (!n || !n.playing || !n.duration || document.hidden) return;
+    pos = musicPos(n);
+    els = document.querySelectorAll('[data-music-pos]');
+    for (i = 0; i < els.length; i++) els[i].textContent = fmtTime(pos);
+    els = document.querySelectorAll('[data-music-bar]');
+    for (i = 0; i < els.length; i++) els[i].style.width = (pos / n.duration * 100).toFixed(2) + '%';
+    if (pos >= n.duration && !n.ended) { n.ended = true; spotifyPoll(1500); }
+  }, 1000);
+  function openNowPlaying() { push({ id: 'nowplaying', f: { b: 1 } }); spotifyPoll(true); }
+  V.nowplaying = {
+    sheet: true,
+    key: function (t, k) {
+      if (k === 'back') pop();
+      else if (k === 'left' && t.f.b > 0) t.f.b--;
+      else if (k === 'right' && t.f.b < 2) t.f.b++;
+      else if (k === 'ok') spotifyKey(['prev', 'toggle', 'next'][t.f.b]);
+    },
+    point: function (t, z, i) { if (z === 'np') { t.f.b = i; this.key(t, 'ok'); } }
+  };
+  /* Colour-button legend: bottom left, beside where the remote's colour picker appears. */
+  function keyLegendHtml() {
+    var rows;
+    if (S.c.keyHints === 'off' || S.c.layout !== 'dock' || (!alexaOn() && !spotifyOn())) return '';
+    rows = COLOURS.filter(function (c) { var t = S.c.alexaKeys[c]; return t && (isSpotify(t.id) ? spotifyOn() : alexaOn() && targetName(t)); }).map(function (c) {
+      var t = S.c.alexaKeys[c], p = isSpotify(t.id) ? null : targetPower(t.id);
+      return '<span class="legend-row"><span class="key-dot key-' + c + '"></span><span class="legend-name">' + esc(targetName(t)) + '</span>' + (p === null ? '' : '<span class="legend-state' + (p ? ' is-on' : '') + '"></span>') + '</span>';
+    });
+    return rows.join('');
   }
   function spotifySections() {
     if (!spotifyOn()) return [{ id: 'spotify-account', title: T('Account'), items: [{ action: 'spotify.connect', label: T('Connect Spotify'), description: T('Sign in on your phone') }],
@@ -1525,7 +1590,7 @@
         });
       });
     } else if (t.mode === 'switches') rows = switchRows(function (id) { return S.c.alexaSwitches.some(function (x) { return x.id === id; }); });
-    else if (t.mode === 'keys') rows = COLOURS.map(function (c) { var tg = S.c.alexaKeys[c]; return { id: c, colour: c, label: T(COLOUR_NAMES[c]), value: tg && targetName(tg) || T('Not set') }; });
+    else if (t.mode === 'keys') rows = [{ id: 'hints', label: T('Show the buttons on Home'), value: T(S.c.keyHints === 'off' ? 'Off' : 'On') }].concat(COLOURS.map(function (c) { var tg = S.c.alexaKeys[c]; return { id: c, colour: c, label: T(COLOUR_NAMES[c]), value: tg && targetName(tg) || T('Not set') }; }));
     else if (t.mode === 'keytarget') {
       rows = [{ id: '', label: T('Nothing'), ticked: !S.c.alexaKeys[t.colour] }].concat(spotifyOn() ? Object.keys(SPOTIFY_ACTIONS).map(function (id) {
         return { id: id, label: T(SPOTIFY_ACTIONS[id]), ticked: !!S.c.alexaKeys[t.colour] && S.c.alexaKeys[t.colour].id === id, spotify: true };
@@ -1584,7 +1649,7 @@
       next = toggleIn(S.c.alexaSwitches, { id: row.id, name: row.group ? '' : row.label.slice(0, 80) }, function (x) { return x.id === row.id; }, MAX_SWITCHES);
       if (!next) { showToast(T('Up to {0}. Remove one first.', MAX_SWITCHES)); return; }
       saveAlexa({ alexaSwitches: next }, 'Alexa switches');
-    } else if (t.mode === 'keys') openAlexaList('keytarget', { colour: row.colour });
+    } else if (t.mode === 'keys') { if (row.id === 'hints') savePrefs({ keyHints: S.c.keyHints === 'off' ? 'on' : 'off' }, 'Colour button hints'); else openAlexaList('keytarget', { colour: row.colour }); }
     else if (t.mode === 'keytarget') {
       next = {}; COLOURS.forEach(function (c) { next[c] = S.c.alexaKeys[c]; });
       next[t.colour] = row.id ? { id: row.id, name: row.group || row.spotify ? '' : row.label.slice(0, 80) } : null;
@@ -1865,7 +1930,7 @@
 
   /* ---------- Rendering ---------- */
   var $ = function (id) { return document.getElementById(id); };
-  var alexaToast = $('alexaToast');
+  var alexaToast = $('alexaToast'), musicEl = $('music'), keyLegend = $('keyLegend');
   var stage = $('stage'), buildVersion = $('buildVersion'), homeEl = $('home'), caption = $('caption'), utilsEl = $('utils');
   var utilFocusLabel = $('utilFocusLabel'), utilFocusKey = '', appFocusName = $('appFocusName');
   var dock = $('dock'), shelf = $('shelf'), track = $('track'), plate = $('plate'), matScrim = $('matScrim'), dockEmpty = $('dockEmpty');
@@ -2092,7 +2157,10 @@
     // Centred: date and weather share one smaller line under the clock. Corner: the date is a quiet second line.
     if (S.c.clockPos !== 'corner' && S.c.layout === 'dock') html = '<span class="caption-head"><span class="clock">' + clockHtml() + '</span>' + (date || weatherHtml ? '<span class="caption-sub">' + date + weatherHtml + '</span>' : '') + '</span>';
     else html = '<span class="caption-head"><span class="clock">' + clockHtml() + '</span>' + weatherHtml + '</span>' + date;
-    html += musicCaptionHtml();
+    /* With the clock in the centre, the song sits alone in the top-left corner. */
+    if (S.c.clockPos !== 'corner' && S.c.layout === 'dock') setHTML(musicEl, musicHtml(hs.zone === 'music'));
+    else { setHTML(musicEl, ''); html += musicHtml(hs.zone === 'music'); }
+    setHTML(keyLegend, keyLegendHtml());
     caption.setAttribute('data-weather', S.c.weather === 'off' || weather.temp === null ? '' : String(weather.temp));
     if (S.c.apps !== 'icons' && !(S.c.clockPos !== 'corner' && S.c.layout === 'dock') && hs.items[hs.i] && (S.c.layout === 'list' ? photoLabel(hs.items[hs.i].id, false).size < 88 || photoLabel(hs.items[hs.i].id, false).ellipsis : hs.zone === 'apps' && reducedDockLabel(hs.items[hs.i].id))) html += '<span class="cap-line full-name">' + esc(app(hs.items[hs.i].id).name) + '</span>';
     setHTML(caption, html);
@@ -2137,7 +2205,7 @@
     width = Math.ceil(textWidth(text, 28, 500, -.2) + 8); x = (r.left + r.width / 2 - sr.left) / scale - width / 2;
     if (S.c.layout === 'list') x = 1730 - width;
     utilFocusLabel.style.width = width + 'px'; utilFocusLabel.style.left = clamp(x, 112, 1808 - width) + 'px';
-    utilFocusLabel.style.top = ((S.c.layout === 'list' ? (r.top + r.height / 2 - sr.top) / scale - 19 : 140) + fontShift('ui', 28)) + 'px';
+    utilFocusLabel.style.top = ((S.c.layout === 'list' ? (r.top + r.height / 2 - sr.top) / scale - 19 : 116) + fontShift('ui', 28)) + 'px';
     utilFocusLabel.className = 'util-focus-label is-on';
   }
   function renderUtilityLens(button, iconsOnly) {
@@ -2170,6 +2238,7 @@
     fieldTransform(utFields[utPlateIndex], x, y, width, 60);
     utPlates[utPlateIndex].className = 'ph-plate ut-lens is-current on-focus';
   }
+  var dockTopY = 776;
   function renderAppFocusName(hs) {
     var it = hs.items[hs.i], width, x, y, placement;
     if (S.c.apps !== 'icons' || hs.mode !== 'browse' || hs.zone !== 'apps' || !it) { appFocusName.className = 'app-focus-name'; return; }
@@ -2180,7 +2249,7 @@
       x = 280; placement = phFields[photoPlateIndex]._placement;
       y = placement.y + placement.height / 2 - 24;
     } else {
-      x = clamp(dockAnchorCenter - width / 2, 140, 1780 - width); y = 932;
+      x = clamp(dockAnchorCenter - width / 2, 140, 1780 - width); y = dockTopY - 60;
     }
     appFocusName.style.left = x + 'px'; appFocusName.style.top = (y + fontShift('primary', S.c.layout === 'list' ? 40 : 36)) + 'px';
     appFocusName.className = 'app-focus-name is-on';
@@ -2192,7 +2261,7 @@
     var m = DOCK_MODES[S.c.apps], contentW = n > 0 ? (n - 1) * m.pitch + m.tw : 0, fits = n > 0 && contentW <= 1696;
     var vis = fits ? n : Math.max(1, Math.min(5, n)), shelfW = fits ? contentW : vis * m.pitch - 8, w = shelfW + 32;
     if (n < 0) { w = 912; shelfW = 880; vis = 0; }
-    return { x: Math.round((1920 - w) / 2), y: 908 - m.th - 32, h: m.th + 32, w: w, shelf: shelfW, vis: vis, empty: n < 0, tw: m.tw, th: m.th, pitch: m.pitch };
+    return { x: Math.round((1920 - w) / 2), y: DOCK_BOTTOM - m.th - 32, h: m.th + 32, w: w, shelf: shelfW, vis: vis, empty: n < 0, tw: m.tw, th: m.th, pitch: m.pitch };
   }
   function dockOffset(n, i, g) {
     var first = clamp(scroll.first, 0, Math.max(0, n - g.vis));
@@ -2220,7 +2289,8 @@
     dock.style.left = g.x + 'px'; dock.style.top = g.y + 'px'; dock.style.width = g.w + 'px'; dock.style.height = g.h + 'px';
     dock.style.setProperty('--tile-w', g.tw + 'px'); dock.style.setProperty('--tile-h', g.th + 'px'); dock.style.setProperty('--dock-h', g.h + 'px');
     dock.style.setProperty('--nudge-top', ((g.th - 48) / 2) + 'px');
-    dockAnchorCenter = g.x + 16 + anchor * g.pitch - off + g.tw / 2;
+    dockAnchorCenter = g.x + 16 + anchor * g.pitch - off + g.tw / 2; dockTopY = g.y;
+    dockAction.style.top = (g.y - 80) + 'px';
     IMG.mat.style.left = (-g.x) + 'px'; IMG.mat.style.top = (-g.y) + 'px';
     IMG.mat.style.transformOrigin = '960px ' + (g.y + g.h / 2) + 'px';
     matScrim.style.left = (-g.x) + 'px'; matScrim.style.top = (SCRIM_Y - g.y) + 'px';
@@ -2534,6 +2604,11 @@
         + '<p class="phone-status" data-slot="status" aria-live="polite"></p><p class="phone-note">' + T(p.note) + '</p>'
         + '<div class="phone-acts" data-slot="acts"></div></div></div></div>';
     },
+    nowplaying: function () {
+      return '<div class="np"><div class="np-art-wrap" data-slot="artwrap"><img class="np-art" data-slot="art" alt=""></div>'
+        + '<div class="np-copy"><p class="np-device" data-slot="device"></p><h2 class="np-title" data-slot="title"></h2><p class="np-artist" data-slot="artist"></p><p class="np-album" data-slot="album"></p>'
+        + '<div class="np-progress" data-slot="progress"></div><div class="np-controls" data-slot="controls"></div></div></div>';
+    },
     alexalist: function () {
       return '<div class="alexa-pick"><h2 class="s-title" data-slot="title"></h2><p class="s-sub" data-slot="sub"></p><div class="alexa-list" data-slot="list"></div>'
         + '<div class="row-cue alexa-before" data-slot="before" aria-hidden="true">' + icon('up') + '</div><div class="row-cue alexa-after" data-slot="after" aria-hidden="true">' + icon('down') + '</div></div>';
@@ -2669,6 +2744,20 @@
       setHTML(el.url, esc(p.page.replace(/^https:\/\//, '').replace(/\/$/, '')));
       setHTML(el.status, '<span class="phone-dot is-' + dot + '"></span>' + esc(text));
       setHTML(el.acts, '<button type="button" tabindex="-1" class="btn is-focus" data-z="act" data-i="0" data-action="pair.ok"><span>' + T(st.phase === 'done' ? 'Done' : st.phase === 'failed' ? 'Try again' : 'Close') + '</span></button>');
+    },
+    nowplaying: function (t, el) {
+      var n = spot.now, art = n && (n.artBig || n.art) || '';
+      if (el.art.getAttribute('src') !== art) { if (art) el.art.setAttribute('src', art); else el.art.removeAttribute('src'); }
+      el.artwrap.className = 'np-art-wrap' + (art ? '' : ' is-empty');
+      setHTML(el.device, n && n.device ? esc(T('Playing on {0}', n.device)) : '');
+      setHTML(el.title, esc(n ? n.title : T('Nothing is playing on Spotify.')));
+      setHTML(el.artist, esc(n ? n.artist : ''));
+      setHTML(el.album, esc(n ? n.album : ''));
+      setHTML(el.progress, n ? progressHtml(n) : '');
+      setHTML(el.controls, ['prev', n && n.playing ? 'pause' : 'play', 'next'].map(function (name, i) {
+        var label = T(i === 0 ? 'Previous track' : i === 2 ? 'Next track' : name === 'pause' ? 'Pause' : 'Play');
+        return '<button type="button" tabindex="-1" class="np-btn' + (i === 1 ? ' np-main' : '') + (t.f.b === i ? ' is-focus' : '') + '" data-z="np" data-i="' + i + '" data-action="np.' + ['prev', 'toggle', 'next'][i] + '" aria-label="' + esc(label) + '">' + icon(name) + '</button>';
+      }).join(''));
     },
     alexalist: function (t, el) {
       var rows = alexaRows(t), words = alexaListText(t), html = '', i, r, sub;

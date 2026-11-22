@@ -38,7 +38,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000}
 .is-hdmi-input .home,.is-hdmi-input .bg,.is-hdmi-input .caption{visibility:hidden}
 
 /* Caption: the clock, or the name of the mode Home is in */
-.caption{position:absolute;left:140px;top:72px;display:flex;flex-direction:column;gap:4px;max-width:1040px}
+.caption{position:absolute;left:140px;top:52px;display:flex;flex-direction:column;gap:4px;max-width:1040px}
 .caption-head{display:flex;align-items:baseline;gap:22px;flex-wrap:nowrap;max-width:100%}
 .clock,.cap-title,.weather{font-size:48px;line-height:64px;font-weight:500;letter-spacing:-1.5px;white-space:nowrap;text-shadow:0 1px 3px rgba(0,0,0,.22)}
 .clock{font-variant-numeric:tabular-nums}
@@ -54,7 +54,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000}
 .error-chip{padding:6px 14px;color:var(--warn);white-space:nowrap}
 .full-name{max-width:1000px}
 /* Base controls also serve wallpaper preview. Quiet Home utilities override them below. */
-.utils{position:absolute;right:112px;top:72px;display:flex;gap:8px;align-items:center}
+.utils{position:absolute;right:112px;top:52px;display:flex;gap:8px;align-items:center}
 .u{height:64px;padding:0 26px 0 20px;border-radius:32px;display:inline-flex;align-items:center;gap:12px;font-size:30px;font-weight:500;letter-spacing:-.3px;white-space:nowrap;color:var(--mute);background:none;text-shadow:0 1px 2px rgba(0,0,0,.32);transition:background-color 140ms linear,color 140ms linear}
 .u .ico{width:32px;height:32px}
 .l-dock .u,.l-list .u{max-width:600px}
@@ -85,7 +85,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000}
 .util-focus-label.is-on{opacity:1}
 
 /* ---------- Glass Dock ---------- */
-.dock{position:absolute;left:208px;top:676px;width:1504px;height:232px}
+.dock{position:absolute;left:208px;top:800px;width:1504px;height:232px}
 .mat{position:absolute;left:0;top:0;right:0;bottom:0;border-radius:48px;overflow:hidden;transform:translateZ(0)}
 .mat-img{position:absolute;left:0;top:0;width:1920px;height:1080px;max-width:none;object-fit:cover;object-position:50% 50%}
 .mat-scrim{position:absolute;left:0;top:0;width:1920px;height:520px;background:linear-gradient(to bottom,rgba(4,10,12,0),rgba(4,10,12,.42) 70%,rgba(4,10,12,.52))}
@@ -149,7 +149,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000}
 .cue{position:absolute;top:768px;left:0;width:48px;height:48px;border-radius:24px;background:rgba(8,14,18,.28);color:#fff;display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity 160ms linear;pointer-events:none}
 .cue.is-on{opacity:.8}
 .cue .ico{width:30px;height:30px;stroke-width:2}
-.dock-action{position:absolute;left:0;top:932px;width:288px;height:64px;border-radius:32px;display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:500;letter-spacing:-.3px;white-space:nowrap;color:var(--mute);background:none;opacity:0;pointer-events:none;transition:transform var(--t) var(--ease),opacity 120ms linear,background-color 120ms linear}
+.dock-action{position:absolute;left:0;top:720px;width:288px;height:64px;border-radius:32px;display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:500;letter-spacing:-.3px;white-space:nowrap;color:var(--mute);background:none;opacity:0;pointer-events:none;transition:transform var(--t) var(--ease),opacity 120ms linear,background-color 120ms linear}
 .dock-action.is-on{opacity:1;pointer-events:auto}
 .dock-action.is-focus{background:var(--solid);color:var(--solid-ink)}
 .dock-action>span{display:block;max-width:100%;padding:0 20px;overflow:hidden;text-overflow:ellipsis}
@@ -647,7 +647,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000}
 .font-newsreader .home .header-utils .u-label,.font-newsreader .home .wall-keep{position:relative;top:var(--font-action-shift)}
 .clock-digit{display:inline-block;width:var(--font-clock-digit);text-align:center;letter-spacing:0}
 /* Centred clock: Centre and Large centre sit in the open space above the dock, or grow in place in List. */
-.stage.l-dock.clock-big .caption{left:160px;right:160px;top:0;bottom:404px;max-width:none;justify-content:center;align-items:center;text-align:center}
+.stage.l-dock.clock-big .caption{left:160px;right:160px;top:40px;bottom:300px;max-width:none;justify-content:center;align-items:center;text-align:center}
 .stage.l-dock.clock-big .caption::before{content:"";position:absolute;left:50%;top:50%;width:1100px;height:520px;margin:-260px 0 0 -550px;border-radius:50%;background:radial-gradient(closest-side,rgba(8,12,14,.22),rgba(8,12,14,0));pointer-events:none}
 .bg-dark.l-dock.clock-big .caption::before,.bg-light.l-dock.clock-big .caption::before{display:none}
 .stage.l-dock.clock-big .caption-head{position:relative;flex-direction:column;align-items:center;gap:6px}
@@ -762,17 +762,51 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000}
 .detail-alexa .setting-label{margin-bottom:6px;font-size:24px;line-height:30px}
 .detail-alexa .setting-copy{min-width:0}
 .quiet-utils .u-compact .u-label{display:none}
-/* Spotify: what is playing, under the clock (and the date). */
-.cap-music{display:flex;align-items:center;gap:18px;margin-top:10px;max-width:900px;text-shadow:0 1px 3px rgba(0,0,0,.22)}
-.music-art{flex:none;width:64px;height:64px;border-radius:12px;object-fit:cover;box-shadow:0 6px 18px rgba(4,8,10,.3)}
+/* Spotify: what is playing, under the clock (or alone top left when the clock is centred).
+   It is focusable: Left from the first Home control, OK opens Now playing. */
+.cap-music{display:flex;align-items:center;gap:18px;margin:14px 0 0 -14px;padding:10px 20px 10px 14px;max-width:760px;border-radius:22px;text-shadow:0 1px 3px rgba(0,0,0,.22);transition:background-color 140ms linear,color 140ms linear,box-shadow 160ms linear;text-align:left;pointer-events:auto}
+.cap-music.is-focus{background:var(--solid);color:var(--solid-ink);text-shadow:none;box-shadow:0 14px 40px rgba(4,8,10,.32);opacity:1!important}
+.music-art{flex:none;width:72px;height:72px;border-radius:12px;object-fit:cover;box-shadow:0 6px 18px rgba(4,8,10,.3)}
 .music-art-empty{display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.12)}
 .music-art-empty .ico{width:32px;height:32px;stroke-width:1.7}
-.music-text{display:flex;flex-direction:column;min-width:0}
-.music-title{display:flex;align-items:center;gap:10px;font-size:32px;line-height:40px;font-weight:500;letter-spacing:-.4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.music-artist{font-size:26px;line-height:32px;opacity:.75;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.music-paused{flex:none;width:26px;height:26px;stroke-width:2.4}
-.cap-music.is-paused{opacity:.7}
-.has-clock-ink .cap-music,.has-adaptive-ink .cap-music{color:var(--tl-clock-ink,var(--tl-ink,var(--clock-ink,var(--ink))))}
-.clock-big .cap-music{justify-content:center;margin-left:auto;margin-right:auto}
+.music-text{display:flex;flex-direction:column;min-width:0;flex:1}
+.music-title{display:flex;align-items:center;gap:10px;font-size:30px;line-height:38px;font-weight:500;letter-spacing:-.4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.music-artist{font-size:24px;line-height:30px;opacity:.75;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.music-paused{flex:none;width:24px;height:24px;stroke-width:2.4}
+.music-progress{display:flex;align-items:center;gap:12px;margin-top:6px;font-size:18px;line-height:22px;font-variant-numeric:tabular-nums;opacity:.8}
+.music-bar{position:relative;flex:1;min-width:120px;height:4px;border-radius:2px;background:currentColor;background:rgba(255,255,255,.28);overflow:hidden}
+.music-bar i{position:absolute;left:0;top:0;bottom:0;border-radius:2px;background:currentColor}
+.cap-music.is-focus .music-bar{background:rgba(20,22,24,.16)}
+.cap-music.is-paused:not(.is-focus){opacity:.72}
+.has-clock-ink .cap-music:not(.is-focus),.has-adaptive-ink .cap-music:not(.is-focus){color:var(--tl-clock-ink,var(--tl-ink,var(--clock-ink,var(--ink))))}
+.music{position:absolute;left:140px;top:44px}
+.music .cap-music{margin-top:0}
+.l-list .cap-music{margin:14px -14px 0 0}
+/* Colour-button legend, bottom left above the Dock, beside the remote's colour picker. */
+.key-legend{position:absolute;left:56px;bottom:296px;display:flex;flex-direction:column;gap:10px;pointer-events:none}
+.legend-row{display:flex;align-items:center;gap:14px;font-size:24px;line-height:30px;font-weight:500;letter-spacing:-.2px;text-shadow:0 1px 3px rgba(0,0,0,.35);max-width:420px}
+.legend-row .key-dot{flex:none;width:18px;height:18px;border-radius:50%;box-shadow:0 0 0 2px rgba(255,255,255,.35)}
+.legend-name{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;opacity:.9}
+.legend-state{flex:none;width:8px;height:8px;border-radius:50%;border:2px solid currentColor;opacity:.6}
+.legend-state.is-on{background:currentColor;opacity:.95}
+.has-clock-ink .key-legend,.has-adaptive-ink .key-legend{color:var(--bl-ink,var(--tl-ink,var(--ink)))}
+/* Now playing: a large cover, the song and three big controls. */
+.np{position:absolute;left:160px;right:160px;top:0;bottom:0;display:flex;align-items:center;gap:96px}
+.np-art-wrap{flex:none;width:560px;height:560px;border-radius:28px;overflow:hidden;background:rgba(255,255,255,.08);box-shadow:0 30px 80px rgba(4,8,10,.45)}
+.np-art-wrap.is-empty .np-art{display:none}
+.np-art{display:block;width:100%;height:100%;object-fit:cover}
+.np-copy{flex:1;min-width:0;display:flex;flex-direction:column}
+.np-device{margin:0 0 18px;font-size:26px;line-height:32px;color:var(--mute);letter-spacing:.2px}
+.np-title{margin:0;font-size:68px;line-height:78px;font-weight:600;letter-spacing:-1.6px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.np-artist{margin:14px 0 0;font-size:40px;line-height:50px;font-weight:500;letter-spacing:-.6px;opacity:.85;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.np-album{margin:6px 0 0;font-size:28px;line-height:36px;color:var(--mute);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.np-progress .music-progress{margin-top:48px;font-size:24px;line-height:30px;gap:20px;opacity:.9}
+.np-progress .music-bar{height:6px;border-radius:3px}
+.np-controls{display:flex;align-items:center;gap:28px;margin-top:48px}
+.np-btn{display:flex;align-items:center;justify-content:center;width:96px;height:96px;border-radius:50%;color:var(--ink);background:rgba(255,255,255,.08);transition:transform 160ms var(--ease),background-color 140ms linear,color 140ms linear}
+.np-btn .ico{width:40px;height:40px;stroke-width:2;fill:currentColor}
+.np-main{width:128px;height:128px}
+.np-main .ico{width:52px;height:52px}
+.np-btn.is-focus{background:var(--solid);color:var(--solid-ink);transform:scale(1.08)}
+.bg-light .np-btn{background:rgba(29,26,22,.06)}
 
-.stage.l-dock.clock-big .cap-music{position:relative;text-align:left}

@@ -162,7 +162,7 @@ async function page(options = {}) {
     if (r.method() === 'OPTIONS') return route.fulfill({ status: 204, headers: sp });
     if (r.headers()['authorization'] !== 'Bearer BQtest') return route.fulfill({ status: 401, headers: sp, contentType: 'application/json', body: '{"error":{"status":401}}' });
     if (r.method() === 'GET') return route.fulfill({ headers: sp, contentType: 'application/json', body: JSON.stringify({ is_playing: Q.playing, device: { name: 'Echo Dot Max' },
-      item: { id: 't1', name: 'Song A', artists: [{ name: 'Artist A' }, { name: 'Guest B' }], album: { images: [{ url: 'https://i.scdn.co/image/big', width: 640 }, { url: 'https://i.scdn.co/image/small', width: 64 }] } } }) });
+      progress_ms: 61000, item: { id: 't1', name: 'Song A', duration_ms: 210000, artists: [{ name: 'Artist A' }, { name: 'Guest B' }], album: { name: 'Album A', images: [{ url: 'https://i.scdn.co/image/big', width: 640 }, { url: 'https://i.scdn.co/image/small', width: 64 }] } } }) });
     Q.calls.push(r.method() + ' ' + path);
     if (Q.refuse) return route.fulfill({ status: 403, headers: sp, contentType: 'application/json', body: JSON.stringify({ error: { status: 403, message: 'Player command failed: Premium required', reason: Q.refuse } }) });
     if (path.endsWith('/pause')) Q.playing = false; if (path.endsWith('/play')) Q.playing = true;
@@ -527,13 +527,14 @@ try {
     await pick(/Left lamp/); await pick(/^.?Nappali/);
     check('A light and a group are on Home', (await stored()).alexaSwitches.map(x => x.id).join() === 'amzn1.alexa.endpoint.lamp-1,group:' + groups[0].id, (await stored()).alexaSwitches);
     await nav('back');
-    await act('alexa.list.keys'); await act('alexa.row.1');
+    await act('alexa.list.keys'); await act('alexa.row.2');
     await current.waitForFunction(() => document.querySelectorAll('.alexa-row').length >= 4);
     await pick(/Piano lamp/);
     check('The green button switches the piano lamp', (await stored()).alexaKeys.green.id === 'amzn1.alexa.endpoint.lamp-3' && (await state()).view === 'alexalist');
     await scene('home');
     await current.waitForFunction(() => document.querySelectorAll('.weather.indoor').length === 2);
     check('Home shows the temperature and the humidity', await current.evaluate(() => [...document.querySelectorAll('.weather.indoor')].map(e => e.textContent).join(' ')) === '22.4° 45%');
+    check('The colour-button legend names the green button', /Piano lamp/.test(await current.locator('#keyLegend').textContent()) && await current.locator('#keyLegend .key-green').count() === 1);
     check('Home controls start with the light and the group', await current.evaluate(() => [...document.querySelectorAll('#utils .u')].map(b => b.getAttribute('data-action')).join()) === 'util.sw0,util.sw1,util.wifi,util.apps,util.settings');
     await act('util.sw1');
     await current.waitForFunction(() => document.querySelectorAll('.u-lamp.is-lit').length === 2);
@@ -576,6 +577,18 @@ try {
     await scene('home');
     await current.waitForFunction(() => document.querySelector('.cap-music'));
     check('Home shows the song, the artists and the small cover', await current.evaluate(() => { const m = document.querySelector('.cap-music'); return /Song A/.test(m.querySelector('.music-title').textContent) && m.querySelector('.music-artist').textContent === 'Artist A, Guest B' && /\/small$/.test(m.querySelector('.music-art').src); }));
+    check('The song shows its progress and length', await current.evaluate(() => /^\d+:\d\d$/.test(document.querySelector('[data-music-pos]').textContent) && /3:30/.test(document.querySelector('.music-progress').textContent)));
+    await nav('up', 'left');
+    check('Left from the first Home control focuses the song', (await current.evaluate(() => ShoreQA.where())).zone === 'music' && await current.evaluate(() => !!document.querySelector('.cap-music.is-focus')), await state());
+    await nav('ok');
+    await current.waitForFunction(() => ShoreQA.where().view === 'nowplaying');
+    check('OK opens Now playing with the large cover and three controls', await current.evaluate(() => /\/big$/.test(document.querySelector('.np-art').src) && /Song A/.test(document.querySelector('.np-title').textContent) && document.querySelectorAll('.np-btn').length === 3 && document.querySelector('.np-btn.is-focus').getAttribute('data-action') === 'np.toggle'));
+    await nav('right', 'ok');
+    await current.waitForFunction(() => /Next track|Következő/.test(document.getElementById('alexaToast').textContent));
+    check('Its controls drive Spotify', current.__spotify.calls[0] === 'POST /v1/me/player/next');
+    current.__spotify.calls.length = 0;
+    await current.waitForTimeout(400); await nav('back');
+    check('Back returns to Home', (await state()).view === 'home');
     const key = code => current.evaluate(c => { document.dispatchEvent(new KeyboardEvent('keydown', { keyCode: c, bubbles: true })); document.dispatchEvent(new KeyboardEvent('keyup', { keyCode: c, bubbles: true })); }, code);
     await key(10252);
     await current.waitForFunction(() => document.querySelector('.cap-music.is-paused') && /Paused|Szünet/.test(document.getElementById('alexaToast').textContent));
@@ -585,7 +598,7 @@ try {
     check('Play/Pause again plays', current.__spotify.calls[1] === 'PUT /v1/me/player/play');
     await key(417); await current.waitForFunction(() => /Next track|Következő/.test(document.getElementById('alexaToast').textContent));
     check('Fast-forward skips to the next track', current.__spotify.calls[2] === 'POST /v1/me/player/next');
-    await group('connections'); await act('conn.spotify'); await act('alexa.list.keys'); await act('alexa.row.3');
+    await group('connections'); await act('conn.spotify'); await act('alexa.list.keys'); await act('alexa.row.4');
     const rows = await current.evaluate(() => [...document.querySelectorAll('.alexa-row')].map(e => e.textContent));
     await act('alexa.row.' + rows.findIndex(t => /previous track|előző/.test(t)));
     check('A colour button can skip back, even without Alexa', (await stored()).alexaKeys.blue.id === 'spotify:prev', rows);
