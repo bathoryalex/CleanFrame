@@ -4,7 +4,7 @@
 
   /* ---------- Bundled data ---------- */
   var ASSETS = 'assets/', ICONS = ASSETS + 'icons/', WP = ASSETS + 'wallpapers/';
-  var APP_VERSION = '0.28.0';
+  var APP_VERSION = '0.28.1';
   var CAP = 9, SCRIM_Y = 560, DOCK_BOTTOM = 1032; // the Dock sits 48 px above the bottom edge; names and actions go above it
   var DOCK_MODES = { both: { tw: 288, th: 200, pitch: 296 }, text: { tw: 288, th: 104, pitch: 296 }, icons: { tw: 200, th: 156, pitch: 206 } }; // icons-only tiles leave room under the icon for the focused app's name
   var GRID_ROW = 240, GRID_COL = 344, COLS = 5;
@@ -2758,11 +2758,33 @@
   /* Tiles: the same row with a gap between separate tiles. */
   function dockMode() { var m = DOCK_MODES[S.c.apps]; return S.c.dockStyle !== 'shelf' ? { tw: m.tw, th: m.th, pitch: m.pitch + 12 } : m; }
   function dockGeom(n) {
-    var m = dockMode(), contentW = n > 0 ? (n - 1) * m.pitch + m.tw : 0, fits = n > 0 && contentW <= (S.c.dockStyle !== 'shelf' ? 1760 : 1696);
+    var m = dockMode(), contentW = n > 0 ? (n - 1) * m.pitch + m.tw : 0, fits = n > 0 && contentW <= (S.c.dockStyle === 'modern' ? 1760 / MODERN_SCALE : S.c.dockStyle !== 'shelf' ? 1760 : 1696);
     var vis = fits ? n : Math.max(1, Math.min(5, n)), shelfW = fits ? contentW : vis * m.pitch - 8, w = shelfW + 32;
     if (n < 0) { w = 912; shelfW = 880; vis = 0; }
-    return { x: Math.round((1920 - w) / 2), y: DOCK_BOTTOM - m.th - 32, h: m.th + 32, w: w, shelf: shelfW, vis: vis, empty: n < 0, tw: m.tw, th: m.th, pitch: m.pitch };
+    var g = { x: Math.round((1920 - w) / 2), y: DOCK_BOTTOM - m.th - 32, h: m.th + 32, w: w, shelf: shelfW, vis: vis, empty: n < 0, tw: m.tw, th: m.th, pitch: m.pitch, s: 1 };
+    /* Modern dock: the same row drawn at 80 % and lowered, so the tiles end 14 px above the bottom
+       edge, like the top bar's widgets 14 px below the top. */
+    if (S.c.dockStyle === 'modern') { g.s = MODERN_SCALE; g.y = Math.round(1080 - 14 + 16 * g.s - g.h); }
+    return g;
   }
+  var MODERN_SCALE = 0.8;
+  /* An eased fade: solid glass up to `solid` %, then thinning out without a visible step. */
+  var FADE_STEPS = [[0, 1], [.08, .92], [.17, .8], [.27, .65], [.37, .5], [.47, .36], [.57, .24], [.68, .14], [.79, .07], [.9, .025], [1, 0]];
+  function fadeGradient(dir, solid, alpha, rgb) {
+    return 'linear-gradient(' + dir + ',rgba(' + rgb + ',' + alpha + ') 0,' + FADE_STEPS.map(function (p) {
+      return 'rgba(' + rgb + ',' + (alpha * p[1]).toFixed(3) + ') ' + (solid + (100 - solid) * p[0]).toFixed(1) + '%';
+    }).join(',') + ')';
+  }
+  var bottomBarKey = '';
+  function paintBottomBar(top) {
+    var el = $('bottomBar'), solidH = 1080 - top + 14, h = solidH + 120, key = h + '|' + S.c.bg;
+    if (!el || key === bottomBarKey) return;
+    bottomBarKey = key;
+    el.style.height = h + 'px';
+    el.style.background = S.c.bg === 'light' ? fadeGradient('0deg', solidH / h * 100, .56, '255,255,255') : S.c.bg === 'dark' ? fadeGradient('0deg', solidH / h * 100, .07, '255,255,255') : fadeGradient('0deg', solidH / h * 100, .62, '12,16,18');
+  }
+  /* Where the (possibly scaled) dock is on screen; scaling is about the bottom centre. */
+  function dockVisual(g) { var b = g.y + g.h; return { x: 960 + (g.x - 960) * g.s, y: b - g.h * g.s, w: g.w * g.s, h: g.h * g.s, map: function (x) { return 960 + (x - 960) * g.s; } }; }
   function dockOffset(n, i, g) {
     var first = clamp(scroll.first, 0, Math.max(0, n - g.vis));
     if (i < first) first = i;
@@ -2790,8 +2812,11 @@
     dock.style.left = g.x + 'px'; dock.style.top = g.y + 'px'; dock.style.width = g.w + 'px'; dock.style.height = g.h + 'px';
     dock.style.setProperty('--tile-w', g.tw + 'px'); dock.style.setProperty('--tile-h', g.th + 'px'); dock.style.setProperty('--dock-h', g.h + 'px');
     dock.style.setProperty('--nudge-top', ((g.th - 48) / 2) + 'px');
-    dockAnchorCenter = g.x + 16 + anchor * g.pitch - off + g.tw / 2; dockTopY = g.y;
-    dockAction.style.top = (g.y - 80) + 'px';
+    var vg = dockVisual(g);
+    dock.style.transformOrigin = '50% 100%'; dock.style.transform = g.s !== 1 ? 'scale(' + g.s + ')' : '';
+    dockAnchorCenter = vg.map(g.x + 16 + anchor * g.pitch - off + g.tw / 2); dockTopY = Math.round(vg.y);
+    dockAction.style.top = (vg.y - 80) + 'px';
+    if (S.c.dockStyle === 'modern') paintBottomBar(vg.y);
     IMG.mat.style.left = (-g.x) + 'px'; IMG.mat.style.top = (-g.y) + 'px';
     IMG.mat.style.transformOrigin = '960px ' + (g.y + g.h / 2) + 'px';
     matScrim.style.left = (-g.x) + 'px'; matScrim.style.top = (SCRIM_Y - g.y) + 'px';
@@ -2815,8 +2840,8 @@
     plate.className = 'plate' + (!n || empty || hs.zone === null ? '' : hs.lifted ? ' on-lift' : tileFocus ? ' on-focus' : tileSel ? ' on-sel' : '');
     plate.style.transform = 'translate3d(' + (anchor * g.pitch) + 'px,0,0)';
 
-    cueL.style.left = (g.x - 72) + 'px'; cueR.style.left = (g.x + g.w + 24) + 'px';
-    cueL.style.top = cueR.style.top = (g.y + g.h / 2 - 24) + 'px';
+    cueL.style.left = (vg.x - 72) + 'px'; cueR.style.left = (vg.x + vg.w + 24) + 'px';
+    cueL.style.top = cueR.style.top = (vg.y + vg.h / 2 - 24) + 'px';
     cueL.className = 'cue' + (!empty && scroll.first > 0 ? ' is-on' : '');
     cueR.className = 'cue' + (!empty && scroll.first + g.vis < n ? ' is-on' : '');
 
@@ -2824,7 +2849,7 @@
     if (hs.mode === 'arrange' && !hs.lifted && (hs.zone === 'tiles' || hs.zone === 'act') && focusItem && focusItem.kind !== 'add') {
       s = hs.arr.slots[anchor];
       label = T(s.removed ? 'Restore {0}' : 'Remove {0}', app(s.id).name); width = actionWidth(label);
-      ax = clamp(ax + (g.tw - width) / 2, 112, 1808 - width);
+      ax = clamp(vg.map(ax) + (g.tw * g.s - width) / 2, 112, 1808 - width);
       setHTML(dockAction, '<span>' + esc(label) + '</span>');
       dockAction.className = 'dock-action is-on' + (hs.zone === 'act' ? ' is-focus' : '');
       dockAction.style.width = width + 'px';

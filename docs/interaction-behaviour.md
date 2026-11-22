@@ -177,3 +177,7 @@ Switches: up to six devices or groups with the top Dock bar (the separate widget
 
 **Modern dock** (Settings → Layout → Bottom bar → Layout): a full-width glass bar along the bottom edge (380 px, fading upwards with the same eased curve), the photo's bottom scrim off, and app tiles drawn like the top widgets: flat light glass with 16 px corners and a white 3 px ring with lighter glass on focus (in both Focus styles). Geometry, paging and names are those of Tiles.
 
+## 0.28.1
+
+Modern dock: the app row is drawn at 80 % (scaled about its bottom centre) and lowered so the tiles end 14 px above the bottom edge, matching the 14 px above the top bar's widgets; with the smaller tiles up to nine icon tiles fit without paging. The glass behind it is as tall as the tiles plus 14 px, then fades out over 120 px along the same eased curve as the top bar (the script sets its height and gradient). Page cues, the Arrange action and the button legend follow the scaled row. Both bars are a little darker (62 % at the solid part).
+

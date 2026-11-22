@@ -1048,3 +1048,6 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000}
 .bg-light.dock-modern .dock .tile::before{background:rgba(255,255,255,.55)}
 .bg-light.dock-modern .dock .tile.is-focus::before{background:rgba(255,255,255,.85);box-shadow:inset 0 0 0 3px #1d1a16}
 .dock-modern .dock .tile .tile-content{opacity:1}
+/* Darker glass for both bars (0.28.1); the bottom bar's height and fade are set by the script to sit
+   just behind the smaller Modern dock tiles. */
+.stage.top-bar .topbar-bg{height:230px;background:linear-gradient(180deg,rgba(12,16,18,.62) 0,rgba(12,16,18,.62) 50%,rgba(12,16,18,.57) 54%,rgba(12,16,18,.50) 58.5%,rgba(12,16,18,.40) 63.5%,rgba(12,16,18,.31) 68.5%,rgba(12,16,18,.22) 73.5%,rgba(12,16,18,.15) 78.5%,rgba(12,16,18,.087) 84%,rgba(12,16,18,.043) 89.5%,rgba(12,16,18,.016) 95%,rgba(12,16,18,0) 100%)}

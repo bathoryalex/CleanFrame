@@ -876,6 +876,9 @@ try {
     const m = await current.evaluate(() => { const st = document.getElementById('stage'), b = document.getElementById('bottomBar'), r = b.getBoundingClientRect(), s = st.getBoundingClientRect(), tile = document.querySelector('.dock .tile.is-focus');
       return { cls: st.className.indexOf('dock-modern') >= 0, shown: getComputedStyle(b).display === 'block', bottom: Math.round(r.bottom - s.bottom), left: Math.round(r.left - s.left), width: Math.round(r.width), fade: /rgba\(12, 16, 18, 0\) 100%/.test(getComputedStyle(b).backgroundImage), ring: tile ? getComputedStyle(tile, '::before').boxShadow : '' }; });
     check('Modern dock is saved and draws a full-width bar from the bottom edge that fades upwards', (await stored()).dockStyle === 'modern' && m.cls && m.shown && m.bottom === 0 && m.left === 0 && m.width === 1920 && m.fade, m);
+    const t = await current.evaluate(() => { const s = document.getElementById('stage').getBoundingClientRect(), r = [...document.querySelectorAll('.dock .tile')].map(e => e.getBoundingClientRect()), d = document.querySelector('.dock .tile.is-focus').getBoundingClientRect();
+      return { bottom: Math.round(s.bottom - Math.max(...r.map(x => x.bottom))), h: Math.round(d.height) }; });
+    check('Modern dock tiles are smaller (80 %) and sit 14 px above the bottom edge', Math.abs(t.bottom - 14) <= 1 && Math.abs(t.h - 200 * 0.8) <= 1, t);
     check('Its focused app has the same white ring as the top widgets', /255, 255, 255\) 0px 0px 0px 3px inset|inset 0px 0px 0px 3px rgb\(255, 255, 255\)/.test(m.ring), m.ring);
   });
   await run('A remote button can open the Home screen', async () => {
