@@ -21,7 +21,7 @@ This repo uses [Nathan Clark's CleanFrame](https://github.com/nthnclrk/CleanFram
 - **Clock, date and weather.** 24- or 12-hour clock, in the corner or large in the centre. An optional date ("15 November", or "November 15" in Hungarian). Weather from [Open-Meteo](https://open-meteo.com): an icon, the temperature and today's high and low.
 - **Backgrounds.** A photograph, light or dark. Seventeen bundled wallpapers with pre-rendered glass, optional rotation, and **Your picture**: send any photo or short looping video from your phone and it becomes the background (see below).
 - **Wi‑Fi QR.** A Home control that shows a QR code so guests can join your Wi‑Fi. The network name and password are entered on the TV and never leave it.
-- **Alexa.** An indoor temperature beside the clock and a light switch among the Home controls, for any sensor or light in your Alexa app, including Matter devices paired to an Echo (see below).
+- **Alexa.** Up to three readings (temperature, humidity) beside the clock, up to four light switches among the Home controls, named groups of lights, and the remote's red, green, yellow and blue buttons assigned to a light or a group. Works with any device in your Alexa app, including Matter devices paired to an Echo (see below).
 - **Settings.** A grid of cards, made for arrow keys. Each group (Background, Layout, Typography, Focus, Apps on Home, Language and clock, Wi‑Fi QR, Alexa) shows its choices beside a live Home preview. The last card opens Samsung's Home screen.
 - **English or Hungarian** interface, switchable at any time.
 
@@ -41,7 +41,15 @@ A **video** (MP4 with H.264 works best; up to 16 MB in original quality) plays m
 
 ## Alexa
 
-Settings → **Alexa** → **Connect Alexa** shows a QR code. Scan it, sign in on Amazon's own page in the phone's browser, then copy the address of the empty page Amazon lands on and paste it into the [sign-in page](docs/alexa/index.html) (GitHub Pages), which sends it to the TV. After that choose a sensor for **Indoor temperature** (shown beside the weather) and a light for **Light switch on Home** (a control before Wi‑Fi; OK turns it on or off). Values refresh every two minutes while Home is on screen.
+Settings → **Alexa** → **Connect Alexa** shows a QR code. Scan it, sign in on Amazon's own page in the phone's browser, then copy the address of the empty page Amazon lands on and paste it into the [sign-in page](docs/alexa/index.html) (GitHub Pages), which sends it to the TV. Then, in Settings → Alexa:
+
+- **Readings**: up to three values shown beside the weather, for example a sensor's temperature and humidity. Humidity and other values come from Alexa range features; their name and unit are read from Alexa.
+- **Switches**: up to four lights or groups among the Home controls, before Wi‑Fi. OK switches; the icon lights up while it is on. With three or more, the switches show icons only and the focus label names them.
+- **Groups**: named with the on-screen keyboard (Hungarian letters included). A group switches all its lights in one request: off when any of them is on, otherwise on.
+- **Colour buttons**: the remote's red, green, yellow and blue buttons each switch one light or group, from Home or from any screen except the keyboard. A short message at the bottom says what happened.
+- **Device details**: every feature, type and value Alexa reports for a device, for when a value is missing.
+
+Values refresh every two minutes while Home is on screen.
 
 How it works, and what to know:
 

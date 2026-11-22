@@ -15,9 +15,11 @@
   var DEVICES_QUERY = 'query getDevicesBaseData { listEndpoints(listEndpointsInput: { includeHouseholdDevices: true }) { endpoints { endpointId: id ' +
     'friendlyNameObject { value { text } } displayCategories { primary { value } } } } }';
   var FEATURES_QUERY = 'query getEndpointFeatures($endpointIds: [String]!) { listEndpoints(listEndpointsInput: { latencyTolerance: LOW, endpointIds: $endpointIds, includeHouseholdDevices: true }) ' +
-    '{ endpoints { endpointId: id features { name instance operations { name } properties { name __typename ' +
+    '{ endpoints { endpointId: id features { name instance operations { name } properties { name type __typename ' +
     '... on TemperatureSensor { value { value scale } timeOfSample } ... on Power { powerStateValue timeOfSample } ' +
-    '... on Reachability { reachabilityStatusValue } } } } } }';
+    '... on RangeValue { rangeValue { value } } ... on ToggleState { toggleStateValue } ... on Brightness { brightnessStateValue } ' +
+    '... on Reachability { reachabilityStatusValue } } ' +
+    'configuration { __typename ... on RangeConfiguration { friendlyName { value { text } } unitOfMeasure { value { text } } } } } } } }';
   var SET_MUTATION = 'mutation setEndpointFeatures($setEndpointFeaturesInput: SetEndpointFeaturesInput!) { setEndpointFeatures(setEndpointFeaturesInput: $setEndpointFeaturesInput) ' +
     '{ featureControlResponses { endpointId featureName instance featureOperationName code } errors { endpointId featureName instance featureOperationName code message } } }';
 
@@ -190,19 +192,43 @@
   }
 
   /* ---------- devices ---------- */
+  /* One device: on/off state and every reading (temperature, and range values such as humidity).
+     `props` lists every property by feature and type, for the device details screen. */
+  function unitOf(text) {
+    if (/percent/i.test(text)) return '%';
+    if (/celsius|temperature/i.test(text)) return '°';
+    if (/fahrenheit/i.test(text)) return '°F';
+    return '';
+  }
   function describe(e) {
-    var d = { id: e.endpointId, temp: null, power: null, power_feature: '', instance: null, on: 'turnOn', off: 'turnOff', reachable: true };
+    var d = { id: e.endpointId, temp: null, power: null, power_feature: '', instance: null, on: 'turnOn', off: 'turnOff', reachable: true, readings: [], props: [] };
     (e.features || []).forEach(function (f) {
+      var conf = f.configuration || {}, confName = conf.friendlyName && conf.friendlyName.value && conf.friendlyName.value.text || '';
+      var unit = conf.unitOfMeasure && conf.unitOfMeasure.value && conf.unitOfMeasure.value.text || '';
       (f.properties || []).forEach(function (p) {
-        if (p.__typename === 'TemperatureSensor' && p.value && typeof p.value.value === 'number' && p.value.value > -280) d.temp = p.value.scale === 'FAHRENHEIT' ? (p.value.value - 32) * 5 / 9 : p.value.value;
+        var value = null, label;
+        if (p.__typename === 'TemperatureSensor' && p.value && typeof p.value.value === 'number' && p.value.value > -280) {
+          d.temp = p.value.scale === 'FAHRENHEIT' ? (p.value.value - 32) * 5 / 9 : p.value.value;
+          d.readings.push({ key: 'temp', label: 'Temperature', value: d.temp, unit: '°', kind: 'temp' });
+          value = d.temp;
+        }
+        if (p.__typename === 'RangeValue' && p.rangeValue && typeof p.rangeValue.value === 'number') {
+          value = p.rangeValue.value;
+          label = confName || f.instance || f.name || p.name || 'Value';
+          var humid = /humid|nedvess|páratart/i.test(label + ' ' + (f.instance || '') + ' ' + (f.name || ''));
+          d.readings.push({ key: 'range:' + (f.instance || f.name || p.name), label: humid ? 'Humidity' : label, value: value, unit: humid ? '%' : unitOf(unit), kind: humid ? 'humidity' : 'range' });
+        }
         if (p.__typename === 'Power' && p.powerStateValue) {
-          d.power = p.powerStateValue === 'ON'; d.power_feature = f.name || 'power'; d.instance = f.instance || null;
+          d.power = p.powerStateValue === 'ON'; d.power_feature = f.name || 'power'; d.instance = f.instance || null; value = p.powerStateValue;
           (f.operations || []).forEach(function (op) {
             if (/^turn_?on$/i.test(op.name)) d.on = op.name;
             if (/^turn_?off$/i.test(op.name)) d.off = op.name;
           });
         }
-        if (p.__typename === 'Reachability' && p.reachabilityStatusValue) d.reachable = p.reachabilityStatusValue !== 'NOT_REACHABLE';
+        if (p.__typename === 'ToggleState') value = p.toggleStateValue;
+        if (p.__typename === 'Brightness') value = p.brightnessStateValue;
+        if (p.__typename === 'Reachability' && p.reachabilityStatusValue) { d.reachable = p.reachabilityStatusValue !== 'NOT_REACHABLE'; value = p.reachabilityStatusValue; }
+        d.props.push({ feature: (f.name || '') + (f.instance ? '/' + f.instance : ''), type: p.__typename || p.type || '', name: p.name || '', value: value, label: confName, unit: unit });
       });
     });
     return d;
@@ -235,7 +261,7 @@
         var list = [];
         ids.forEach(function (id) {
           var d = states[id];
-          if (!d || (d.temp === null && d.power === null)) return;
+          if (!d || (!d.readings.length && d.power === null && !d.props.length)) return;
           d.name = names[id].name || id; d.category = names[id].category;
           list.push(d);
         });
@@ -244,15 +270,20 @@
       });
     });
   }
-  function setPower(device, on, done) {
-    var req = { endpointId: device.id, featureName: device.power_feature || 'power', featureOperationName: on ? device.on || 'turnOn' : device.off || 'turnOff' };
-    if (device.instance) req.instance = device.instance;
-    graph([{ operationName: 'setEndpointFeatures', variables: { setEndpointFeaturesInput: { featureControlRequests: [req] } }, query: SET_MUTATION }], function (err, data) {
+  /* Switches one or more devices in a single request. */
+  function setPower(devices, on, done) {
+    var reqs = (Array.isArray(devices) ? devices : [devices]).map(function (device) {
+      var req = { endpointId: device.id, featureName: device.power_feature || 'power', featureOperationName: on ? device.on || 'turnOn' : device.off || 'turnOff' };
+      if (device.instance) req.instance = device.instance;
+      return req;
+    });
+    if (!reqs.length) { done('nothing to switch'); return; }
+    graph([{ operationName: 'setEndpointFeatures', variables: { setEndpointFeaturesInput: { featureControlRequests: reqs } }, query: SET_MUTATION }], function (err, data) {
       if (err) { done(err); return; }
       var result = data.setEndpointFeatures || {};
-      if (result.errors && result.errors.length) { done(result.errors[0].code || 'refused'); return; }
-      if (!result.featureControlResponses || !result.featureControlResponses.length) { done('no answer'); return; }
-      done(null);
+      if (!result.featureControlResponses || !result.featureControlResponses.length) { done(result.errors && result.errors.length ? result.errors[0].code || 'refused' : 'no answer'); return; }
+      /* Some members may fail while others switch: report the failures, keep the rest. */
+      done(null, (result.errors || []).map(function (e) { return e.endpointId; }));
     });
   }
 

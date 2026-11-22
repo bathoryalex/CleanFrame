@@ -113,8 +113,10 @@ async function page(options = {}) {
   });
   // Alexa: a local stand-in for Amazon's sign-in, token and GraphQL endpoints.
   current.__alexa = { code: false, register: null, sets: [], devices: [
-    { id: 'amzn1.alexa.endpoint.temp-1', name: 'TIMMERFLOTTE', temp: 22.43 },
+    { id: 'amzn1.alexa.endpoint.temp-1', name: 'TIMMERFLOTTE', temp: 22.43, humidity: 45 },
     { id: 'amzn1.alexa.endpoint.lamp-1', name: 'Left lamp', power: 'OFF' },
+    { id: 'amzn1.alexa.endpoint.lamp-2', name: 'Right lamp', power: 'OFF' },
+    { id: 'amzn1.alexa.endpoint.lamp-3', name: 'Piano lamp', power: 'OFF' },
     { id: 'amzn1.alexa.endpoint.echo-1', name: 'Alex\'s Echo Dot Max', temp: 26.3 },
     { id: 'amzn1.alexa.endpoint.plug-1', name: 'Fan', power: 'ON' },
     { id: 'amzn1.alexa.endpoint.none-1', name: 'Speaker group' }] };
@@ -135,11 +137,13 @@ async function page(options = {}) {
     if (op.operationName === 'getDevicesBaseData') return wrap({ listEndpoints: { endpoints: A.devices.map(d => ({ endpointId: d.id, friendlyNameObject: { value: { text: d.name } } })) } });
     if (op.operationName === 'getEndpointFeatures') return wrap({ listEndpoints: { endpoints: A.devices.filter(d => op.variables.endpointIds.includes(d.id)).map(d => ({ endpointId: d.id, features: [].concat(
       d.temp !== undefined ? [{ name: 'temperatureSensor', properties: [{ __typename: 'TemperatureSensor', name: 'temperature', value: { value: d.temp, scale: 'CELSIUS' } }] }] : [],
+      d.humidity !== undefined ? [{ name: 'range', instance: 'Humidity', configuration: { __typename: 'RangeConfiguration', friendlyName: { value: { text: 'Humidity' } }, unitOfMeasure: { value: { text: 'Alexa.Unit.Percent' } } }, properties: [{ __typename: 'RangeValue', name: 'rangeValue', rangeValue: { value: d.humidity } }] }] : [],
       d.power ? [{ name: 'power', operations: [{ name: 'turnOn' }, { name: 'turnOff' }], properties: [{ __typename: 'Power', name: 'powerState', powerStateValue: d.power }] }] : []) })) } });
     if (op.operationName === 'setEndpointFeatures') {
-      const req = op.variables.setEndpointFeaturesInput.featureControlRequests[0], d = A.devices.find(x => x.id === req.endpointId);
-      A.sets.push(req); if (d) d.power = req.featureOperationName === 'turnOn' ? 'ON' : 'OFF';
-      return wrap({ setEndpointFeatures: { featureControlResponses: [{ endpointId: req.endpointId, code: 'SUCCESS' }], errors: [] } });
+      const reqs = op.variables.setEndpointFeaturesInput.featureControlRequests;
+      A.sets.push(reqs);
+      reqs.forEach(req => { const d = A.devices.find(x => x.id === req.endpointId); if (d) d.power = req.featureOperationName === 'turnOn' ? 'ON' : 'OFF'; });
+      return wrap({ setEndpointFeatures: { featureControlResponses: reqs.map(req => ({ endpointId: req.endpointId, code: 'SUCCESS' })), errors: [] } });
     }
     return route.fulfill({ status: 400, headers: amazon, body: '' });
   });
@@ -455,10 +459,12 @@ try {
     const after = await state();
     check('Preferences survive a restart', after.lang === 'hu' && after.clock === '12' && after.weather === 'off' && after.clockPos === 'large', after);
   });
-  await run('Alexa: phone sign-in, indoor temperature and a light switch', async () => {
+  await run('Alexa: phone sign-in, readings, switches, groups and colour buttons', async () => {
     await page(); await scene('settings');
-    const cards = await current.evaluate(() => [...document.querySelectorAll('.settings-card')].map(e => { const r = e.getBoundingClientRect(); return { id: e.getAttribute('data-id'), bottom: r.bottom }; }));
-    check('Settings shows an Alexa card and all nine cards fit on screen', cards.length === 9 && cards[7].id === 'alexa' && cards[8].id === 'samsung' && cards.every(c => c.bottom <= 1000), cards);
+    const cards = await current.evaluate(() => [...document.querySelectorAll('.settings-card')].map(e => { return { id: e.getAttribute('data-id'), left: e.offsetLeft, top: e.offsetTop, bottom: e.offsetTop + e.offsetHeight + e.offsetParent.getBoundingClientRect().top }; }));
+    check('Settings shows nine cards in a 3 x 3 grid, Alexa before Samsung Home', cards.length === 9 && cards[7].id === 'alexa' && cards[8].id === 'samsung' && new Set(cards.map(c => c.left)).size === 3 && new Set(cards.map(c => c.top)).size === 3 && cards.every(c => c.bottom <= 1000), cards);
+    await nav('down', 'down', 'right', 'right');
+    check('Arrows move through the 3 x 3 grid', await current.evaluate(() => document.querySelector('.settings-card.is-focus').getAttribute('data-id')) === 'samsung');
     await act('settings.group.alexa'); await current.waitForFunction(() => ShoreQA.state().settingsGroup === 'alexa');
     await act('alexa.connect');
     await current.waitForFunction(() => document.querySelector('.phone-qr') && document.querySelector('.phone-qr')._payload);
@@ -472,34 +478,69 @@ try {
     check('The refresh token is stored apart from the preferences', await current.evaluate(() => /Atzr\|test/.test(localStorage.getItem('cleanframe.alexa.v1') || '') && !/Atzr/.test(localStorage.getItem('cleanframe.home.v1'))));
     await nav('ok');
     check('Done returns to the Alexa settings', (await state()).settingsGroup === 'alexa');
-    await act('alexa.pick.temp');
-    await current.waitForFunction(() => document.querySelectorAll('.alexa-row').length === 3);
-    const temps = await current.evaluate(() => [...document.querySelectorAll('.alexa-row')].map(e => e.textContent));
-    check('The sensor list has Off and only devices with a temperature', /Off|Ki/.test(temps[0]) && temps.some(t => /TIMMERFLOTTE\s*22.4°/.test(t)) && !temps.some(t => /lamp|Speaker/.test(t)), temps);
-    await act('alexa.choose.' + temps.findIndex(t => /TIMMERFLOTTE/.test(t)));
-    check('The chosen sensor is saved', (await stored()).alexaTemp === 'amzn1.alexa.endpoint.temp-1' && (await stored()).alexaTempName === 'TIMMERFLOTTE');
-    await act('alexa.pick.lamp');
-    await current.waitForFunction(() => document.querySelectorAll('.alexa-row').length === 3);
-    const lamps = await current.evaluate(() => [...document.querySelectorAll('.alexa-row')].map(e => e.textContent));
-    await act('alexa.choose.' + lamps.findIndex(t => /Left lamp/.test(t)));
-    check('The chosen light is saved', (await stored()).alexaLamp === 'amzn1.alexa.endpoint.lamp-1', lamps);
+    const rowsText = () => current.evaluate(() => [...document.querySelectorAll('.alexa-row')].map(e => e.textContent));
+    const pick = async re => { const rows = await rowsText(); const i = rows.findIndex(t => re.test(t)); if (i < 0) throw Error('No row ' + re + ' in ' + rows); await act('alexa.row.' + i); };
+    await act('alexa.list.readings');
+    await current.waitForFunction(() => document.querySelectorAll('.alexa-row').length >= 3);
+    const readings = await rowsText();
+    check('Readings list every temperature and the humidity', readings.some(t => /TIMMERFLOTTE.*Temperature.*22.4°/.test(t)) && readings.some(t => /TIMMERFLOTTE.*Humidity.*45%/.test(t)) && readings.some(t => /Echo Dot Max/.test(t)) && !readings.some(t => /lamp/.test(t)), readings);
+    await pick(/TIMMERFLOTTE.*Temperature/); await pick(/TIMMERFLOTTE.*Humidity/);
+    check('Both readings are saved', (await stored()).alexaReadings.map(r => r.key).join() === 'temp,range:Humidity', (await stored()).alexaReadings);
+    await nav('back');
+    await act('alexa.list.groups'); await act('alexa.row.0');
+    check('New group opens the name keyboard', (await state()).view === 'wifitype');
+    const chars = await current.evaluate(() => [...document.querySelectorAll('[data-action^="wifi.char."]')].map(e => e.textContent));
+    for (const ch of 'Nappali') await act('wifi.char.' + chars.indexOf(ch));
+    check('The keyboard has Hungarian letters', ['á', 'ő', 'Ű'].every(c => chars.includes(c)));
+    await act('wifi.act.1');
+    await current.waitForFunction(() => ShoreQA.state().view === 'alexalist' && document.querySelectorAll('.alexa-row').length >= 3);
+    await pick(/Left lamp/); await pick(/Right lamp/);
+    const groups = (await stored()).alexaGroups;
+    check('The named group keeps its lights', groups.length === 1 && groups[0].name === 'Nappali' && groups[0].members.map(m => m.name).join() === 'Left lamp,Right lamp', groups);
+    await nav('back', 'back', 'back');
+    check('Back returns to the Alexa settings', (await state()).settingsGroup === 'alexa', await state());
+    await act('alexa.list.switches');
+    await current.waitForFunction(() => document.querySelectorAll('.alexa-row').length >= 4);
+    await pick(/Left lamp/); await pick(/^.?Nappali/);
+    check('A light and a group are on Home', (await stored()).alexaSwitches.map(x => x.id).join() === 'amzn1.alexa.endpoint.lamp-1,group:' + groups[0].id, (await stored()).alexaSwitches);
+    await nav('back');
+    await act('alexa.list.keys'); await act('alexa.row.1');
+    await current.waitForFunction(() => document.querySelectorAll('.alexa-row').length >= 4);
+    await pick(/Piano lamp/);
+    check('The green button switches the piano lamp', (await stored()).alexaKeys.green.id === 'amzn1.alexa.endpoint.lamp-3' && (await state()).view === 'alexalist');
     await scene('home');
-    await current.waitForFunction(() => document.querySelector('.weather.indoor'));
-    check('Home shows the indoor temperature beside the weather', /22.4°/.test(await current.evaluate(() => document.querySelector('.weather.indoor').textContent)));
-    check('Home has a light switch before Wi‑Fi', await current.evaluate(() => { const u = [...document.querySelectorAll('#utils .u')].map(b => b.getAttribute('data-action')); return u[0] === 'util.lamp' && u[1] === 'util.wifi'; }));
-    await act('util.lamp');
-    await current.waitForFunction(() => document.querySelector('.u-lamp.is-lit'));
-    check('OK turns the light on through Alexa', current.__alexa.sets.length === 1 && current.__alexa.sets[0].featureOperationName === 'turnOn' && current.__alexa.sets[0].featureName === 'power', current.__alexa.sets);
-    await act('util.lamp');
-    await current.waitForFunction(() => !document.querySelector('.u-lamp.is-lit'));
-    check('OK again turns it off', current.__alexa.sets.length === 2 && current.__alexa.sets[1].featureOperationName === 'turnOff');
+    await current.waitForFunction(() => document.querySelectorAll('.weather.indoor').length === 2);
+    check('Home shows the temperature and the humidity', await current.evaluate(() => [...document.querySelectorAll('.weather.indoor')].map(e => e.textContent).join(' ')) === '22.4° 45%');
+    check('Home controls start with the light and the group', await current.evaluate(() => [...document.querySelectorAll('#utils .u')].map(b => b.getAttribute('data-action')).join()) === 'util.sw0,util.sw1,util.wifi,util.apps,util.settings');
+    await act('util.sw1');
+    await current.waitForFunction(() => document.querySelectorAll('.u-lamp.is-lit').length === 2);
+    const groupSet = current.__alexa.sets[0];
+    check('The group switches both lights in one request', groupSet.length === 2 && groupSet.every(r => r.featureOperationName === 'turnOn'), groupSet);
+    check('A toast says what happened', /Nappali · On/.test(await current.locator('#alexaToast').textContent()));
+    await act('util.sw0');
+    await current.waitForFunction(() => document.querySelectorAll('.u-lamp.is-lit').length === 1);
+    check('Any light on means the group switches off; the left lamp alone went off', current.__alexa.sets[1].length === 1 && current.__alexa.sets[1][0].featureOperationName === 'turnOff');
+    await current.evaluate(() => document.dispatchEvent(new KeyboardEvent('keydown', { keyCode: 404, bubbles: true })));
+    await current.waitForFunction(() => /Piano lamp · On/.test(document.getElementById('alexaToast').textContent));
+    check('The green remote button turns the piano lamp on', current.__alexa.sets[2][0].endpointId === 'amzn1.alexa.endpoint.lamp-3' && current.__alexa.sets[2][0].featureOperationName === 'turnOn');
+    await current.evaluate(() => document.dispatchEvent(new KeyboardEvent('keydown', { keyCode: 403, bubbles: true })));
+    check('An unassigned colour button says how to assign it', /Red button/.test(await current.locator('#alexaToast').textContent()) && current.__alexa.sets.length === 3);
     await group('alexa'); await act('alexa.signout');
     await current.waitForFunction(() => ShoreQA.where().view === 'message');
     await act('message.alexaout');
     const out = await stored();
-    check('Sign out forgets the sign-in and the chosen devices', !out.alexaTemp && !out.alexaLamp && await current.evaluate(() => !localStorage.getItem('cleanframe.alexa.v1')));
+    check('Sign out forgets the sign-in, readings, switches and buttons', !out.alexaReadings.length && !out.alexaSwitches.length && !out.alexaKeys.green && await current.evaluate(() => !localStorage.getItem('cleanframe.alexa.v1')));
     await scene('home');
-    check('Home has no Alexa values after sign-out', await current.evaluate(() => !document.querySelector('.weather.indoor') && !document.querySelector('[data-action="util.lamp"]')));
+    check('Home has no Alexa values after sign-out', await current.evaluate(() => !document.querySelector('.weather.indoor') && !document.querySelector('[data-action^="util.sw"]')));
+  });
+  await run('Alexa: 0.13 choices carry over', async () => {
+    await page({ seed: baseline({ alexaTemp: 'amzn1.alexa.endpoint.temp-1', alexaTempName: 'TIMMERFLOTTE', alexaLamp: 'amzn1.alexa.endpoint.lamp-1', alexaLampName: 'Left lamp' }) });
+    await current.evaluate(() => localStorage.setItem('cleanframe.alexa.v1', JSON.stringify({ serial: 'X', domain: 'com', site: 'com', refresh: 'Atzr|test', access: 'Atza|test', at: Date.now() })));
+    await current.reload(); await ready();
+    const s = await stored();
+    check('The old sensor and light become a reading and a switch', s.alexaReadings.length === 1 && s.alexaReadings[0].key === 'temp' && s.alexaSwitches[0].id === 'amzn1.alexa.endpoint.lamp-1' && s.alexaTemp === undefined, s);
+    await current.waitForFunction(() => document.querySelector('.weather.indoor'));
+    check('Home shows them at once', /22.4°/.test(await current.evaluate(() => document.querySelector('.weather.indoor').textContent)) && await current.evaluate(() => !!document.querySelector('[data-action="util.sw0"]')));
   });
   await run('Your picture arrives from a phone', async () => {
     await page(); await group('background');
