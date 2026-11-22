@@ -265,6 +265,7 @@ window.CleanFrameI18n = {
     'When Home opens and a button is pressed': 'Amikor megnyílik a Kezdőlap és gombnyomáskor',
     'Only when a button is pressed': 'Csak gombnyomáskor',
     'Switch icons': 'Kapcsolók ikonjai',
+    'Home screen': 'Kezdőképernyő',
     'Choose switches first': 'Előbb válassz kapcsolókat',
     'Choose how each switch looks on Home: a light, a fan, air conditioning and more.': 'Válaszd ki, hogyan nézzen ki a Kezdőlapon az egyes kapcsolók ikonja: lámpa, ventilátor, klíma és más.',
     'Choose an icon for this switch.': 'Válassz ikont ehhez a kapcsolóhoz.',

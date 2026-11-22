@@ -521,7 +521,8 @@ try {
     await nav('ok');
     check('Done returns to the Alexa settings', (await state()).settingsGroup === 'alexa');
     const rowsText = () => current.evaluate(() => [...document.querySelectorAll('.alexa-row')].map(e => e.textContent));
-    const pick = async re => { const rows = await current.evaluate(() => [...document.querySelectorAll('.alexa-row')].map(e => [e.textContent, e.getAttribute('data-action')])); const r = rows.find(x => re.test(x[0])); if (!r) throw Error('No row ' + re + ' in ' + rows.map(x => x[0])); await act(r[1]); };
+    // Lists show seven rows at a time: move down until the row is in view.
+    const pick = async re => { let rows = [], r; for (let n = 0; n < 40; n++) { rows = await current.evaluate(() => [...document.querySelectorAll('.alexa-row')].map(e => [e.textContent, e.getAttribute('data-action')])); r = rows.find(x => re.test(x[0])); if (r) break; await nav('down'); } if (!r) throw Error('No row ' + re + ' in ' + rows.map(x => x[0])); await act(r[1]); };
     await act('alexa.list.readings');
     await current.waitForFunction(() => document.querySelectorAll('.alexa-row').length >= 3);
     const readings = await rowsText();
@@ -832,6 +833,26 @@ try {
     check('The choice is saved for that light', (await stored()).alexaIcons['amzn1.alexa.endpoint.lamp-1'] === 'fan', (await stored()).alexaIcons);
     await scene('home');
     check('Home shows the fan icon on the switch', await current.evaluate(() => document.querySelector('[data-action="util.sw0"]').innerHTML.indexOf('rotate(120 12 12)') >= 0));
+  });
+  await run('Top Dock: fixed Alexa tiles and an even divider', async () => {
+    await page({ seed: baseline({ topStyle: 'bar', controls: 'icons', switchStyle: 'both', alexaSwitches: [{ id: 'amzn1.alexa.endpoint.lamp-1', name: 'Lamp' }, { id: 'group:gabc', name: '' }], alexaGroups: [{ id: 'gabc', name: 'Living room', members: [{ id: 'amzn1.alexa.endpoint.lamp-1', name: 'Lamp' }] }] }) });
+    await current.evaluate(() => localStorage.setItem('cleanframe.alexa.v1', JSON.stringify({ serial: 'X', domain: 'com', site: 'com', refresh: 'Atzr|test', access: 'Atza|test', at: Date.now() })));
+    await current.reload(); await ready(); await current.waitForFunction(() => document.querySelectorAll('.u-lamp').length === 2);
+    const m = await current.evaluate(() => { const lamps = [...document.querySelectorAll('.u-lamp')].map(e => e.getBoundingClientRect()), g = document.querySelector('.utils .u-group'), gr = g.getBoundingClientRect(), first = g.querySelector('.u').getBoundingClientRect(), lab = [...document.querySelectorAll('.u-lamp .u-label')].map(e => e.scrollWidth <= e.clientWidth + 1 || getComputedStyle(e).textOverflow === 'ellipsis');
+      return { widths: lamps.map(r => Math.round(r.width)), left: Math.round(gr.left - lamps[lamps.length - 1].right), right: Math.round(first.left - gr.left), labels: lab }; });
+    check('Alexa tiles share one width, names fit or end with an ellipsis', m.widths[0] === m.widths[1] && m.labels.every(Boolean), m);
+    check('The divider has the same space on both sides', Math.abs(m.left - m.right) <= 1, m);
+  });
+  await run('A remote button can open the Home screen; holding Back does too', async () => {
+    await page({ seed: baseline({ alexaKeys: { red: { id: 'frame:home', name: '' } } }) });
+    await group('layout');
+    await current.evaluate(() => { document.dispatchEvent(new KeyboardEvent('keydown', { keyCode: 403, bubbles: true })); document.dispatchEvent(new KeyboardEvent('keyup', { keyCode: 403, bubbles: true })); });
+    check('The red button set to Home screen closes Settings', (await state()).view === 'home');
+    await group('layout'); await act('choice.layoutView.tiles');
+    await current.evaluate(() => document.dispatchEvent(new KeyboardEvent('keydown', { keyCode: 27, bubbles: true })));
+    await current.waitForTimeout(1000);
+    await current.evaluate(() => document.dispatchEvent(new KeyboardEvent('keyup', { keyCode: 27, bubbles: true })));
+    check('Holding Back for a moment goes all the way to the Home screen', (await state()).view === 'home' && (await call('where')).zone === 'apps');
   });
   await run('Alexa: 0.13 choices carry over', async () => {
     await page({ seed: baseline({ alexaTemp: 'amzn1.alexa.endpoint.temp-1', alexaTempName: 'TIMMERFLOTTE', alexaLamp: 'amzn1.alexa.endpoint.lamp-1', alexaLampName: 'Left lamp' }) });

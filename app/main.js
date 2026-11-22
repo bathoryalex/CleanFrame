@@ -4,7 +4,7 @@
 
   /* ---------- Bundled data ---------- */
   var ASSETS = 'assets/', ICONS = ASSETS + 'icons/', WP = ASSETS + 'wallpapers/';
-  var APP_VERSION = '0.27.0';
+  var APP_VERSION = '0.27.1';
   var CAP = 9, SCRIM_Y = 560, DOCK_BOTTOM = 1032; // the Dock sits 48 px above the bottom edge; names and actions go above it
   var DOCK_MODES = { both: { tw: 288, th: 200, pitch: 296 }, text: { tw: 288, th: 104, pitch: 296 }, icons: { tw: 200, th: 156, pitch: 206 } }; // icons-only tiles leave room under the icon for the focused app's name
   var GRID_ROW = 240, GRID_COL = 344, COLS = 5;
@@ -445,7 +445,7 @@
   function safeId(id) { return typeof id === 'string' && /^[A-Za-z0-9][A-Za-z0-9._-]{0,160}$/.test(id) && ['constructor', 'prototype', '__proto__'].indexOf(id) < 0; }
   function endpointId(id) { return typeof id === 'string' && /^[A-Za-z0-9][A-Za-z0-9._:#@-]{0,200}$/.test(id); }
   function prefText(v, n) { return typeof v === 'string' ? v.slice(0, n) : ''; }
-  function prefTarget(t) { return t && typeof t === 'object' && (endpointId(t.id) || /^group:g[a-z0-9]{1,16}$/.test(t.id) || /^spotify:(toggle|next|prev)$/.test(t.id) || /^app:[A-Za-z0-9][A-Za-z0-9._-]{0,160}$/.test(t.id)) ? { id: t.id, name: prefText(t.name, 80) } : null; }
+  function prefTarget(t) { return t && typeof t === 'object' && (endpointId(t.id) || /^group:g[a-z0-9]{1,16}$/.test(t.id) || /^spotify:(toggle|next|prev)$/.test(t.id) || t.id === 'frame:home' || /^app:[A-Za-z0-9][A-Za-z0-9._-]{0,160}$/.test(t.id)) ? { id: t.id, name: prefText(t.name, 80) } : null; }
   /* 0.13 kept one sensor and one light; they become the first reading and switch. */
   function cleanReadings(s) {
     var list = Array.isArray(s.alexaReadings) ? s.alexaReadings : endpointId(s.alexaTemp) ? [{ id: s.alexaTemp, key: 'temp', name: s.alexaTempName, label: 'Temperature' }] : [];
@@ -1292,6 +1292,7 @@
     if (!t) return '';
     if (/^app:/.test(t.id)) return t.name || t.id.slice(4);
     if (SPOTIFY_ACTIONS[t.id]) return T(SPOTIFY_ACTIONS[t.id]);
+    if (t.id === 'frame:home') return T('Home screen');
     if (isGroup(t.id)) { var g = groupOf(t.id); return g ? g.name : ''; }
     return t.name || '';
   }
@@ -1380,6 +1381,7 @@
       return;
     }
     if (t && isSpotify(t.id)) { if (spotifyOn()) spotifyKey(t.id.slice(8)); return; }
+    if (t && t.id === 'frame:home') { goHome(); focusStage(); return; }
     if (!t || !alexaOn() || (isGroup(t.id) && !groupOf(t.id))) { showToast(T('{0} has nothing assigned. Settings → Connections → Remote buttons.', T(COLOUR_NAMES[colour]))); return; }
     toggleTarget(t);
   }
@@ -1848,7 +1850,7 @@
       .concat([{ id: 'test', label: T('Test the remote buttons'), value: '', forward: true }]);
     else if (t.mode === 'keytarget') {
       var cur = S.c.alexaKeys[t.colour], is = function (id) { return !!cur && cur.id === id; };
-      rows = [{ id: '', label: T('Nothing'), ticked: !cur }];
+      rows = [{ id: '', label: T('Nothing'), ticked: !cur }, { id: 'h-frame', label: 'Frame Home', header: true }, { id: 'frame:home', label: T('Home screen'), ticked: is('frame:home'), spotify: true }];
       if (spotifyOn()) rows = rows.concat([{ id: 'h-spotify', label: 'Spotify', header: true }]).concat(Object.keys(SPOTIFY_ACTIONS).map(function (id) { return { id: id, label: T(SPOTIFY_ACTIONS[id]), ticked: is(id), spotify: true }; }));
       if (alexaOn()) rows = rows.concat([{ id: 'h-alexa', label: 'Alexa', header: true }]).concat(switchRows(is));
       rows = rows.concat([{ id: 'h-apps', label: T('Apps on the TV'), header: true }]).concat(appTargets().map(function (a) { return { id: 'app:' + a.appId, label: a.name, ticked: is('app:' + a.appId), app: true }; }));
@@ -3425,6 +3427,15 @@
     if (MEDIA[k]) { if (top().id !== 'wifitype') spotifyKey(MEDIA[k]); return; }
     press(k);
   });
+  /* The TV gives the app no signal for its own Home button while Frame Home is open, so holding Back
+     for 0.8 s does the same: back to the Home screen from any panel. */
+  var backHold = null;
+  document.addEventListener('keydown', function (ev) {
+    if (KEYS[ev.keyCode] !== 'back' || ev.repeat || backHold) return;
+    backHold = setTimeout(function () { backHold = null; if (S.stack.length > 1 && top().id !== 'remotetest') { goHome(); focusStage(); } }, 800);
+  });
+  document.addEventListener('keyup', function (ev) { if (KEYS[ev.keyCode] === 'back') { clearTimeout(backHold); backHold = null; } });
+  window.addEventListener('blur', function () { clearTimeout(backHold); backHold = null; });
   document.addEventListener('keyup', function (ev) { delete heldKeys[ev.keyCode]; });
   window.addEventListener('blur', function () { heldKeys = {}; });
   window.addEventListener('focus', function () { release(); focusStage(); after(); updateClock(); });

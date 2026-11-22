@@ -1007,3 +1007,10 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000}
 .stage.bg-light.top-bar .quiet-utils .u,.stage.bg-light.top-bar .music .cap-music{background:rgba(255,255,255,.55)}
 .stage.top-bar .quiet-utils.is-icons .u:not(.u-lamp) .u-label,.stage.top-bar .quiet-utils .u.u-lamp.sw-icons .u-label{display:none}
 .stage.top-bar .quiet-utils .u.u-lamp.sw-text .ico{display:none}
+/* Divider between the Alexa switches and the controls: the same 18 px on both sides (the bar's
+   10 px gap plus 8 px before the line, 18 px after it). Alexa tiles have one fixed size. */
+.stage.top-bar .quiet-utils .u-group{margin-left:8px;padding-left:18px}
+.stage.top-bar .quiet-utils .u.u-lamp,.stage.top-bar .quiet-utils.is-icons .u.u-lamp:not(.sw-icons){width:132px;min-width:132px;padding:8px 10px}
+.stage.top-bar .quiet-utils .u.u-lamp.sw-icons{width:88px;min-width:88px;padding:0}
+.stage.top-bar .quiet-utils .u.u-lamp .u-content{width:100%;max-width:112px}
+.stage.top-bar .quiet-utils .u.u-lamp .u-label{max-width:112px}

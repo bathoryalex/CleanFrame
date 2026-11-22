@@ -161,5 +161,6 @@ Settings → Connections → Alexa → **Switch icons** lists the current switch
 
 ## Home button signals
 
-Frame Home returns to the Home screen on a `visibilitychange` to visible, and on `appcontrol` events on `window` and `document` (a relaunch while it is open) and a `tizenhwkey` named home. Which of these the TV sends when Home is pressed while Frame Home is already open is not yet confirmed: the remote test (Settings → Connections → Remote buttons → Test the remote buttons) now lists `appcontrol` events with the requested operation, as well as focus, visibility and page events.
+Frame Home returns to the Home screen on a `visibilitychange` to visible (coming back from another app), and also listens for `appcontrol` on `window` and `document` and a `tizenhwkey` named home. On the UE75U8072 (Tizen 9) none of these arrives when the remote's Home button is pressed while Frame Home is already open: the remote test lists nothing. So holding Back for 0.8 s goes to the Home screen from any panel (the first press still closes one layer at once; the remote test is left alone), and any remote button can be set to **Frame Home → Home screen** in Remote buttons.
 
+In the Dock bar every Alexa switch tile is 132 px wide (88 px with icons only), names cut with an ellipsis; the divider before Wi‑Fi QR has 18 px on each side.
