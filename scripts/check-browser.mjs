@@ -668,7 +668,14 @@ try {
     check('List from the same row switches to the List layout', (await stored()).layout === 'list');
     await act('choice.layoutView.tiles'); await current.waitForFunction(() => ShoreQA.ready && ShoreQA.ready());
     check('Tiles is a third layout and is saved', (await stored()).dockStyle === 'tiles' && (await stored()).layout === 'dock' && await current.evaluate(() => document.getElementById('stage').className.indexOf('dock-tiles') >= 0));
-    await scene('home'); await nav('up');
+    await scene('home');
+    const ring = async () => current.evaluate(() => getComputedStyle(document.querySelector('.dock .tile.is-focus'), '::before').boxShadow);
+    const glassRing = await ring();
+    await group('focus'); await act('choice.focus.type'); await scene('home'); await current.waitForTimeout(400);
+    const typeLook = { ring: await ring(), dim: await current.evaluate(() => getComputedStyle(document.querySelector('.dock .tile:not(.is-focus) .tile-content')).opacity) };
+    check('Settings → Focus changes how a focused tile looks', glassRing !== typeLook.ring && typeLook.dim === '0.6', { glassRing, typeLook });
+    check('Wi-Fi, All apps and Settings share one card in the top row', await current.evaluate(() => { const g = document.querySelector('.utils .u-group'); return !!g && ['util.wifi', 'util.apps', 'util.settings'].every(a => !document.querySelector('[data-action="' + a + '"]') || g.contains(document.querySelector('[data-action="' + a + '"]'))); }));
+    await nav('up');
     check('With focus in the top row no app looks selected', await current.evaluate(() => !document.querySelector('.dock .tile.is-sel') && !document.querySelector('.dock .tile.is-focus')));
   });
   await run('Date details: holidays, name days and a calendar from the phone', async () => {
@@ -702,7 +709,9 @@ try {
     await current.waitForFunction(() => document.querySelector('.cap-holiday'));
     const line = await current.evaluate(() => document.querySelector('.cap-date').textContent);
     const nd = await current.evaluate(() => { const d = new Date(); return (window.FrameNamedaysHU[d.getMonth()][d.getDate() - 1] || [])[0] || ''; });
-    check('The date line has the holiday and the name days', /Próbaünnep/.test(line) && (!nd || line.includes(nd)), line);
+    const pill = await current.evaluate(() => { const p = document.querySelector('.cap-pills .cap-nameday'); return p ? p.textContent : ''; });
+    check('The date line has the holiday; the name days sit on their own card without a label', /Próbaünnep/.test(line) && !/Name day|Névnap/.test(line + pill) && (!nd || pill.includes(nd)), { line, pill });
+    check('The calendar card comes after the name days', await current.evaluate(() => { const p = [...document.querySelectorAll('.cap-pills > .cap-pill')].map(e => e.className); return p.length === (document.querySelector('.cap-nameday') ? 2 : 1) && /cap-cal/.test(p[p.length - 1]); }));
   });
   await run('Remote buttons can open apps and use CH and Guide', async () => {
     await page({ seed: baseline({ alexaKeys: { chup: { id: 'app:9Ur5IzDKqV.TizenYouTube', name: 'YouTube' } } }) });

@@ -965,17 +965,51 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000}
 .dock-tiles .dock::before,.dock-tiles .dock::after{display:none}
 .dock-tiles .dock .tile::before{content:"";position:absolute;inset:0;z-index:-1;border-radius:28px;background:rgba(14,18,20,.42);box-shadow:inset 0 0 0 1px rgba(255,255,255,.12),0 14px 34px rgba(4,8,10,.28);transition:background-color 160ms linear}
 .bg-light.dock-tiles .dock .tile::before{background:rgba(255,255,255,.55);box-shadow:inset 0 0 0 1px rgba(29,26,22,.08),0 10px 26px rgba(4,8,10,.12)}
-.dock-tiles .dock .tile.is-focus::before{background:rgba(255,255,255,.16)}
-.dock-tiles .dock .plate{border-radius:28px}
-/* Date details: holiday and name days on the date line, the calendar on its own line. */
+.dock-tiles .dock .plate{display:none}
+/* Tiles focus follows Settings → Focus. Glass: the tile turns to lighter glass in the chosen material
+   with a soft bright edge (no white slab). Type: the tile stays dark, a ring marks it and the other
+   tiles' icons and names dim. */
+.dock-tiles .dock .tile::before{transition:background 160ms linear,box-shadow 160ms linear}
+.dock-tiles.f-glass .dock .tile.is-focus::before{background:rgba(255,255,255,.09);box-shadow:inset 0 0 0 2px rgba(255,255,255,.42),0 18px 40px rgba(4,8,10,.34)}
+.dock-tiles.f-glass.m-frost .dock .tile.is-focus::before{background:linear-gradient(170deg,rgba(255,255,255,.20),rgba(255,255,255,.05) 58%,rgba(255,255,255,.07))}
+.dock-tiles.f-glass.m-tint .dock .tile.is-focus::before{background:linear-gradient(170deg,rgba(255,224,184,.18),rgba(255,214,166,.06) 60%);box-shadow:inset 0 0 0 2px rgba(255,222,180,.50),0 18px 40px rgba(4,8,10,.34)}
+.dock-tiles.f-type .dock .tile.is-focus::before{background:rgba(14,18,20,.42);box-shadow:inset 0 0 0 3px rgba(246,241,231,.92),0 18px 40px rgba(4,8,10,.34)}
+.dock-tiles.f-type .dock .tile:not(.is-focus) .tile-content{opacity:.6}
+.bg-light.dock-tiles.f-glass .dock .tile.is-focus::before{background:rgba(255,255,255,.80);box-shadow:inset 0 0 0 2px rgba(29,26,22,.30),0 14px 30px rgba(4,8,10,.16)}
+.bg-light.dock-tiles.f-type .dock .tile.is-focus::before{background:rgba(255,255,255,.55);box-shadow:inset 0 0 0 3px rgba(29,26,22,.80)}
+.bg-dark.dock-tiles.f-type .dock .tile.is-focus::before{box-shadow:inset 0 0 0 3px rgba(246,241,231,.85)}
+/* Date details: the holiday on the date line; name days and the calendar each on a small card below. */
 .cap-holiday{color:#ffd58a}
 .cap-dot{opacity:.55}
-.cap-cal{display:flex;align-items:center;gap:12px;margin-top:6px;font-size:28px;line-height:36px;font-weight:500;letter-spacing:-.2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:900px;opacity:.9;text-shadow:0 1px 3px rgba(0,0,0,.22)}
-.cap-cal .ico{flex:none;width:28px;height:28px;stroke-width:1.8}
+.cap-pills{display:flex;flex-direction:column;align-items:flex-start;gap:8px;margin-top:10px}
+.clock-big .cap-pills{align-items:center;margin-top:14px}
+.cap-pill{display:inline-flex;align-items:center;gap:10px;max-width:900px;padding:5px 16px;border-radius:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:500;letter-spacing:-.2px;color:#f6f1e7;background:rgba(12,16,18,.36);box-shadow:inset 0 0 0 1px rgba(255,255,255,.14)}
+.cap-nameday{font-size:24px;line-height:32px;opacity:.92}
+.cap-cal{font-size:26px;line-height:34px}
+.clock-big .cap-nameday{font-size:28px;line-height:36px}
+.clock-big .cap-cal{font-size:30px;line-height:38px}
+.cap-cal .ico{flex:none;width:26px;height:26px;stroke-width:1.8}
 .cap-cal b{font-weight:600}
 .cap-cal-when{opacity:.7;margin-right:2px}
-.clock-big .cap-cal{justify-content:center;margin:10px auto 0;font-size:32px;line-height:40px}
-.has-clock-ink .cap-cal,.has-adaptive-ink .cap-cal{color:var(--tl-clock-ink,var(--tl-ink,var(--clock-ink,var(--ink))))}
+.bg-light .cap-pill{color:#1d1a16;background:rgba(255,255,255,.55);box-shadow:inset 0 0 0 1px rgba(29,26,22,.08)}
+.bg-dark .cap-pill{background:rgba(255,255,255,.07);box-shadow:inset 0 0 0 1px rgba(255,255,255,.10)}
+/* Top row in the Dock and Tiles layouts: every item is a card, and focus looks the same on each
+   (a bright ring on lighter glass). Wi-Fi, All apps and Settings share one card. */
+.l-dock .utils{top:52px;align-items:center}
+.l-dock .quiet-utils .u-group{display:inline-flex;align-items:center;gap:2px;height:56px;margin:4px 0;padding:4px;border-radius:16px;background:rgba(12,16,18,.34);box-shadow:inset 0 0 0 1px rgba(255,255,255,.16)}
+.l-dock .quiet-utils .u-group .u{height:48px;border-radius:12px;padding:0 14px;opacity:.92;transition:background-color 140ms linear,box-shadow 140ms linear,opacity 140ms linear}
+.l-dock .quiet-utils.is-icons .u-group .u{width:48px;padding:0}
+.l-dock .quiet-utils .u-group .u.is-focus,.l-dock .quiet-utils .u.u-lamp.is-focus,.l-dock .quiet-utils .u.u-lamp.is-lit.is-focus{opacity:1;transform:none;background-color:rgba(255,255,255,.14);box-shadow:inset 0 0 0 3px #fff,0 10px 28px rgba(4,8,10,.30)}
+.l-dock .quiet-utils .u.u-lamp.is-lit.is-focus{background-color:rgba(255,186,84,.38)}
+.l-dock.f-type .quiet-utils .u.is-focus .u-content{transform:none}
+.l-dock .music{left:112px;top:56px}
+.l-dock .cap-music{background:rgba(12,16,18,.34);box-shadow:inset 0 0 0 1px rgba(255,255,255,.16);border-radius:16px;color:#f6f1e7}
+.l-dock .music .cap-music{margin:0;padding:12px 20px 12px 12px}
+.l-dock .cap-music.is-focus,.l-dock.f-type .cap-music.is-focus{transform:none;background:rgba(255,255,255,.14);box-shadow:inset 0 0 0 3px #fff,0 10px 28px rgba(4,8,10,.30)}
+.l-dock .cap-music.is-paused:not(.is-focus){opacity:.85}
+.bg-light.l-dock .quiet-utils .u-group,.bg-light.l-dock .cap-music{background:rgba(255,255,255,.55);box-shadow:inset 0 0 0 1px rgba(29,26,22,.08);color:#1d1a16}
+.bg-light.l-dock .quiet-utils .u-group .u.is-focus,.bg-light.l-dock .cap-music.is-focus{background:rgba(255,255,255,.85);box-shadow:inset 0 0 0 3px #1d1a16}
+.bg-dark.l-dock .quiet-utils .u-group,.bg-dark.l-dock .cap-music{background:rgba(255,255,255,.07);box-shadow:inset 0 0 0 1px rgba(255,255,255,.10)}
 .detail-region .setting-choice.has-description{min-height:0;padding:8px 22px}
 .detail-region .setting-choice.has-description .setting-name{font-size:30px;line-height:38px}
 .detail-region .setting-choice.has-description .setting-description{font-size:22px;line-height:28px}
@@ -986,3 +1020,6 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000}
 .detail-region .section-dateinfo .setting-copy{flex-direction:row;align-items:baseline;gap:16px;white-space:nowrap;overflow:hidden}
 .detail-region .section-dateinfo .setting-choice.has-description .setting-name{font-size:28px;line-height:36px}
 .detail-region .section-dateinfo .setting-description{overflow:hidden;text-overflow:ellipsis}
+.bg-photo.l-dock .quiet-utils .u-group .u,.bg-photo.l-dock .quiet-utils .u.u-lamp,.bg-photo.l-dock .cap-music:not(.is-focus){color:#f6f1e7}
+.bg-dark.l-dock .quiet-utils .u-group .u{color:var(--ink)}
+.l-dock .caption .cap-music{margin-left:0}

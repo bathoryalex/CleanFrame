@@ -4,7 +4,7 @@
 
   /* ---------- Bundled data ---------- */
   var ASSETS = 'assets/', ICONS = ASSETS + 'icons/', WP = ASSETS + 'wallpapers/';
-  var APP_VERSION = '0.22.0';
+  var APP_VERSION = '0.23.0';
   var CAP = 9, SCRIM_Y = 560, DOCK_BOTTOM = 1032; // the Dock sits 48 px above the bottom edge; names and actions go above it
   var DOCK_MODES = { both: { tw: 288, th: 200, pitch: 296 }, text: { tw: 288, th: 104, pitch: 296 }, icons: { tw: 200, th: 156, pitch: 206 } }; // icons-only tiles leave room under the icon for the focused app's name
   var GRID_ROW = 240, GRID_COL = 344, COLS = 5;
@@ -1527,7 +1527,7 @@
     if (!box) return;
     if (inCorner && first && S.c.layout === 'dock') {
       sr = sceneEl.getBoundingClientRect(); scale = sr.width / 1920 || 1;
-      limit = Math.max(320, Math.min(MUSIC_W, Math.floor((first.getBoundingClientRect().left - sr.left) / scale) - 140 - 40));
+      limit = Math.max(320, Math.min(MUSIC_W, Math.floor((first.getBoundingClientRect().left - sr.left) / scale) - 112 - 40));
     }
     /* Always the same width, whatever the title, so the progress bar keeps its length. */
     if (box._limit !== limit) { box._limit = limit; box.style.width = limit + 'px'; box.style.maxWidth = limit + 'px'; }
@@ -2452,11 +2452,15 @@
   }
   /* The date line: the date (when on), today's holiday and today's name days. */
   function dateLineHtml() {
-    var d = new Date(), parts = [], h = S.c.holidays === 'on' ? holidayToday(d) : '', n = S.c.namedays === 'on' ? nameday(d) : '';
+    var d = new Date(), parts = [], h = S.c.holidays === 'on' ? holidayToday(d) : '';
     if (S.c.date === 'on') parts.push(esc(dateText()));
     if (h) parts.push('<span class="cap-holiday">' + esc(h) + '</span>');
-    if (n) parts.push('<span class="cap-nameday">' + esc(T('Name day: {0}', n)) + '</span>');
     return parts.length ? '<span class="cap-date">' + parts.join('<span class="cap-dot"> · </span>') + '</span>' : '';
+  }
+  /* Today's name days: a small card of their own under the date line, without a label. */
+  function namedayLineHtml() {
+    var n = S.c.namedays === 'on' ? nameday(new Date()) : '';
+    return n ? '<span class="cap-pill cap-nameday" aria-label="' + esc(T('Name day: {0}', n)) + '">' + esc(n) + '</span>' : '';
   }
   function fmtHM(t) { var d = new Date(t), h = d.getHours(), m = d.getMinutes(); if (S.c.clock === '12') h = h % 12 || 12; return h + ':' + (m < 10 ? '0' : '') + m; }
   /* Calendar line: what is on now and next today (up to two); otherwise tomorrow's first event. */
@@ -2468,7 +2472,7 @@
     if (!list.length) { list = FC.upcoming(end, end + 86400000).filter(function (e) { return e.start >= end || e.allDay; }); tomorrow = true; }
     if (!list.length) return '';
     items = list.slice(0, 2).map(function (e) { return (e.allDay ? '' : '<b>' + fmtHM(e.start) + '</b> ') + esc(e.title || T('Busy')); });
-    return '<span class="cap-cal">' + icon('calendar') + (tomorrow ? '<span class="cap-cal-when">' + esc(T('Tomorrow')) + '</span>' : '') + items.join('<span class="cap-dot"> · </span>') + '</span>';
+    return '<span class="cap-pill cap-cal">' + icon('calendar') + (tomorrow ? '<span class="cap-cal-when">' + esc(T('Tomorrow')) + '</span>' : '') + items.join('<span class="cap-dot"> · </span>') + '</span>';
   }
   function calendarPoll(when) {
     clearTimeout(cal.timer); cal.timer = null;
@@ -2580,7 +2584,8 @@
     // Centred: date and weather share one smaller line under the clock. Corner: the date is a quiet second line.
     if (S.c.clockPos !== 'corner' && S.c.layout === 'dock') html = '<span class="caption-head"><span class="clock">' + ch + '</span>' + (date || weatherHtml ? '<span class="caption-sub">' + date + weatherHtml + '</span>' : '') + '</span>';
     else html = '<span class="caption-head"><span class="clock">' + ch + '</span>' + weatherHtml + '</span>' + date;
-    html += calLine;
+    var pills = namedayLineHtml() + calLine;
+    if (pills) html += '<span class="cap-pills">' + pills + '</span>';
     /* With the clock in the centre, the song sits alone in the top-left corner. */
     var musicInCorner = S.c.clockPos !== 'corner' && S.c.layout === 'dock';
     if (musicInCorner) setHTML(musicEl, musicHtml(hs.zone === 'music'));
@@ -2601,8 +2606,13 @@
     var html = '', style = hs.mode === 'arrange' && S.c.controls !== 'text' ? 'both' : S.c.controls;
     var iconsOnly = style === 'icons', U = utils(), focused = null;
     utilsEl.className = 'utils quiet-utils is-' + style + (hs.zone === 'util' || hs.zone === 'ctl' ? ' is-awake' : '');
+    var grouped = false;
+    /* Wi-Fi, All apps and Settings share one frame; each Alexa switch is its own tile. */
     U.forEach(function (u, i) {
-      if (/^sw\d+$/.test(u)) {
+      var isSw = /^sw\d+$/.test(u);
+      if (isSw && grouped) { html += '</span>'; grouped = false; }
+      if (!isSw && !grouped) { html += '<span class="u-group">'; grouped = true; }
+      if (isSw) {
         var sw = liveTargets()[+u.slice(2)], lit = targetPower(sw.id) === true;
         /* Alexa switches have their own style (Settings → Layout); icons only uses the focus label. */
         html += utilBtn('util', i, 'util.' + u, icon(lit ? 'lampOn' : 'lamp', '', true) + '<span class="u-label">' + esc(targetName(sw)) + '</span><span class="sw-track" aria-hidden="true"></span>', ' u-lamp sw-' + S.c.switchStyle + (lit ? ' is-lit' : '') + (S.c.switchStyle === 'icons' ? ' u-compact' : ''), switchLabel(sw));
@@ -2610,6 +2620,7 @@
       }
       html += utilBtn('util', i, 'util.' + u, icon(UTIL[u][1], '', true) + '<span class="u-label">' + esc(T(UTIL[u][0])) + '</span>', '', T(UTIL[u][0]));
     });
+    if (grouped) html += '</span>';
     setHTML(utilsEl, html);
     Array.prototype.forEach.call(utilsEl.querySelectorAll('.u'), function (b) {
       var z = b.getAttribute('data-z'), focus = hs.zone === z && hs.u === Number(b.getAttribute('data-i'));
@@ -2638,7 +2649,7 @@
   }
   function renderUtilityLens(button, iconsOnly) {
     var r, label, sr, scale, x, y, width, key, el;
-    if (!button || S.c.focus !== 'glass') {
+    if (!button || S.c.focus !== 'glass' || S.c.layout === 'dock') {
       utPlates.forEach(function (plateEl) { plateEl.className = 'ph-plate ut-lens is-outgoing'; });
       utPlateKey = null;
       return;
