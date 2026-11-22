@@ -221,6 +221,7 @@ window.CleanFrameI18n = {
     'Alpine glow': 'Alpesi fény',
     'Bliss': 'Bliss',
     /* Alexa */
+    'A group switches all its lights at once. It shows as on only when every light is on.': 'A csoport egyszerre kapcsolja a lámpáit. Csak akkor látszik bekapcsoltnak, ha minden lámpája ég.',
     'Left and Right move 10 seconds': 'Balra és jobbra: 10 másodperc',
     'Remote buttons': 'Távirányító gombok',
     'CH +': 'CH +',

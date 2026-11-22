@@ -545,8 +545,8 @@ try {
     check('The group switches both lights in one request', groupSet.length === 2 && groupSet.every(r => r.featureOperationName === 'turnOn'), groupSet);
     check('A toast says what happened', /Nappali · On/.test(await current.locator('#alexaToast').textContent()));
     await act('util.sw0');
-    await current.waitForFunction(() => document.querySelectorAll('.u-lamp.is-lit').length === 1);
-    check('Any light on means the group switches off; the left lamp alone went off', current.__alexa.sets[1].length === 1 && current.__alexa.sets[1][0].featureOperationName === 'turnOff');
+    await current.waitForFunction(() => document.querySelectorAll('.u-lamp.is-lit').length === 0);
+    check('The left lamp alone goes off, and the group no longer shows as on with one light off', current.__alexa.sets[1].length === 1 && current.__alexa.sets[1][0].featureOperationName === 'turnOff');
     await current.evaluate(() => document.dispatchEvent(new KeyboardEvent('keydown', { keyCode: 404, bubbles: true })));
     await current.waitForFunction(() => /Piano lamp · On/.test(document.getElementById('alexaToast').textContent));
     check('The green remote button turns the piano lamp on', current.__alexa.sets[2][0].endpointId === 'amzn1.alexa.endpoint.lamp-3' && current.__alexa.sets[2][0].featureOperationName === 'turnOn');

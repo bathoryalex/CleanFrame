@@ -4,7 +4,7 @@
 
   /* ---------- Bundled data ---------- */
   var ASSETS = 'assets/', ICONS = ASSETS + 'icons/', WP = ASSETS + 'wallpapers/';
-  var APP_VERSION = '0.20.0';
+  var APP_VERSION = '0.20.1';
   var CAP = 9, SCRIM_Y = 560, DOCK_BOTTOM = 1032; // the Dock sits 48 px above the bottom edge; names and actions go above it
   var DOCK_MODES = { both: { tw: 288, th: 200, pitch: 296 }, text: { tw: 288, th: 104, pitch: 296 }, icons: { tw: 200, th: 156, pitch: 206 } }; // icons-only tiles leave room under the icon for the focused app's name
   var GRID_ROW = 240, GRID_COL = 344, COLS = 5;
@@ -1275,7 +1275,7 @@
   /* Everything on Home is a target: an Alexa device id, or 'group:<id>' for a named group of lights.
      Values are read every two minutes while the TV shows Frame Home; nothing runs while hidden. */
   var alexa = { list: null, loading: false, listErr: '', err: '', vals: {}, busy: {}, failed: {}, timer: null, pair: null, phase: 'idle', url: '', detail: '', toast: '', toastTimer: null };
-  var ALEXA_POLL = 2 * 60 * 1000, ALEXA_SWITCH_POLL = 15000, MAX_READINGS = 3, MAX_SWITCHES = 4, MAX_GROUPS = 12, MAX_MEMBERS = 20;
+  var ALEXA_POLL = 2 * 60 * 1000, ALEXA_SWITCH_POLL = 5000, MAX_READINGS = 3, MAX_SWITCHES = 4, MAX_GROUPS = 12, MAX_MEMBERS = 20;
   var COLOURS = ['red', 'green', 'yellow', 'blue'], SLOTS = COLOURS.concat(['chup', 'chdown', 'guide']);
   var COLOUR_NAMES = { red: 'Red button', green: 'Green button', yellow: 'Yellow button', blue: 'Blue button', chup: 'CH +', chdown: 'CH −', guide: 'Guide' };
   /* CH+, CH− and Guide keep the TV's own function unless something is assigned to them. */
@@ -1304,10 +1304,11 @@
   }
   function targetMembers(id) { var g; if (/^(spotify|app):/.test(id)) return []; if (!isGroup(id)) return [id]; g = groupOf(id); return g ? g.members.map(function (m) { return m.id; }) : []; }
   /* On when any member is on; null while nothing is known yet. */
+  /* A light is on when Alexa says so; a group only when every one of its lights is on. */
   function targetPower(id) {
-    var known = false, on = false;
-    targetMembers(id).forEach(function (m) { var v = alexa.vals[m]; if (v && v.power !== null) { known = true; if (v.power) on = true; } });
-    return known ? on : null;
+    var known = false, all = true;
+    targetMembers(id).forEach(function (m) { var v = alexa.vals[m]; if (v && v.power !== null) { known = true; if (!v.power) all = false; } });
+    return known ? all : null;
   }
   function liveTargets() {
     var out = S.c.alexaSwitches.filter(function (t) { return !isGroup(t.id) || groupOf(t.id); });
@@ -1340,7 +1341,7 @@
     alexa.toastTimer = setTimeout(function () { alexa.toast = ''; render(); }, 3200);
     render();
   }
-  /* Switches a light or a group: everything off when any member is on, otherwise everything on. */
+  /* Switches a light or a group: a fully lit group goes off; otherwise every light goes on. */
   function toggleTarget(target) {
     var id = target.id, members = targetMembers(id), missing, name = targetName(target);
     if (!alexaOn() || !members.length) { if (alexaOn() && isGroup(id)) showToast(T('{0} has no lights yet.', name)); return; }
@@ -1788,7 +1789,7 @@
       switches: [T('Switches'), T('Choose up to {0} lights or groups for the Home controls.', MAX_SWITCHES)],
       keys: [T('Remote buttons'), T('The colour buttons, CH +, CH − and Guide can each switch a light or group, control Spotify or open an app. CH and Guide keep their usual job until you assign them.')],
       keytarget: [T(COLOUR_NAMES[t.colour] || 'Remote buttons'), T('Choose what this button does.')],
-      groups: [T('Groups'), T('A group switches all its lights at once: off when any is on, otherwise on.')],
+      groups: [T('Groups'), T('A group switches all its lights at once. It shows as on only when every light is on.')],
       group: [g ? g.name : T('Groups'), T('Group settings')],
       members: [g ? g.name : T('Groups'), T('Choose the lights in this group.')],
       details: [T('Device details'), T('What Alexa reports for each device. Useful when a value is missing.')],
@@ -2295,7 +2296,7 @@
     renderUtils(hs);
     fitMusic(S.c.clockPos !== 'corner' && S.c.layout === 'dock');
     if (S.c.layout === 'list') renderList(hs);
-    else { photoMode = null; renderDock(hs); keyLegend.style.bottom = (1080 - dockTopY + 18) + 'px'; }
+    else { photoMode = null; renderDock(hs); keyLegend.style.bottom = (1080 - dockTopY + 18) + 'px'; alexaToast.style.bottom = (1080 - dockTopY + 18 + 64) + 'px'; }
     renderAppFocusName(hs);
   }
 
