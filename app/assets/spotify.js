@@ -44,12 +44,14 @@
   function forget() { state = null; persist(); }
 
   /* done(err, json) with json null for 204. Errors: 'revoked', 'premium', 'no device', 'busy' or HTTP n. */
-  function api(method, path, done, retried) {
+  function api(method, path, done, retried, json) {
     token(!!retried, function (err, access) {
       if (err) { done(err); return; }
-      P.request({ method: method, url: API + path, headers: { 'Authorization': 'Bearer ' + access }, body: method === 'GET' ? null : '' }, function (r) {
+      var headers = { 'Authorization': 'Bearer ' + access };
+      if (json) headers['Content-Type'] = 'application/json';
+      P.request({ method: method, url: API + path, headers: headers, body: method === 'GET' ? null : json ? JSON.stringify(json) : '' }, function (r) {
         var reason = r.json && r.json.error && (r.json.error.reason || r.json.error.message) || '';
-        if (r.status === 401 && !retried) { api(method, path, done, true); return; }
+        if (r.status === 401 && !retried) { api(method, path, done, true, json); return; }
         if (r.status === 204 || (r.status >= 200 && r.status < 300 && !r.text)) { done(null, null); return; }
         if (r.status >= 200 && r.status < 300) { done(null, r.json); return; }
         if (r.status === 401) { done('revoked'); return; }
@@ -77,7 +79,7 @@
         artist: (item.artists || []).map(function (a) { return a.name; }).join(', ') || item.show && item.show.name || '',
         mainArtist: item.artists && item.artists[0] ? item.artists[0].name : '', episode: !item.artists,
         art: artUrl(item.album ? item.album.images : item.images, 64), artBig: artUrl(item.album ? item.album.images : item.images, 600),
-        album: item.album && item.album.name || '', device: j.device && j.device.name || '',
+        album: item.album && item.album.name || '', device: j.device && j.device.name || '', deviceId: j.device && j.device.id || '',
         progress: typeof j.progress_ms === 'number' ? j.progress_ms : 0, duration: item.duration_ms || 0, at: Date.now()
       });
     });
@@ -90,6 +92,19 @@
     if (!c) { done('unknown'); return; }
     api(c[0], c[1], function (err) { done(err); });
   }
+
+  /* Spotify Connect: the devices Spotify can play on right now (GET /me/player/devices) and moving
+     playback to one of them (PUT /me/player). Only devices that are on and signed in to Spotify are
+     listed; restricted ones cannot be controlled through the Web API. Premium is needed to move. */
+  function devices(done) {
+    api('GET', '/me/player/devices', function (err, j) {
+      if (err) { done(err); return; }
+      done(null, ((j && j.devices) || []).filter(function (d) { return d && d.id; }).map(function (d) {
+        return { id: String(d.id), name: String(d.name || ''), type: String(d.type || ''), active: !!d.is_active, restricted: !!d.is_restricted };
+      }));
+    });
+  }
+  function transfer(id, play, done) { api('PUT', '/me/player', function (err) { done(err); }, false, { device_ids: [id], play: !!play }); }
 
   /* Lyrics from LRCLIB (lrclib.net), an open community database: Spotify's own API has no lyrics.
      done(err, { synced: [{ t: ms, text }], plain: '' }); err 'none' when the song is not there. */
@@ -131,6 +146,6 @@
   window.FrameSpotify = {
     configured: !!(cfg.clientId && /^[0-9a-f]{32}$/.test(cfg.clientId) && cfg.page),
     connected: function () { return !!state; },
-    pair: pair, forget: forget, nowPlaying: nowPlaying, control: control, lyrics: lyrics
+    pair: pair, forget: forget, nowPlaying: nowPlaying, control: control, lyrics: lyrics, devices: devices, transfer: transfer
   };
 }());

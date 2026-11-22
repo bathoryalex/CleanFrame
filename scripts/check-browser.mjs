@@ -162,9 +162,13 @@ async function page(options = {}) {
     const r = route.request(), Q = current.__spotify, path = new URL(r.url()).pathname;
     if (r.method() === 'OPTIONS') return route.fulfill({ status: 204, headers: sp });
     if (r.headers()['authorization'] !== 'Bearer BQtest') return route.fulfill({ status: 401, headers: sp, contentType: 'application/json', body: '{"error":{"status":401}}' });
-    if (r.method() === 'GET') return route.fulfill({ headers: sp, contentType: 'application/json', body: JSON.stringify({ is_playing: Q.playing, device: { name: 'Echo Dot Max' },
+    if (r.method() === 'GET' && path.endsWith('/devices')) return route.fulfill({ headers: sp, contentType: 'application/json', body: JSON.stringify({ devices: [
+      { id: 'dev-echo', is_active: true, is_restricted: false, name: 'Echo Dot Max', type: 'Speaker' }, { id: 'dev-pc', is_active: false, is_restricted: false, name: 'Desk PC', type: 'Computer' },
+      { id: 'dev-car', is_active: false, is_restricted: true, name: 'Car', type: 'Automobile' }, { id: null, name: 'Ghost', type: 'Speaker' }] }) });
+    if (r.method() === 'GET') return route.fulfill({ headers: sp, contentType: 'application/json', body: JSON.stringify({ is_playing: Q.playing, device: { name: Q.device || 'Echo Dot Max' },
       progress_ms: 61000, item: { id: 't1', name: Q.title || 'Song A', duration_ms: 210000, artists: Q.artists || [{ name: 'Artist A' }, { name: 'Guest B' }], album: { name: 'Album A', images: [{ url: 'https://i.scdn.co/image/big', width: 640 }, { url: 'https://i.scdn.co/image/small', width: 64 }] } } }) });
     Q.calls.push(r.method() + ' ' + path); if (/seek/.test(path)) Q.seekUrl = r.url();
+    if (r.method() === 'PUT' && path === '/v1/me/player') { Q.transfer = JSON.parse(r.postData() || '{}'); Q.device = 'Desk PC'; return route.fulfill({ status: 204, headers: sp, body: '' }); }
     if (Q.refuse) return route.fulfill({ status: 403, headers: sp, contentType: 'application/json', body: JSON.stringify({ error: { status: 403, message: 'Player command failed: Premium required', reason: Q.refuse } }) });
     if (path.endsWith('/pause')) Q.playing = false; if (path.endsWith('/play')) Q.playing = true;
     return route.fulfill({ status: 204, headers: sp, body: '' });
@@ -635,6 +639,29 @@ try {
     await current.waitForFunction(() => ShoreQA.where().view === 'message');
     await act('message.spotifyout');
     check('Sign out forgets the tokens and the Spotify colour button', await current.evaluate(() => !localStorage.getItem('cleanframe.spotify.v1')) && !(await stored()).alexaKeys.blue);
+  });
+  await run('Spotify: choose the device it plays on', async () => {
+    await page();
+    await current.evaluate(() => localStorage.setItem('cleanframe.spotify.v1', JSON.stringify({ refresh: 'AQtest', access: 'BQtest', until: Date.now() + 3600000 })));
+    await current.reload(); await ready();
+    await current.waitForFunction(() => document.querySelector('.cap-music'));
+    await nav('up', 'left', 'ok');
+    await current.waitForFunction(() => ShoreQA.where().view === 'nowplaying');
+    await nav('up', 'up');
+    check('Up from the progress bar focuses "Playing on"', await current.evaluate(() => document.querySelector('.np-device.is-focus') && /Echo Dot Max/.test(document.querySelector('.np-device').textContent)));
+    await nav('ok');
+    await current.waitForFunction(() => document.querySelectorAll('.np-dev-row').length > 0);
+    const rows = await current.evaluate(() => [...document.querySelectorAll('.np-dev-row')].map(e => e.textContent + (e.classList.contains('is-focus') ? '*' : '') + (e.classList.contains('is-restricted') ? '!' : '')));
+    check('OK lists the devices Spotify reports, the current one focused and restricted ones marked', rows.length === 3 && /Echo Dot Max\*/.test(rows[0]) && /Desk PC/.test(rows[1]) && /!$/.test(rows[2]), rows);
+    await nav('down', 'ok');
+    await current.waitForFunction(() => !document.querySelector('.np-devices.is-open'));
+    const tr = current.__spotify.transfer;
+    check('OK moves playback there and keeps it playing', tr && tr.device_ids[0] === 'dev-pc' && tr.play === true, tr);
+    await current.waitForFunction(() => /Desk PC/.test(document.querySelector('.np-device').textContent));
+    check('Now playing shows the new device', true);
+    await nav('ok'); await current.waitForFunction(() => document.querySelectorAll('.np-dev-row').length > 0);
+    await nav('back');
+    check('Back closes the list and keeps Now playing', (await current.evaluate(() => ShoreQA.where().view)) === 'nowplaying' && await current.evaluate(() => !document.querySelector('.np-devices.is-open')));
   });
   await run('Spotify phone page sends the code back to the TV', async () => {
     const phone = await preview.browser.newPage({ viewport: { width: 390, height: 844 } }), posts = [];

@@ -4,7 +4,7 @@
 
   /* ---------- Bundled data ---------- */
   var ASSETS = 'assets/', ICONS = ASSETS + 'icons/', WP = ASSETS + 'wallpapers/';
-  var APP_VERSION = '0.23.1';
+  var APP_VERSION = '0.24.0';
   var CAP = 9, SCRIM_Y = 560, DOCK_BOTTOM = 1032; // the Dock sits 48 px above the bottom edge; names and actions go above it
   var DOCK_MODES = { both: { tw: 288, th: 200, pitch: 296 }, text: { tw: 288, th: 104, pitch: 296 }, icons: { tw: 200, th: 156, pitch: 206 } }; // icons-only tiles leave room under the icon for the focused app's name
   var GRID_ROW = 240, GRID_COL = 344, COLS = 5;
@@ -106,6 +106,8 @@
     down: '<path d="m5 8.5 7 7 7-7"/>',
     updown: '<path d="m7.5 9.5 4.5-4.5 4.5 4.5M7.5 14.5l4.5 4.5 4.5-4.5"/>',
     tv: '<rect x="3" y="4.5" width="18" height="12" rx="2"/><path d="M8.5 20h7"/>',
+    speaker: '<rect x="6" y="2.8" width="12" height="18.4" rx="2.4"/><circle cx="12" cy="14.5" r="3.2"/><circle cx="12" cy="7.2" r="1"/>',
+    computer: '<rect x="4" y="5" width="16" height="10.5" rx="1.6"/><path d="M2.5 19h19"/>',
     warn: '<path d="M12 4 2.8 19.5h18.4Z"/><path d="M12 10v4.5M12 17.3v.1"/>',
     phone: '<rect x="7" y="2.8" width="10" height="18.4" rx="2.2"/><path d="M10.8 18h2.4"/>',
     layout: '<rect x="3" y="4" width="18" height="16" rx="2.5"/><rect x="6" y="13" width="3.4" height="3.6" rx=".9"/><rect x="10.3" y="13" width="3.4" height="3.6" rx=".9"/><rect x="14.6" y="13" width="3.4" height="3.6" rx=".9"/>',
@@ -1618,16 +1620,25 @@
     sheet: false,
     key: function (t, k) {
       var n = spot.now;
+      if (t.dev) { deviceKey(t, k); return; }
+      if (t.f.row === 'device') {
+        /* "Playing on …": OK lists your Spotify devices to move the music to. */
+        if (k === 'back') pop();
+        else if (k === 'down') t.f.row = n && n.duration ? 'bar' : 'controls';
+        else if (k === 'ok') openDevices(t);
+        return;
+      }
       if (t.f.row === 'bar') {
         /* The progress bar: Left/Right move 10 seconds, the song jumps there once you stop. */
         if (k === 'back') { seek.at = null; pop(); }
+        else if (k === 'up') t.f.row = 'device';
         else if (k === 'down' || !n || !n.duration) { t.f.row = 'controls'; }
         else if (k === 'left' || k === 'right') seekBy(n, k === 'left' ? -10000 : 10000);
         else if (k === 'ok') commitSeek();
         return;
       }
       if (k === 'back') pop();
-      else if (k === 'up' && n && n.duration) t.f.row = 'bar';
+      else if (k === 'up') t.f.row = n && n.duration ? 'bar' : 'device';
       else if (k === 'left' && t.f.b > 0) t.f.b--;
       else if (k === 'right' && t.f.b < 3) t.f.b++;
       else if (k === 'ok' && t.f.b === 3) {
@@ -1638,8 +1649,59 @@
       }
       else if (k === 'ok') spotifyKey(['prev', 'toggle', 'next'][t.f.b]);
     },
-    point: function (t, z, i) { if (z === 'np') { t.f.row = 'controls'; t.f.b = i; this.key(t, 'ok'); } else if (z === 'npbar') t.f.row = 'bar'; }
+    point: function (t, z, i) {
+      if (z === 'npdevrow' && t.dev) { t.dev.i = i; deviceKey(t, 'ok'); }
+      else if (t.dev) return;
+      else if (z === 'np') { t.f.row = 'controls'; t.f.b = i; this.key(t, 'ok'); } else if (z === 'npbar') t.f.row = 'bar';
+      else if (z === 'npdev') { t.f.row = 'device'; openDevices(t); }
+    }
   };
+  /* Spotify Connect devices: a list over Now playing. Only devices that are on and signed in to
+     Spotify appear; OK moves the music there and keeps it playing (or paused). */
+  function openDevices(t) {
+    if (!spotifyOn()) return;
+    t.dev = { list: null, err: '', i: 0, busy: '' };
+    render();
+    FS.devices(function (err, list) {
+      if (top() !== t || !t.dev) return;
+      t.dev.err = err || ''; t.dev.list = list || [];
+      t.dev.i = Math.max(0, t.dev.list.map(function (d) { return d.active; }).indexOf(true));
+      render();
+    });
+  }
+  function deviceKey(t, k) {
+    var d = t.dev, list = d.list || [], dev = list[d.i], play;
+    if (k === 'back') { t.dev = null; return; }
+    if (d.busy) return;
+    if (k === 'up' && d.i > 0) d.i--;
+    else if (k === 'down' && d.i < list.length - 1) d.i++;
+    else if (k === 'ok' && d.err) openDevices(t);
+    else if (k === 'ok' && dev) {
+      if (dev.active) { t.dev = null; return; }
+      if (dev.restricted) { showToast(T('Spotify doesn’t let apps control {0}.', dev.name)); return; }
+      d.busy = dev.id; play = spot.now ? spot.now.playing : true;
+      FS.transfer(dev.id, play, function (err) {
+        if (top() === t) t.dev = null;
+        if (err) showToast(spotifyErrText(err));
+        else { showToast(T('Playing on {0}', dev.name)); if (spot.now) { spot.now.device = dev.name; spot.now.deviceId = dev.id; } }
+        render(); spotifyPoll(1500);
+      });
+    }
+  }
+  function deviceIcon(type) { type = String(type).toLowerCase(); return icon(type === 'smartphone' || type === 'tablet' ? 'phone' : type === 'computer' ? 'computer' : type === 'tv' || type === 'castvideo' || type === 'stb' || type === 'gameconsole' ? 'tv' : 'speaker'); }
+  function devicesHtml(t) {
+    var d = t.dev, rows;
+    if (!d) return '';
+    if (!d.list) return '<p class="np-dev-note">' + esc(T('Looking for your Spotify devices…')) + '</p>';
+    if (d.err) return '<p class="np-dev-note">' + esc(spotifyErrText(d.err)) + '</p><p class="np-dev-hint">' + esc(T('OK tries again.')) + '</p>';
+    if (!d.list.length) return '<p class="np-dev-note">' + esc(T('No Spotify devices are on right now. Open Spotify on the device you want, then try again.')) + '</p>';
+    rows = d.list.map(function (v, i) {
+      return '<button type="button" tabindex="-1" class="np-dev-row' + (i === d.i ? ' is-focus' : '') + (v.active ? ' is-active' : '') + (v.restricted ? ' is-restricted' : '') + (d.busy === v.id ? ' is-busy' : '') + '" data-z="npdevrow" data-i="' + i + '">'
+        + deviceIcon(v.type) + '<span class="np-dev-name">' + esc(v.name) + (v.restricted ? '<small>' + esc(T('Can’t be controlled here')) + '</small>' : '') + '</span>'
+        + (v.active ? icon('check', 'np-dev-tick') : d.busy === v.id ? '<span class="np-dev-wait">…</span>' : '') + '</button>';
+    }).join('');
+    return '<h3 class="np-dev-title">' + esc(T('Play on')) + '</h3><div class="np-dev-list">' + rows + '</div>';
+  }
   var seek = { at: null, timer: null };
   function seekBy(n, delta) {
     var from = seek.at !== null ? seek.at : musicPos(n);
@@ -3054,9 +3116,9 @@
     },
     nowplaying: function () {
       return '<div class="np" data-slot="np"><div class="np-art-wrap" data-slot="artwrap"><img class="np-art" data-slot="art" alt=""></div>'
-        + '<div class="np-copy"><p class="np-device" data-slot="device"></p><h2 class="np-title" data-slot="title"></h2><p class="np-artist" data-slot="artist"></p><p class="np-album" data-slot="album"></p>'
+        + '<div class="np-copy"><p class="np-device" data-slot="device" data-z="npdev" data-i="0"></p><h2 class="np-title" data-slot="title"></h2><p class="np-artist" data-slot="artist"></p><p class="np-album" data-slot="album"></p>'
         + '<div class="np-progress" data-slot="progress"></div><div class="np-controls" data-slot="controls"></div></div>'
-        + '<div class="np-lyrics" data-slot="lyrics" aria-live="off"></div></div>';
+        + '<div class="np-lyrics" data-slot="lyrics" aria-live="off"></div><div class="np-devices" data-slot="devices" role="dialog"></div></div>';
     },
     alexalist: function () {
       return '<div class="alexa-pick"><h2 class="s-title" data-slot="title"></h2><p class="s-sub" data-slot="sub"></p><div class="alexa-list" data-slot="list"></div>'
@@ -3206,7 +3268,10 @@
       if (el.lyrics._html !== bare) { el.lyrics.innerHTML = lyricsNow; el.lyrics._html = bare; lyr.line = -2; lyr.snap = true; }
       if (el.art.getAttribute('src') !== art) { if (art) el.art.setAttribute('src', art); else el.art.removeAttribute('src'); }
       el.artwrap.className = 'np-art-wrap' + (art ? '' : ' is-empty');
-      setHTML(el.device, n && n.device ? esc(T('Playing on {0}', n.device)) : '');
+      setHTML(el.device, spotifyOn() ? icon('speaker') + '<span>' + esc(n && n.device ? T('Playing on {0}', n.device) : T('Choose a device')) + '</span>' + icon('right', 'np-dev-more') : '');
+      el.device.className = 'np-device' + (t.f.row === 'device' && !t.dev ? ' is-focus' : '');
+      setHTML(el.devices, devicesHtml(t));
+      el.devices.className = 'np-devices' + (t.dev ? ' is-open' : '');
       setHTML(el.title, t.lyrics && n ? mq(n.title) : esc(n ? n.title : T('Nothing is playing on Spotify.')));
       setHTML(el.artist, t.lyrics && n ? mq(n.artist) : esc(n ? n.artist : ''));
       setHTML(el.album, esc(n ? n.album : ''));
@@ -3217,7 +3282,7 @@
       marquee(el.np);
       setHTML(el.controls, ['prev', n && n.playing ? 'pause' : 'play', 'next', 'lyrics'].map(function (name, i) {
         var label = T(i === 0 ? 'Previous track' : i === 2 ? 'Next track' : i === 3 ? 'Lyrics' : name === 'pause' ? 'Pause' : 'Play');
-        return '<button type="button" tabindex="-1" class="np-btn' + (i === 1 ? ' np-main' : '') + (i === 3 ? ' np-lyrics-btn' + (t.lyrics ? ' is-active' : '') : '') + (t.f.row !== 'bar' && t.f.b === i ? ' is-focus' : '') + '" data-z="np" data-i="' + i + '" data-action="np.' + ['prev', 'toggle', 'next', 'lyrics'][i] + '"'
+        return '<button type="button" tabindex="-1" class="np-btn' + (i === 1 ? ' np-main' : '') + (i === 3 ? ' np-lyrics-btn' + (t.lyrics ? ' is-active' : '') : '') + (t.f.row === 'controls' && !t.dev && t.f.b === i ? ' is-focus' : '') + '" data-z="np" data-i="' + i + '" data-action="np.' + ['prev', 'toggle', 'next', 'lyrics'][i] + '"'
           + (i === 3 ? ' aria-pressed="' + !!t.lyrics + '"' : '') + ' aria-label="' + esc(label) + '">' + icon(name) + (i === 3 ? '<span>' + esc(label) + '</span>' : '') + '</button>';
       }).join(''));
       placeLyrics();

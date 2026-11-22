@@ -140,3 +140,7 @@ Every item in the top row is a card on dark glass: each Alexa switch, one shared
 
 In Tiles, Settings → Focus applies: **Glass** turns the focused tile into lighter glass with a soft bright edge, shaped by the Material choice (Soft: even light glass; Frost: brighter at the top; Clear tint: clearer glass with a stronger edge); **Type** keeps the tile dark, rings it and dims the other tiles' icons and names. The List layout keeps its earlier behaviour.
 
+## Spotify devices
+
+In Now playing, Up from the progress bar (or from the buttons when there is no progress) focuses the **Playing on …** line, shown with a speaker icon and a chevron (**Choose a device** when nothing is playing). OK opens a **Play on** list over the right side: the devices Spotify reports now, with an icon by type, the current one in green with a tick and focused first, restricted ones dimmed with "Can't be controlled here". Up/Down move, OK on another device moves playback there with the current play or pause state (with nothing playing it asks Spotify to resume there), OK on the current device or Back closes the list. A short message confirms the move or says why it failed (for example Premium required); Now playing reads the player again 1.5 seconds later. With no devices on, the list says to open Spotify on the wanted device; after an error OK tries again.
+
