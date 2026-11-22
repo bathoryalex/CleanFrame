@@ -972,7 +972,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000}
 .dock-tiles .dock .tile::before{transition:background 160ms linear,box-shadow 160ms linear}
 .dock-tiles.f-glass .dock .tile.is-focus::before{background:rgba(255,255,255,.09);box-shadow:inset 0 0 0 2px rgba(255,255,255,.42),0 18px 40px rgba(4,8,10,.34)}
 .dock-tiles.f-glass.m-frost .dock .tile.is-focus::before{background:linear-gradient(170deg,rgba(255,255,255,.20),rgba(255,255,255,.05) 58%,rgba(255,255,255,.07))}
-.dock-tiles.f-glass.m-tint .dock .tile.is-focus::before{background:linear-gradient(170deg,rgba(255,224,184,.18),rgba(255,214,166,.06) 60%);box-shadow:inset 0 0 0 2px rgba(255,222,180,.50),0 18px 40px rgba(4,8,10,.34)}
+.dock-tiles.f-glass.m-tint .dock .tile.is-focus::before{background:rgba(255,255,255,.04);box-shadow:inset 0 0 0 2px rgba(255,255,255,.60),0 18px 40px rgba(4,8,10,.34)}
 .dock-tiles.f-type .dock .tile.is-focus::before{background:rgba(14,18,20,.42);box-shadow:inset 0 0 0 3px rgba(246,241,231,.92),0 18px 40px rgba(4,8,10,.34)}
 .dock-tiles.f-type .dock .tile:not(.is-focus) .tile-content{opacity:.6}
 .bg-light.dock-tiles.f-glass .dock .tile.is-focus::before{background:rgba(255,255,255,.80);box-shadow:inset 0 0 0 2px rgba(29,26,22,.30),0 14px 30px rgba(4,8,10,.16)}

@@ -138,5 +138,5 @@ Language and clock ends with a one-line **Date details** entry (its summary list
 
 Every item in the top row is a card on dark glass: each Alexa switch, one shared card for Wi‑Fi, All apps and Settings, and the song widget (which always has its card, focused or not). Focus looks the same on all of them: lighter glass and a 3 px bright ring, with no moving lens. With the clock in the centre the song card sits at the top left, its top edge level with the other cards (56 px from the top) and its left edge 112 px in, mirroring the controls on the right.
 
-In Tiles, Settings → Focus applies: **Glass** turns the focused tile into lighter glass with a soft bright edge, tinted by the Material choice (Soft, Frost or Clear tint, which is warm here); **Type** keeps the tile dark, rings it and dims the other tiles' icons and names. The List layout keeps its earlier behaviour.
+In Tiles, Settings → Focus applies: **Glass** turns the focused tile into lighter glass with a soft bright edge, shaped by the Material choice (Soft: even light glass; Frost: brighter at the top; Clear tint: clearer glass with a stronger edge); **Type** keeps the tile dark, rings it and dims the other tiles' icons and names. The List layout keeps its earlier behaviour.
 
