@@ -377,6 +377,8 @@ window.CleanFrameI18n = {
     '{0} values': '{0} érték',
     'Choose up to {0} values to show beside the clock.': 'Legfeljebb {0} értéket választhatsz az óra mellé.',
     'Choose up to {0} lights or groups for the Home controls.': 'Legfeljebb {0} lámpát vagy csoportot tehetsz a Kezdőlap gombjai közé.',
+    'Choose up to {0} devices or groups for the Home controls.': 'Legfeljebb {0} eszközt vagy csoportot tehetsz a Kezdőlap gombjai közé.',
+    'Up to {0} with the top Dock bar.': 'A felső dokksávval legfeljebb {0}.',
     'Each colour button on the remote switches one light or group.': 'A távirányító minden színes gombja egy lámpát vagy csoportot kapcsol.',
     'Choose what this button switches.': 'Válaszd ki, mit kapcsoljon ez a gomb.',
     'A group switches all its lights at once: off when any is on, otherwise on.': 'A csoport egyszerre kapcsolja a lámpáit: ha bármelyik ég, mindet lekapcsolja, különben mindet felkapcsolja.',

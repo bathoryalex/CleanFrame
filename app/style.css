@@ -1014,3 +1014,12 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000}
 .stage.top-bar .quiet-utils .u.u-lamp.sw-icons{width:88px;min-width:88px;padding:0}
 .stage.top-bar .quiet-utils .u.u-lamp .u-content{width:100%;max-width:112px}
 .stage.top-bar .quiet-utils .u.u-lamp .u-label{max-width:112px}
+/* Switches that are on: a soft, muted warm tint instead of bright yellow. */
+.quiet-utils .u.u-lamp.is-lit,.stage.top-bar .quiet-utils .u.u-lamp.is-lit{background:rgba(255,222,176,.14);box-shadow:inset 0 0 0 1px rgba(255,226,186,.30);color:#fff6ea}
+.quiet-utils .u.u-lamp.is-lit .ico{color:#f2d8ad}
+.u-lamp.is-lit .sw-track{background:#cfae78}
+.l-dock .quiet-utils .u.u-lamp.is-lit.is-focus,.stage.top-bar .quiet-utils .u.u-lamp.is-lit.is-focus{background:rgba(255,222,176,.22)}
+/* Top Dock bar: lighter glass whose lower edge fades out softly instead of ending in a line. */
+.stage.top-bar .topbar-bg{height:156px;background:linear-gradient(180deg,rgba(12,16,18,.58) 0,rgba(12,16,18,.46) 62%,rgba(12,16,18,.22) 82%,rgba(12,16,18,0) 100%);box-shadow:none}
+.stage.bg-light.top-bar .topbar-bg{background:linear-gradient(180deg,rgba(255,255,255,.56) 0,rgba(255,255,255,.44) 62%,rgba(255,255,255,.18) 82%,rgba(255,255,255,0) 100%);box-shadow:none}
+.stage.bg-dark.top-bar .topbar-bg{background:linear-gradient(180deg,rgba(255,255,255,.06) 0,rgba(255,255,255,.04) 62%,rgba(255,255,255,0) 100%);box-shadow:none}

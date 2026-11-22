@@ -4,7 +4,7 @@
 
   /* ---------- Bundled data ---------- */
   var ASSETS = 'assets/', ICONS = ASSETS + 'icons/', WP = ASSETS + 'wallpapers/';
-  var APP_VERSION = '0.27.1';
+  var APP_VERSION = '0.27.2';
   var CAP = 9, SCRIM_Y = 560, DOCK_BOTTOM = 1032; // the Dock sits 48 px above the bottom edge; names and actions go above it
   var DOCK_MODES = { both: { tw: 288, th: 200, pitch: 296 }, text: { tw: 288, th: 104, pitch: 296 }, icons: { tw: 200, th: 156, pitch: 206 } }; // icons-only tiles leave room under the icon for the focused app's name
   var GRID_ROW = 240, GRID_COL = 344, COLS = 5;
@@ -454,7 +454,7 @@
   }
   function cleanSwitches(s) {
     var list = Array.isArray(s.alexaSwitches) ? s.alexaSwitches : endpointId(s.alexaLamp) ? [{ id: s.alexaLamp, name: s.alexaLampName }] : [];
-    return list.map(prefTarget).filter(function (t) { return t && !/^(spotify|app):/.test(t.id); }).slice(0, 4);
+    return list.map(prefTarget).filter(function (t) { return t && !/^(spotify|app):/.test(t.id); }).slice(0, 6);
   }
   /* A switch's icon, per light or group id; the bulb unless chosen. */
   var SWITCH_ICONS = ['light', 'fan', 'snow', 'flame', 'plug', 'tv', 'speaker', 'power'];
@@ -1268,7 +1268,7 @@
   /* Everything on Home is a target: an Alexa device id, or 'group:<id>' for a named group of lights.
      Values are read every two minutes while the TV shows Frame Home; nothing runs while hidden. */
   var alexa = { list: null, loading: false, listErr: '', err: '', vals: {}, busy: {}, failed: {}, timer: null, pair: null, phase: 'idle', url: '', detail: '', toast: '', toastTimer: null };
-  var ALEXA_POLL = 2 * 60 * 1000, ALEXA_SWITCH_POLL = 5000, MAX_READINGS = 3, MAX_SWITCHES = 4, MAX_GROUPS = 12, MAX_MEMBERS = 20;
+  var ALEXA_POLL = 2 * 60 * 1000, ALEXA_SWITCH_POLL = 5000, MAX_READINGS = 3, MAX_SWITCHES = 6, MAX_GROUPS = 12, MAX_MEMBERS = 20;
   var COLOURS = ['red', 'green', 'yellow', 'blue'], SLOTS = COLOURS.concat(['chup', 'chdown', 'guide']);
   var COLOUR_NAMES = { red: 'Red button', green: 'Green button', yellow: 'Yellow button', blue: 'Blue button', chup: 'CH +', chdown: 'CH −', guide: 'Guide' };
   /* CH+, CH− and Guide keep the TV's own function unless something is assigned to them. */
@@ -1304,9 +1304,11 @@
     targetMembers(id).forEach(function (m) { var v = alexa.vals[m]; if (v && v.power !== null) { known = true; if (!v.power) all = false; } });
     return known ? all : null;
   }
+  /* Six switches fit the top Dock bar; the separate widget row keeps four. */
+  function maxSwitches() { return S.c.topStyle === 'bar' ? MAX_SWITCHES : 4; }
   function liveTargets() {
     var out = S.c.alexaSwitches.filter(function (t) { return !isGroup(t.id) || groupOf(t.id); });
-    return out;
+    return out.slice(0, maxSwitches());
   }
   function alexaIds() {
     var ids = [];
@@ -1880,7 +1882,7 @@
     var g = t.gid ? groupOf(t.gid) : null;
     return {
       readings: [T('Readings'), T('Choose up to {0} values to show beside the clock.', MAX_READINGS)],
-      switches: [T('Switches'), T('Choose up to {0} lights or groups for the Home controls.', MAX_SWITCHES)],
+      switches: [T('Switches'), T('Choose up to {0} devices or groups for the Home controls.', maxSwitches()) + (S.c.topStyle === 'bar' ? '' : ' ' + T('Up to {0} with the top Dock bar.', MAX_SWITCHES))],
       icons: [T('Switch icons'), T('Choose how each switch looks on Home: a light, a fan, air conditioning and more.')],
       icon: [t.tname || T('Switch icons'), T('Choose an icon for this switch.')],
       keys: [T('Remote buttons'), T('The colour buttons, CH +, CH − and Guide can each switch a light or group, control Spotify or open an app. CH and Guide keep their usual job until you assign them.')],
@@ -1913,8 +1915,8 @@
       storeVals((function () { var o = {}; o[row.dev.id] = row.dev; return o; }()));
       saveAlexa({ alexaReadings: next }, 'Alexa readings');
     } else if (t.mode === 'switches') {
-      next = toggleIn(S.c.alexaSwitches, { id: row.id, name: row.group ? '' : row.label.slice(0, 80) }, function (x) { return x.id === row.id; }, MAX_SWITCHES);
-      if (!next) { showToast(T('Up to {0}. Remove one first.', MAX_SWITCHES)); return; }
+      next = toggleIn(S.c.alexaSwitches, { id: row.id, name: row.group ? '' : row.label.slice(0, 80) }, function (x) { return x.id === row.id; }, maxSwitches());
+      if (!next) { showToast(T('Up to {0}. Remove one first.', maxSwitches())); return; }
       saveAlexa({ alexaSwitches: next }, 'Alexa switches');
     } else if (t.mode === 'keys') { if (row.id === 'test') openRemoteTest(); else if (row.id === 'hints') savePrefs({ keyHints: { auto: 'pressed', pressed: 'always', always: 'off', off: 'auto' }[S.c.keyHints] }, 'Remote button hints'); else openAlexaList('keytarget', { colour: row.colour }); }
     else if (t.mode === 'keytarget') {
@@ -3427,15 +3429,6 @@
     if (MEDIA[k]) { if (top().id !== 'wifitype') spotifyKey(MEDIA[k]); return; }
     press(k);
   });
-  /* The TV gives the app no signal for its own Home button while Frame Home is open, so holding Back
-     for 0.8 s does the same: back to the Home screen from any panel. */
-  var backHold = null;
-  document.addEventListener('keydown', function (ev) {
-    if (KEYS[ev.keyCode] !== 'back' || ev.repeat || backHold) return;
-    backHold = setTimeout(function () { backHold = null; if (S.stack.length > 1 && top().id !== 'remotetest') { goHome(); focusStage(); } }, 800);
-  });
-  document.addEventListener('keyup', function (ev) { if (KEYS[ev.keyCode] === 'back') { clearTimeout(backHold); backHold = null; } });
-  window.addEventListener('blur', function () { clearTimeout(backHold); backHold = null; });
   document.addEventListener('keyup', function (ev) { delete heldKeys[ev.keyCode]; });
   window.addEventListener('blur', function () { heldKeys = {}; });
   window.addEventListener('focus', function () { release(); focusStage(); after(); updateClock(); });
