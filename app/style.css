@@ -928,7 +928,50 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000}
 /* The panel's top stays put: loading, the list and errors share one frame that only grows downwards. */
 .np-dev-note.is-wait{color:rgba(246,241,231,.6)}
 /* Devices arriving: the panel's height eases open and each row fades and rises into place. */
-.np-devices.is-growing{overflow:hidden;transition:opacity 180ms linear,transform 260ms cubic-bezier(.22,1,.28,1),height 300ms cubic-bezier(.22,1,.28,1)}
-.np-dev-row.is-entering{animation:np-dev-row-in 280ms cubic-bezier(.22,1,.28,1) both}
+.np-devices{background:none!important;box-shadow:none!important}
+.np-devices::before{content:"";position:absolute;inset:0;z-index:-1;border-radius:28px;background:#121618;box-shadow:inset 0 0 0 1px rgba(255,255,255,.12),0 30px 80px rgba(4,8,10,.6);transform-origin:50% 0;transition:transform 320ms cubic-bezier(.22,1,.28,1);will-change:transform}
+.np-devices.grow-start::before{transform:scaleY(var(--grow,1));transition:none}
+.np-dev-row.is-entering{animation:np-dev-row-in 240ms cubic-bezier(.22,1,.28,1) both}
 @keyframes np-dev-row-in{from{opacity:0;transform:translate3d(0,10px,0)}to{opacity:1;transform:none}}
 @media(prefers-reduced-motion:reduce){.np-dev-row.is-entering{animation:none}}
+/* Tiles: no merged shadow band under the row. Each tile keeps only a short contact shadow, and the
+   bottom darkening that the Dock's shelf needs is lighter, since every tile carries its own glass. */
+.dock-tiles .dock .tile::before{box-shadow:inset 0 0 0 1px rgba(255,255,255,.12),0 4px 12px rgba(4,8,10,.16)}
+.dock-tiles.f-glass .dock .tile.is-focus::before,.dock-tiles.f-glass.m-tint .dock .tile.is-focus::before{box-shadow:inset 0 0 0 2px rgba(255,255,255,.42),0 8px 22px rgba(4,8,10,.24)}
+.dock-tiles.f-glass.m-tint .dock .tile.is-focus::before{box-shadow:inset 0 0 0 2px rgba(255,255,255,.60),0 8px 22px rgba(4,8,10,.24)}
+.dock-tiles.f-type .dock .tile.is-focus::before{box-shadow:inset 0 0 0 3px rgba(246,241,231,.92),0 8px 22px rgba(4,8,10,.24)}
+.stage.dock-tiles .bg .scrim{opacity:.45}
+/* Top bar style "Dock": one bar across the top edge of the screen holds the song on the left and the
+   switches and controls on the right, each a tile as tall as the song card (120 px). */
+.topbar-bg{display:none}
+.stage.top-bar .topbar-bg{display:block;position:absolute;left:0;top:0;width:1920px;height:152px;z-index:2;pointer-events:none;background:linear-gradient(180deg,rgba(10,14,16,.68),rgba(10,14,16,.52));box-shadow:inset 0 -1px 0 rgba(255,255,255,.10),0 14px 40px rgba(4,8,10,.22)}
+.stage.bg-light.top-bar .topbar-bg{background:rgba(255,255,255,.66);box-shadow:inset 0 -1px 0 rgba(29,26,22,.08),0 10px 30px rgba(4,8,10,.10)}
+.stage.bg-dark.top-bar .topbar-bg{background:rgba(255,255,255,.05);box-shadow:inset 0 -1px 0 rgba(255,255,255,.08)}
+.stage.top-bar .ut-dim{display:none}
+.stage.top-bar .utils{z-index:3;top:16px;right:112px;gap:12px;align-items:stretch}
+.stage.top-bar .music{z-index:3;left:112px;top:16px}
+.stage.top-bar .caption{top:188px}
+.stage.top-bar.l-dock.clock-big .caption{top:170px}
+.stage.top-bar .quiet-utils .u-group{height:auto;margin:0;padding:0;gap:12px;background:none;box-shadow:none}
+.stage.top-bar .quiet-utils .u,.stage.top-bar .quiet-utils .u-group .u,.stage.top-bar .quiet-utils .u.u-lamp{position:relative;height:120px;min-width:120px;width:auto;margin:0;padding:12px 20px;border-radius:18px;justify-content:center;opacity:1;background:rgba(255,255,255,.07);box-shadow:inset 0 0 0 1px rgba(255,255,255,.10);transform:none}
+.stage.top-bar .quiet-utils .u-content{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px}
+.stage.top-bar .quiet-utils .u .ico{width:40px;height:40px}
+.stage.top-bar .quiet-utils .u-label{font-size:24px;line-height:30px;letter-spacing:-.2px}
+.stage.top-bar .quiet-utils.is-icons .u,.stage.top-bar .quiet-utils.is-icons .u-group .u,.stage.top-bar .quiet-utils .u.u-lamp.sw-icons{width:120px;padding:0}
+.stage.top-bar .quiet-utils .u-lamp .u-content{gap:6px}
+.stage.top-bar .quiet-utils .u-lamp .ico{width:36px;height:36px}
+.stage.top-bar .quiet-utils .u-lamp .sw-track{position:relative;flex:none}
+.stage.top-bar .quiet-utils .u.u-lamp.sw-icons .sw-track{display:none}
+.stage.top-bar .quiet-utils .u.u-lamp.is-lit{background:rgba(255,186,84,.30);box-shadow:inset 0 0 0 1px rgba(255,214,150,.6)}
+.stage.top-bar .quiet-utils .u.is-focus,.stage.top-bar .quiet-utils .u-group .u.is-focus,.stage.top-bar .quiet-utils .u.u-lamp.is-focus{background:rgba(255,255,255,.18);box-shadow:inset 0 0 0 3px #fff,0 10px 28px rgba(4,8,10,.30)}
+.stage.top-bar .quiet-utils .u.u-lamp.is-lit.is-focus{background:rgba(255,186,84,.40)}
+.stage.top-bar .music .cap-music{height:120px;margin:0;padding:12px 20px 12px 12px;border-radius:18px;background:rgba(255,255,255,.07);box-shadow:inset 0 0 0 1px rgba(255,255,255,.10)}
+.stage.top-bar .music .cap-music.is-focus{background:rgba(255,255,255,.18);box-shadow:inset 0 0 0 3px #fff,0 10px 28px rgba(4,8,10,.30)}
+.stage.bg-light.top-bar .quiet-utils .u,.stage.bg-light.top-bar .music .cap-music{background:rgba(255,255,255,.55);box-shadow:inset 0 0 0 1px rgba(29,26,22,.08)}
+/* Layout settings: two titled groups (bottom bar, top bar) on one compact page. */
+.setting-group{margin:0 0 4px;font-size:22px;line-height:28px;font-weight:600;letter-spacing:1.2px;text-transform:uppercase;color:var(--mute)}
+.setting-section+.setting-group{margin-top:22px}
+.detail-layout .appearance-rows{top:214px}
+.detail-layout .setting-section+.setting-section{margin-top:10px}
+.detail-layout .setting-label{margin-bottom:4px;font-size:24px;line-height:30px}
+.detail-layout .is-horizontal .setting-choice{min-height:56px;padding:6px 14px}

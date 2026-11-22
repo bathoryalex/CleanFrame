@@ -546,7 +546,8 @@ try {
     await pick(/Left lamp/); await pick(/^.?Nappali/);
     check('A light and a group are on Home', (await stored()).alexaSwitches.map(x => x.id).join() === 'amzn1.alexa.endpoint.lamp-1,group:' + groups[0].id, (await stored()).alexaSwitches);
     await nav('back');
-    await act('alexa.list.keys'); await act('alexa.row.1');
+    check('Remote buttons are only in Connections, not repeated under Alexa', await current.evaluate(() => !document.querySelector('[data-action="alexa.list.keys"]')));
+    await group('connections'); await act('alexa.list.keys'); await act('alexa.row.1');
     await current.waitForFunction(() => document.querySelectorAll('.alexa-row').length >= 4);
     await pick(/Piano lamp/);
     check('The green button switches the piano lamp', (await stored()).alexaKeys.green.id === 'amzn1.alexa.endpoint.lamp-3' && (await state()).view === 'alexalist');
@@ -626,7 +627,9 @@ try {
     check('Play/Pause again plays', current.__spotify.calls[1] === 'PUT /v1/me/player/play');
     await key(417); await current.waitForFunction(() => /Next track|Következő/.test(document.getElementById('alexaToast').textContent));
     check('Fast-forward skips to the next track', current.__spotify.calls[2] === 'POST /v1/me/player/next');
-    await group('connections'); await act('conn.spotify'); await act('alexa.list.keys'); await act('alexa.row.3');
+    await group('connections'); await act('conn.spotify');
+    check('Remote buttons are not repeated under Spotify', await current.evaluate(() => !document.querySelector('[data-action="alexa.list.keys"]')));
+    await group('connections'); await act('alexa.list.keys'); await act('alexa.row.3');
     const rows = await current.evaluate(() => [...document.querySelectorAll('.alexa-row')].map(e => [e.textContent, e.getAttribute('data-action')]));
     await act(rows.find(t => /previous track|előző/.test(t[0]))[1]);
     check('A colour button can skip back, even without Alexa', (await stored()).alexaKeys.blue.id === 'spotify:prev', rows);
@@ -659,13 +662,13 @@ try {
     await current.waitForFunction(() => document.querySelector('.np-devices.is-open .np-dev-note'));
     await current.waitForTimeout(350);
     const loadingTop = await current.evaluate(() => document.querySelector('.np-devices').getBoundingClientRect().top);
-    await current.evaluate(() => { const p = document.querySelector('.np-devices'), h = window.__devGrow = [], t0 = performance.now(); const tick = () => { const v = Math.round(p.getBoundingClientRect().height); if (h[h.length - 1] !== v) h.push(v); if (performance.now() - t0 < 1800) requestAnimationFrame(tick); }; tick(); });
+    await current.evaluate(() => { const p = document.querySelector('.np-devices'), h = window.__devGrow = [], t0 = performance.now(); const tick = () => { const m = getComputedStyle(p, '::before').transform, v = m === 'none' ? 1 : Math.round(parseFloat(m.split(',')[3]) * 1000) / 1000; if (h[h.length - 1] !== v) h.push(v); if (performance.now() - t0 < 1800) requestAnimationFrame(tick); }; tick(); });
     current.__spotify.slowDevices = false;
     await current.waitForFunction(() => document.querySelectorAll('.np-dev-row').length > 0);
     await current.waitForTimeout(1500);
     const listTop = await current.evaluate(() => document.querySelector('.np-devices').getBoundingClientRect().top);
     const grow = await current.evaluate(() => window.__devGrow);
-    check('The panel grows smoothly to the list instead of jumping', new Set(grow).size > 3 && grow.every((v, i) => !i || v >= grow[i - 1]), grow);
+    check('The card grows smoothly to the list with a transform, not a jump', grow.length > 4 && grow[grow.length - 1] === 1 && grow.slice(1).every((v, i) => v >= grow[i] || grow[i] === 1), grow);
     check('The list keeps its top edge when the devices arrive (no jump)', Math.abs(loadingTop - listTop) < 1, { loadingTop, listTop });
     const rows = await current.evaluate(() => [...document.querySelectorAll('.np-dev-row')].map(e => e.textContent + (e.classList.contains('is-focus') ? '*' : '') + (e.classList.contains('is-restricted') ? '!' : '')));
     check('OK lists the devices Spotify reports, the current one focused and restricted ones marked', rows.length === 3 && /Echo Dot Max\*/.test(rows[0]) && /Desk PC/.test(rows[1]) && /!$/.test(rows[2]), rows);
@@ -768,11 +771,22 @@ try {
     check('CH + opens the app assigned to it', (await current.evaluate(() => __tv.calls.filter(c => /launch/i.test(c.method)).map(c => c.id))).includes('9Ur5IzDKqV.TizenYouTube'));
     check('The legend shows CH + with the app', /CH\+/.test(await current.locator('#keyLegend').textContent()) && /YouTube/.test(await current.locator('#keyLegend').textContent()));
   });
+  await run('Remote buttons legend only when a button is pressed', async () => {
+    await page({ seed: baseline({ keyHints: 'pressed', alexaKeys: { chup: { id: 'app:9Ur5IzDKqV.TizenYouTube', name: 'YouTube' } } }) });
+    await current.waitForTimeout(300);
+    check('Opening Home does not show the legend', await current.evaluate(() => !document.getElementById('keyLegend').classList.contains('is-on')));
+    await current.evaluate(() => { document.dispatchEvent(new KeyboardEvent('keydown', { keyCode: 427, bubbles: true })); document.dispatchEvent(new KeyboardEvent('keyup', { keyCode: 427, bubbles: true })); });
+    await current.waitForTimeout(300);
+    check('An assigned button shows it', await current.evaluate(() => document.getElementById('keyLegend').classList.contains('is-on')));
+    await group('connections'); await act('alexa.list.keys');
+    await nav('down', 'down', 'down', 'down', 'down', 'down', 'down', 'down', 'down');
+    check('The setting names the choice', /Only when a button is pressed|Csak gombnyomáskor/.test(await current.evaluate(() => document.querySelector('.alexa-pick').textContent)));
+  });
   await run('Remote test lists what the TV sends', async () => {
     await page({ seed: baseline({ alexaKeys: { red: { id: 'spotify:next', name: '' } } }) });
     await current.evaluate(() => localStorage.setItem('cleanframe.spotify.v1', JSON.stringify({ refresh: 'AQtest', access: 'BQtest', until: Date.now() + 3600000 })));
     await current.reload(); await ready();
-    await group('connections'); await act('conn.spotify'); await act('alexa.list.keys');
+    await group('connections'); await act('alexa.list.keys');
     await nav('down', 'down', 'down', 'down', 'down', 'down', 'down', 'down', 'down');
     check('The last row is the remote test', /Test the remote|tesztje/.test(await current.evaluate(() => document.querySelector('.alexa-row.is-focus').textContent)));
     await nav('ok');
@@ -782,6 +796,25 @@ try {
     check('Keys and focus changes are listed, and keys do nothing else', /keydown\s+404/.test(log) && /window blur/.test(log) && !(await current.evaluate(() => document.getElementById('alexaToast').textContent)), log);
     await current.evaluate(() => { for (let i = 0; i < 2; i++) { document.dispatchEvent(new KeyboardEvent('keydown', { keyCode: 27, bubbles: true })); document.dispatchEvent(new KeyboardEvent('keyup', { keyCode: 27, bubbles: true })); } });
     check('Back twice leaves the test', (await state()).view === 'alexalist');
+  });
+  await run('Top bar: separate widgets or one Dock bar', async () => {
+    await page({ seed: baseline({ clockPos: 'center', alexaTemp: 'amzn1.alexa.endpoint.temp-1', alexaTempName: 'Living room', alexaLamp: 'amzn1.alexa.endpoint.lamp-1', alexaLampName: 'Floor lamp' }) });
+    await current.evaluate(() => { localStorage.setItem('cleanframe.alexa.v1', JSON.stringify({ serial: 'X', domain: 'com', site: 'com', refresh: 'Atzr|test', access: 'Atza|test', at: Date.now() }));
+      localStorage.setItem('cleanframe.spotify.v1', JSON.stringify({ refresh: 'AQtest', access: 'BQtest', until: Date.now() + 3600000 })); });
+    await current.reload(); await ready(); await current.waitForFunction(() => document.querySelector('.cap-music') && document.querySelector('.u-lamp'));
+    await group('layout');
+    const heads = await current.evaluate(() => [...document.querySelectorAll('.setting-group')].map(e => e.textContent));
+    check('Layout has a bottom bar group and a top bar group', heads.length === 2 && /Bottom bar/.test(heads[0]) && /Top bar/.test(heads[1]), heads);
+    check('The top bar style offers separate widgets and Dock', same(await current.evaluate(() => [...document.querySelectorAll('[data-action^="choice.topStyle."]')].map(e => e.getAttribute('data-action'))), ['choice.topStyle.cards', 'choice.topStyle.bar']));
+    const fit = await current.evaluate(() => { const rows = document.querySelector('#appearanceRows .setting-section:last-child .setting-options').getBoundingClientRect(), hint = document.getElementById('appearanceDesc').getBoundingClientRect(); return { rows: Math.round(rows.bottom), hint: Math.round(hint.top) }; });
+    check('Layout still fits above the OK hint', fit.rows <= fit.hint, fit);
+    await act('choice.topStyle.bar'); await scene('home'); await current.waitForTimeout(300);
+    const g = await current.evaluate(() => { const s = document.getElementById('stage').getBoundingClientRect(), r = e => { const b = e.getBoundingClientRect(); return { top: b.top - s.top, bottom: b.bottom - s.top, left: b.left - s.left, right: b.right - s.left, height: b.height }; };
+      return { stage: document.getElementById('stage').className.indexOf('top-bar') >= 0, bar: r(document.getElementById('topBar')), music: r(document.querySelector('.cap-music')), tiles: [...document.querySelectorAll('.utils .u')].map(e => r(e)) }; });
+    check('Dock: one bar across the top edge, with the song and every control inside at the same height', g.stage && g.bar.top === 0 && g.bar.left === 0 && g.bar.right === 1920 && g.music.top >= 0 && g.music.bottom <= g.bar.bottom
+      && g.tiles.length === 4 && g.tiles.every(t => Math.abs(t.height - g.music.height) < 1 && t.bottom <= g.bar.bottom), g);
+    await nav('up', 'left');
+    check('The song in the bar is still reached with Left', (await call('where')).zone === 'music');
   });
   await run('Alexa: 0.13 choices carry over', async () => {
     await page({ seed: baseline({ alexaTemp: 'amzn1.alexa.endpoint.temp-1', alexaTempName: 'TIMMERFLOTTE', alexaLamp: 'amzn1.alexa.endpoint.lamp-1', alexaLampName: 'Left lamp' }) });
@@ -1447,6 +1480,15 @@ try {
     check('Warm return restores remote focus', (await state()).focusAction !== focus && (await call('where')).focusCount === 1);
     const clock = await current.locator('#caption .clock').textContent();
     check('Live 12-hour clock has no AM/PM', /^\s*\d{1,2}:\d{2}\s*$/.test(clock), clock);
+  });
+  await run('Returning to the app always shows the Home screen', async () => {
+    await page(); await group('layout');
+    check('Settings are open before leaving', (await state()).view !== 'home');
+    await current.evaluate(() => { __setHidden(true); __setHidden(false); });
+    check('Coming back (Home button) shows Home with the apps focused', (await state()).view === 'home' && (await call('where')).zone === 'apps' && (await call('where')).focusCount === 1, await call('where'));
+    await scene('apps');
+    await current.evaluate(() => { __setHidden(true); __setHidden(false); });
+    check('All apps is closed too', (await state()).view === 'home');
   });
   await run('Open rotation and browser fallback', async () => {
     await page({ seed: baseline({ mode: 'open' }) }); check('Open mode advances at cold start', (await state()).wallpaper === walls[1].id);

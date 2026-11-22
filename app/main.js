@@ -4,7 +4,7 @@
 
   /* ---------- Bundled data ---------- */
   var ASSETS = 'assets/', ICONS = ASSETS + 'icons/', WP = ASSETS + 'wallpapers/';
-  var APP_VERSION = '0.25.3';
+  var APP_VERSION = '0.26.0';
   var CAP = 9, SCRIM_Y = 560, DOCK_BOTTOM = 1032; // the Dock sits 48 px above the bottom edge; names and actions go above it
   var DOCK_MODES = { both: { tw: 288, th: 200, pitch: 296 }, text: { tw: 288, th: 104, pitch: 296 }, icons: { tw: 200, th: 156, pitch: 206 } }; // icons-only tiles leave room under the icon for the focused app's name
   var GRID_ROW = 240, GRID_COL = 344, COLS = 5;
@@ -30,8 +30,8 @@
   }
   window.FrameText = T;
   /* Saved preferences outside the appearance bundle: they apply at once and load nothing. */
-  var PREF_VALUES = { lang: ['en', 'hu'], clock: ['24', '12'], date: ['off', 'on'], clockPos: ['corner', 'center', 'large'], weather: ['off', 'now', 'day'], spotifyShow: ['on', 'off'], keyHints: ['auto', 'always', 'off'], switchStyle: ['both', 'icons', 'text'], clockStyle: ['classic', 'thin', 'led', 'flip'], seconds: ['off', 'on'], layoutView: ['dock', 'tiles'], holidays: ['off', 'on'], namedays: ['off', 'on'], calShow: ['on', 'off'] };
-  var PREF_NAMES = { en: 'English', hu: 'Magyar', '24': '24-hour', '12': '12-hour', corner: 'Corner', center: 'Centre', large: 'Large', off: 'Off', on: 'On', now: 'Basic', day: 'Full', both: 'Both', icons: 'Icons', text: 'Text', classic: 'Classic', thin: 'Thin', led: 'LED', flip: 'Flip', list: 'List', dock: 'Dock', tiles: 'Tiles' };
+  var PREF_VALUES = { lang: ['en', 'hu'], clock: ['24', '12'], date: ['off', 'on'], clockPos: ['corner', 'center', 'large'], weather: ['off', 'now', 'day'], spotifyShow: ['on', 'off'], keyHints: ['auto', 'pressed', 'always', 'off'], switchStyle: ['both', 'icons', 'text'], clockStyle: ['classic', 'thin', 'led', 'flip'], seconds: ['off', 'on'], layoutView: ['dock', 'tiles'], holidays: ['off', 'on'], namedays: ['off', 'on'], calShow: ['on', 'off'], topStyle: ['cards', 'bar'] };
+  var PREF_NAMES = { en: 'English', hu: 'Magyar', '24': '24-hour', '12': '12-hour', corner: 'Corner', center: 'Centre', large: 'Large', off: 'Off', on: 'On', now: 'Basic', day: 'Full', both: 'Both', icons: 'Icons', text: 'Text', classic: 'Classic', thin: 'Thin', led: 'LED', flip: 'Flip', list: 'List', dock: 'Dock', tiles: 'Tiles', cards: 'Separate widgets', bar: 'Dock' };
   WALLS.forEach(function (w) { w.ut = w.ut || { tr: 'light', br: 'light' }; w.frostVeil = w.frostVeil || .12; });
   var MODES = [
     { id: 'fixed', name: 'Fixed', min: 0 }, { id: 'open', name: 'Each time Home opens', min: 0 },
@@ -498,7 +498,7 @@
       alexaReadings: cleanReadings(s), alexaSwitches: cleanSwitches(s), alexaGroups: cleanGroups(s.alexaGroups), alexaKeys: cleanKeys(s.alexaKeys),
       spotifyShow: pick(s.spotifyShow, PREF_VALUES.spotifyShow, 'on'), keyHints: pick(s.keyHints === 'on' || s.keyHints === 'top' ? 'auto' : s.keyHints, PREF_VALUES.keyHints, 'auto'), switchStyle: pick(s.switchStyle, PREF_VALUES.switchStyle, 'both'),
       clockStyle: pick(s.clockStyle, PREF_VALUES.clockStyle, 'classic'), seconds: pick(s.seconds, PREF_VALUES.seconds, 'off'), dockStyle: s.dockStyle === 'tiles' ? 'tiles' : 'shelf',
-      holidays: pick(s.holidays, PREF_VALUES.holidays, 'off'), namedays: pick(s.namedays, PREF_VALUES.namedays, 'off'), calShow: pick(s.calShow, PREF_VALUES.calShow, 'on')
+      holidays: pick(s.holidays, PREF_VALUES.holidays, 'off'), namedays: pick(s.namedays, PREF_VALUES.namedays, 'off'), calShow: pick(s.calShow, PREF_VALUES.calShow, 'on'), topStyle: pick(s.topStyle, PREF_VALUES.topStyle, 'cards')
     };
   }
   function serialise(c) {
@@ -541,7 +541,7 @@
     c.wifiSsid = S.c.wifiSsid; c.wifiPass = S.c.wifiPass; c.wifiSec = S.c.wifiSec;
     c.lang = S.c.lang; c.clock = S.c.clock; c.clockPos = S.c.clockPos; c.date = S.c.date; c.weather = S.c.weather;
     c.customAt = S.c.customAt; c.customTone = S.c.customTone; c.relayTopic = S.c.relayTopic; c.relayAt = S.c.relayAt; c.relaySince = S.c.relaySince;
-    c.alexaReadings = S.c.alexaReadings; c.alexaSwitches = S.c.alexaSwitches; c.alexaGroups = S.c.alexaGroups; c.alexaKeys = S.c.alexaKeys; c.spotifyShow = S.c.spotifyShow; c.keyHints = S.c.keyHints; c.switchStyle = S.c.switchStyle; c.clockStyle = S.c.clockStyle; c.seconds = S.c.seconds; c.dockStyle = S.c.dockStyle; c.holidays = S.c.holidays; c.namedays = S.c.namedays; c.calShow = S.c.calShow;
+    c.alexaReadings = S.c.alexaReadings; c.alexaSwitches = S.c.alexaSwitches; c.alexaGroups = S.c.alexaGroups; c.alexaKeys = S.c.alexaKeys; c.spotifyShow = S.c.spotifyShow; c.keyHints = S.c.keyHints; c.switchStyle = S.c.switchStyle; c.clockStyle = S.c.clockStyle; c.seconds = S.c.seconds; c.dockStyle = S.c.dockStyle; c.holidays = S.c.holidays; c.namedays = S.c.namedays; c.calShow = S.c.calShow; c.topStyle = S.c.topStyle;
     return c;
   }
   function snap() { return { home: S.c.home.slice(), recent: S.c.recent.slice() }; }
@@ -1024,7 +1024,7 @@
   function settingsRows() {
     var n = S.c.home.length;
     return [{ id: 'background', icon: 'art', label: T('Background'), value: S.c.bg === 'photo' ? T(wall(S.c.wall).name) : T(VALUE_NAMES[S.c.bg]) },
-      { id: 'layout', icon: 'layout', label: T('Layout'), value: T(S.c.dockStyle === 'tiles' ? 'Tiles' : 'Dock') },
+      { id: 'layout', icon: 'layout', label: T('Layout'), value: T(S.c.dockStyle === 'tiles' ? 'Tiles' : 'Dock') + (S.c.topStyle === 'bar' ? ', ' + T('Top dock') : '') },
       { id: 'typography', icon: 'type', label: T('Typography'), value: FONTS[S.c.font].name },
       { id: 'focus', icon: 'focus', label: T('Focus'), value: T(VALUE_NAMES[S.c.focus]) + (materialApplies() ? ', ' + T(VALUE_NAMES[S.c.material]) : '') },
       { id: 'editor', icon: 'apps', label: T('Apps on Home'), value: T(n === 1 ? '{0} app' : '{0} apps', n) },
@@ -1074,9 +1074,10 @@
       { id: 'rotation', title: T('Rotation'), items: [{ action: 'background.rotation', label: T(mode().name), disabled: flat }], reason: flat ? T('Choose Photo to use wallpaper and rotation.') : '' }
     ];
     if (t.group === 'layout') return [
-      { id: 'layout', title: T('Layout'), horizontal: true, items: options('layoutView', PREF_VALUES.layoutView) },
+      { id: 'layout', group: T('Bottom bar: apps'), title: T('Layout'), horizontal: true, items: options('layoutView', PREF_VALUES.layoutView) },
       { id: 'apps', title: T('App display'), horizontal: true, items: options('apps', ['text', 'icons', 'both']) },
       { id: 'iconStyle', title: T('Icon style'), horizontal: true, items: options('iconStyle', ['color', 'minimal']) },
+      { id: 'topStyle', group: T('Top bar: widgets and controls'), title: T('Style'), horizontal: true, items: options('topStyle', PREF_VALUES.topStyle) },
       { id: 'controls', title: T('Wi‑Fi, All apps and Settings'), horizontal: true, items: options('controls', ['text', 'icons', 'both']) }
     ].concat(FA ? [{ id: 'switchStyle', title: T('Alexa switches'), horizontal: true, items: options('switchStyle', ['text', 'icons', 'both']) }] : []);
     if (t.group === 'typography') return [{ id: 'clockStyle', title: T('Clock style'), horizontal: true, items: options('clockStyle', PREF_VALUES.clockStyle) },
@@ -1386,13 +1387,11 @@
   function alexaSections() {
     if (!alexaOn()) return [{ id: 'alexa-account', title: T('Account'), items: [{ action: 'alexa.connect', label: T('Connect Alexa'), description: T('Sign in on your phone') }],
       reason: T('Unofficial: Frame Home talks to Alexa the way the Alexa app does.') }];
-    var keys = SLOTS.filter(function (c) { return S.c.alexaKeys[c] && targetName(S.c.alexaKeys[c]); }).map(function (c) { return slotShort(c) + ': ' + targetName(S.c.alexaKeys[c]); });
     return [
       { id: 'alexa-home', title: T('On Home'), items: [
         { action: 'alexa.list.readings', label: T('Readings'), description: summary(S.c.alexaReadings.map(function (r) { return r.name + ' (' + T(r.label) + ')'; }), 'Beside the clock') },
         { action: 'alexa.list.switches', label: T('Switches'), description: summary(liveTargets().map(targetName), 'Beside Wi‑Fi') }] },
-      { id: 'alexa-remote', title: T('Remote and groups'), items: [
-        { action: 'alexa.list.keys', label: T('Remote buttons'), description: summary(keys, 'Red, green, yellow and blue') },
+      { id: 'alexa-remote', title: T('Groups'), items: [
         { action: 'alexa.list.groups', label: T('Groups'), description: S.c.alexaGroups.length ? summary(S.c.alexaGroups.map(function (g) { return g.name; }), '') : T('Switch several lights together') }] },
       { id: 'alexa-account', title: T('Account'), items: [
         { action: 'alexa.list.details', label: T('Device details'), description: T('What Alexa reports for each device') },
@@ -1477,6 +1476,8 @@
   /* Alone in the corner the song shares the top row with the Home controls, so it stops 40 px short of
      them; under the clock it may use up to 760 px. Then long titles scroll. */
   var MUSIC_W = 570;
+  /* The song sits in the top row when the clock is centred, and always in the top Dock bar. */
+  function musicOnTop() { return S.c.clockPos !== 'corner' || S.c.topStyle === 'bar'; }
   function fitMusic(inCorner) {
     var box = stage.querySelector('.cap-music'), first = utilsEl.querySelector('.u'), sr, scale, limit = MUSIC_W;
     if (!box) return;
@@ -1646,18 +1647,21 @@
      fade in one after another; later renders (focus moves) neither animate nor resize. */
   function growDevices(box, t) {
     var d = t.dev, from = box.className.indexOf('is-open') >= 0 ? box.offsetHeight : 0, arrived = d && d.list && !d.shown, to;
-    if (arrived) { d.shown = true; d.enter = Date.now() + 700; }
-    if (!d) { clearTimeout(box._grow); box._growing = false; box.style.height = ''; }
-    box.className = 'np-devices' + (d ? ' is-open' : '') + (box._growing ? ' is-growing' : '');
+    /* While the rows are fading in, later renders wait, so a key press or a poll cannot restart them. */
+    if (d && box._entering && !arrived) { box._pending = true; return; }
+    if (arrived) { d.shown = true; d.enter = !REDUCED_MOTION; }
+    box.className = 'np-devices' + (d ? ' is-open' : '');
     setHTML(box, devicesHtml(t));
-    if (!arrived || !from || REDUCED_MOTION) return;
+    if (d) d.enter = false;
+    if (!arrived || REDUCED_MOTION) return;
+    box._entering = true; clearTimeout(box._grow);
+    box._grow = setTimeout(function () { box._entering = false; if (box._pending) { box._pending = false; render(); } }, 460);
+    /* The card behind the list grows with a transform only (no layout per frame on the TV). */
     to = box.offsetHeight;
-    if (Math.abs(to - from) < 2) return;
-    clearTimeout(box._grow);
-    box.style.transition = 'none'; box.style.height = from + 'px'; box.offsetHeight;
-    box._growing = true; box.className += ' is-growing';
-    box.style.transition = ''; box.style.height = to + 'px';
-    box._grow = setTimeout(function () { box._growing = false; box.style.height = ''; box.className = box.className.replace(/\s*is-growing/g, ''); }, 340);
+    if (!from || to - from < 2) return;
+    box.style.setProperty('--grow', (from / to).toFixed(4));
+    box.className += ' grow-start'; box.offsetHeight;
+    box.className = box.className.replace(/\s*grow-start/g, '');
   }
   /* At most DEV_VISIBLE rows show at once; the window follows the focus, with cues above and below. */
   var DEV_VISIBLE = 7;
@@ -1674,8 +1678,8 @@
     d.top = clamp(d.top, 0, Math.max(0, n - DEV_VISIBLE));
     from = d.top; to = Math.min(n, from + DEV_VISIBLE);
     rows = d.list.slice(from, to).map(function (v, k) {
-      var i = from + k, entering = d.enter && Date.now() < d.enter;
-      return '<button type="button" tabindex="-1" class="np-dev-row' + (entering ? ' is-entering' : '') + (i === d.i ? ' is-focus' : '') + (v.active ? ' is-active' : '') + (v.restricted ? ' is-restricted' : '') + (d.busy === v.id ? ' is-busy' : '') + '"' + (entering ? ' style="animation-delay:' + (k * 35) + 'ms"' : '') + ' data-z="npdevrow" data-i="' + i + '">'
+      var i = from + k, entering = d.enter;
+      return '<button type="button" tabindex="-1" class="np-dev-row' + (entering ? ' is-entering' : '') + (i === d.i ? ' is-focus' : '') + (v.active ? ' is-active' : '') + (v.restricted ? ' is-restricted' : '') + (d.busy === v.id ? ' is-busy' : '') + '"' + (entering ? ' style="animation-delay:' + (60 + k * 25) + 'ms"' : '') + ' data-z="npdevrow" data-i="' + i + '">'
         + deviceIcon(v.type) + '<span class="np-dev-name">' + esc(v.name) + (v.restricted ? '<small>' + esc(T('Can’t be controlled here')) + '</small>' : '') + '</span>'
         + (v.active ? icon('check', 'np-dev-tick') : d.busy === v.id ? '<span class="np-dev-wait">…</span>' : '') + '</button>';
     }).join('');
@@ -1706,7 +1710,8 @@
   /* The remote's on-screen colour picker does not reach the app (checked with the remote test), so the
      legend shows with the top row, always, or never; a colour key also shows it for four seconds. */
   var legend = { until: 0, timer: null };
-  function showLegend(ms) { legend.until = Date.now() + ms; clearTimeout(legend.timer); legend.timer = setTimeout(render, ms + 50); render(); }
+  /* onOpen: Home opened or came back; 'pressed' shows the legend only after a button. */
+  function showLegend(ms, onOpen) { if (onOpen && S.c.keyHints === 'pressed') return; legend.until = Date.now() + ms; clearTimeout(legend.timer); legend.timer = setTimeout(render, ms + 50); render(); }
   function keyBadge(slot) { return COLOURS.indexOf(slot) >= 0 ? '<span class="key-dot key-' + slot + '"></span>' : '<span class="key-text">' + esc({ chup: 'CH+', chdown: 'CH−', guide: 'GUIDE' }[slot]) + '</span>'; }
   /* The remote's on-screen colour picker does not reach the app, so the legend is a row of chips above
      the Dock, near where the eye already is: for a few seconds when Home opens and after a button, or
@@ -1714,7 +1719,7 @@
   function legendRows() {
     return SLOTS.filter(function (c) { var t = S.c.alexaKeys[c]; return t && (/^app:/.test(t.id) || (isSpotify(t.id) ? spotifyOn() : alexaOn() && targetName(t))); });
   }
-  function legendOn() { return S.c.keyHints === 'always' || S.c.keyHints === 'auto' && Date.now() < legend.until; }
+  function legendOn() { return S.c.keyHints === 'always' || (S.c.keyHints === 'auto' || S.c.keyHints === 'pressed') && Date.now() < legend.until; }
   function keyLegendHtml() {
     if (S.c.keyHints === 'off') return '';
     return legendRows().map(function (c) {
@@ -1726,9 +1731,8 @@
     if (!spotifyOn()) return [{ id: 'spotify-account', title: T('Account'), items: [{ action: 'spotify.connect', label: T('Connect Spotify'), description: T('Sign in on your phone') }],
       reason: T('Shows what is playing on any of your Spotify devices. Play/Pause on the remote controls it (Spotify Premium).') }];
     return [
-      { id: 'spotifyShow', title: T('Now playing on Home'), horizontal: true, items: [choice('spotifyShow', 'on'), choice('spotifyShow', 'off')] },
-      { id: 'spotify-remote', title: T('Remote'), items: [{ action: 'alexa.list.keys', label: T('Remote buttons'), description: T('Can also skip: Next or Previous track') }],
-        reason: T('Play/Pause plays or pauses. Fast-forward and Rewind skip tracks, where the remote has them.') },
+      { id: 'spotifyShow', title: T('Now playing on Home'), horizontal: true, items: [choice('spotifyShow', 'on'), choice('spotifyShow', 'off')],
+        reason: T('Play/Pause plays or pauses. Fast-forward and Rewind skip tracks, where the remote has them. More buttons: Connections → Remote buttons.') },
       { id: 'spotify-account', title: T('Account'), items: [{ action: 'spotify.signout', label: T('Sign out of Spotify'), description: T('Frame Home forgets the sign-in') }],
         reason: spot.err && spot.err !== 'no device' ? spotifyErrText(spot.err) : '' }
     ];
@@ -1822,7 +1826,7 @@
       });
     } else if (t.mode === 'switches') rows = switchRows(function (id) { return S.c.alexaSwitches.some(function (x) { return x.id === id; }); });
     else if (t.mode === 'keys') rows = SLOTS.map(function (c) { var tg = S.c.alexaKeys[c]; return { id: c, colour: c, label: T(COLOUR_NAMES[c]), value: tg && targetName(tg) || T('Not set') }; })
-      .concat([{ id: 'hints', label: T('Show the buttons on Home'), value: T({ auto: 'When Home opens', always: 'Always', off: 'Off' }[S.c.keyHints]) }])
+      .concat([{ id: 'hints', label: T('Show the buttons on Home'), value: T({ auto: 'When Home opens and a button is pressed', pressed: 'Only when a button is pressed', always: 'Always', off: 'Off' }[S.c.keyHints]) }])
       .concat([{ id: 'test', label: T('Test the remote buttons'), value: '', forward: true }]);
     else if (t.mode === 'keytarget') {
       var cur = S.c.alexaKeys[t.colour], is = function (id) { return !!cur && cur.id === id; };
@@ -1890,7 +1894,7 @@
       next = toggleIn(S.c.alexaSwitches, { id: row.id, name: row.group ? '' : row.label.slice(0, 80) }, function (x) { return x.id === row.id; }, MAX_SWITCHES);
       if (!next) { showToast(T('Up to {0}. Remove one first.', MAX_SWITCHES)); return; }
       saveAlexa({ alexaSwitches: next }, 'Alexa switches');
-    } else if (t.mode === 'keys') { if (row.id === 'test') openRemoteTest(); else if (row.id === 'hints') savePrefs({ keyHints: { auto: 'always', always: 'off', off: 'auto' }[S.c.keyHints] }, 'Remote button hints'); else openAlexaList('keytarget', { colour: row.colour }); }
+    } else if (t.mode === 'keys') { if (row.id === 'test') openRemoteTest(); else if (row.id === 'hints') savePrefs({ keyHints: { auto: 'pressed', pressed: 'always', always: 'off', off: 'auto' }[S.c.keyHints] }, 'Remote button hints'); else openAlexaList('keytarget', { colour: row.colour }); }
     else if (t.mode === 'keytarget') {
       next = {}; SLOTS.forEach(function (c) { next[c] = S.c.alexaKeys[c]; });
       next[t.colour] = row.id ? { id: row.id, name: row.group || row.spotify ? '' : row.label.slice(0, 80) } : null;
@@ -2262,7 +2266,7 @@
     var t = top(), sheet = !!V[t.id].sheet, shown = wall(S.shown ? S.shown.wall : S.c.wall), palette = ADAPTIVE_INK[shown.id];
     var adaptive = applyAdaptiveInk(palette), tr = adaptive && palette.tr ? palette.tr.pol : shown.ut.tr, br = adaptive && palette.br ? palette.br.pol : shown.ut.br;
     S.c.layoutView = S.c.dockStyle === 'tiles' ? 'tiles' : 'dock';
-    stage.className = 'stage bg-' + S.c.bg + ' l-dock dock-' + S.c.dockStyle + ' clockstyle-' + S.c.clockStyle + ' m-' + (materialApplies() ? S.c.material : 'none') + ' f-' + S.c.focus + ' a-' + S.c.apps + ' i-' + S.c.iconStyle + ' u-' + S.c.controls + ' clock-' + S.c.clockPos + (S.c.clockPos !== 'corner' ? ' clock-big' : '') + ' tone-' + shown.tone + ' tr-' + tr + ' br-' + br + wallClasses(shown) + inkRungClasses(palette, adaptive) + ' at-' + t.id + ' font-' + homeFont() + (homeFont() !== 'manrope' ? ' font-custom' : '') + (S.fontSwitch ? ' is-font-switch' : '') + (adaptive ? ' has-adaptive-ink adaptive-tl-' + palette.tl.pol : '') + (!adaptive && shown.clockInk ? ' has-clock-ink' : '') + (!adaptive && shown.dockClockInk ? ' has-dock-clock-ink' : '') + (registeredMaterial(shown.id) ? ' registered-material' : '') + (sheet ? ' is-sheet' : '') + (t.id === 'wifiqr' ? ' is-wifi-qr' : '') + (S.hdmiInApp ? ' is-hdmi-input' : '') + (S.reflow ? ' is-reflow' : '');
+    stage.className = 'stage bg-' + S.c.bg + ' l-dock dock-' + S.c.dockStyle + ' clockstyle-' + S.c.clockStyle + ' m-' + (materialApplies() ? S.c.material : 'none') + ' f-' + S.c.focus + ' a-' + S.c.apps + ' i-' + S.c.iconStyle + ' u-' + S.c.controls + ' clock-' + S.c.clockPos + (S.c.clockPos !== 'corner' ? ' clock-big' : '') + ' top-' + S.c.topStyle + ' tone-' + shown.tone + ' tr-' + tr + ' br-' + br + wallClasses(shown) + inkRungClasses(palette, adaptive) + ' at-' + t.id + ' font-' + homeFont() + (homeFont() !== 'manrope' ? ' font-custom' : '') + (S.fontSwitch ? ' is-font-switch' : '') + (adaptive ? ' has-adaptive-ink adaptive-tl-' + palette.tl.pol : '') + (!adaptive && shown.clockInk ? ' has-clock-ink' : '') + (!adaptive && shown.dockClockInk ? ' has-dock-clock-ink' : '') + (registeredMaterial(shown.id) ? ' registered-material' : '') + (sheet ? ' is-sheet' : '') + (t.id === 'wifiqr' ? ' is-wifi-qr' : '') + (S.hdmiInApp ? ' is-hdmi-input' : '') + (S.reflow ? ' is-reflow' : '');
     if (!adaptive && shown.clockInk) stage.style.setProperty('--clock-ink', shown.clockInk);
     else stage.style.removeProperty('--clock-ink');
     if (!adaptive && shown.dockClockInk) stage.style.setProperty('--dock-clock-ink', shown.dockClockInk);
@@ -2361,7 +2365,7 @@
     var hs = homeState(t);
     renderCaption(t, hs);
     renderUtils(hs);
-    fitMusic(S.c.clockPos !== 'corner');
+    fitMusic(musicOnTop());
     renderDock(hs); keyLegend.style.bottom = (1080 - dockTopY + 18) + 'px'; alexaToast.style.bottom = (1080 - dockTopY + 18 + 64) + 'px';
   }
 
@@ -2625,7 +2629,7 @@
     var pills = namedayLineHtml() + calLine;
     if (pills) html += '<span class="cap-pills">' + pills + '</span>';
     /* With the clock in the centre, the song sits alone in the top-left corner. */
-    var musicInCorner = S.c.clockPos !== 'corner';
+    var musicInCorner = musicOnTop();
     if (musicInCorner) setHTML(musicEl, musicHtml(hs.zone === 'music'));
     else { setHTML(musicEl, ''); html += musicHtml(hs.zone === 'music'); }
     setHTML(keyLegend, keyLegendHtml());
@@ -2680,7 +2684,7 @@
     r = button.getBoundingClientRect(); sr = sceneEl.getBoundingClientRect(); scale = sr.width / 1920 || 1;
     width = Math.ceil(textWidth(text, 28, 500, -.2) + 8); x = (r.left + r.width / 2 - sr.left) / scale - width / 2;
     utilFocusLabel.style.width = width + 'px'; utilFocusLabel.style.left = clamp(x, 112, 1808 - width) + 'px';
-    utilFocusLabel.style.top = (116 + fontShift('ui', 28)) + 'px';
+    utilFocusLabel.style.top = ((S.c.topStyle === 'bar' ? 160 : 116) + fontShift('ui', 28)) + 'px';
     utilFocusLabel.className = 'util-focus-label is-on';
   }
   var dockTopY = 776;
@@ -2807,7 +2811,7 @@
     }
     setHTML(appearanceBack, command({ action: 'settings.back', label: backLabel(t) }, icon('left') + '<span>' + backLabel(t) + '</span>', 'setting-back'));
     setHTML(appearanceRows, detailSections(t).map(function (section) {
-      return '<section class="setting-section' + (section.horizontal ? ' is-horizontal' : '') + ' section-' + section.id + '">'
+      return (section.group ? '<h3 class="setting-group">' + esc(section.group) + '</h3>' : '') + '<section class="setting-section' + (section.horizontal ? ' is-horizontal' : '') + ' section-' + section.id + '">'
         + (section.title ? '<h3 class="setting-label" id="setting-' + section.id + '">' + section.title + '</h3>' : '')
         + '<div class="setting-options"' + (section.items[0].axis ? ' role="radiogroup" aria-label="' + esc(section.title || T(LOOK_NAMES[section.id] || DETAIL_NAMES[t.group])) + '"' : '') + '>'
         + section.items.map(function (item) {
@@ -3394,8 +3398,26 @@
       pauseRotation(); clearTimeout(clockTimer); stopRelay(); syncVideo(); clearTimeout(alexa.timer); alexa.timer = null; clearTimeout(spot.timer); spot.timer = null; clearTimeout(secondTimer); clearTimeout(cal.timer);
       if (S.hdmiInApp) { S.hdmiInApp = false; if (FrameDevice.hideHdmiView) FrameDevice.hideHdmiView(); }
     }
-    else { release(); after(); updateClock(); focusStage(); startRelay(); alexaPoll(true); spotifyPoll(true); showLegend(6000); dateDetails(); }
+    else { goHome(); release(); after(); updateClock(); focusStage(); startRelay(); alexaPoll(true); spotifyPoll(true); showLegend(6000, true); dateDetails(); }
   });
+  /* The remote's Home button (and any return to the app) always lands on the Home screen: every open
+     panel is closed the way Back would close it, and focus goes to the apps (the last app stays
+     selected). The remote test stays open, since it is there to watch these events. */
+  function goHome() {
+    var guard = 16, t, before;
+    if (top().id === 'remotetest') return;
+    while (S.stack.length > 1 && guard--) {
+      t = top(); before = S.stack.length;
+      try { V[t.id].key(t, 'back'); } catch (e) { /* fall through to a plain pop */ }
+      norm();
+      if (S.stack.length >= before && top() === t) S.stack.pop();
+    }
+    S.stack.length = 1;
+    top().f.zone = 'apps';
+    render(); syncRotation();
+  }
+  /* Tizen relaunches a running app with an app control when it is started again (Home button). */
+  window.addEventListener('appcontrol', function () { if (!document.hidden) { goHome(); focusStage(); } });
   window.addEventListener('resize', fit);
   if (wifiQrEl) wifiQrEl.addEventListener('click', function () {
     if (top().id !== 'wifiqr') return;
@@ -3453,7 +3475,7 @@
     setLook({}, { transient: true, startup: true });
     norm(); render(); fit(); focusStage(); updateClock(); syncRotation();
     refreshWeather(function () { render(); syncRotation(); });
-    alexaPoll(true); spotifyPoll(true); showLegend(6000); dateDetails();
+    alexaPoll(true); spotifyPoll(true); showLegend(6000, true); dateDetails();
   }
   if (FCW && S.c.customAt) { FCW.persist(); loadCustom(function () { start(); startRelay(); }); } else { start(); startRelay(); }
 })();
