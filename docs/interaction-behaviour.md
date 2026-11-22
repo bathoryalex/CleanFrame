@@ -181,3 +181,7 @@ Switches: up to six devices or groups with the top Dock bar (the separate widget
 
 Modern dock: the app row is drawn at 80 % (scaled about its bottom centre) and lowered so the tiles end 14 px above the bottom edge, matching the 14 px above the top bar's widgets; with the smaller tiles up to nine icon tiles fit without paging. The glass behind it is as tall as the tiles plus 14 px, then fades out over 120 px along the same eased curve as the top bar (the script sets its height and gradient). Page cues, the Arrange action and the button legend follow the scaled row. Both bars are a little darker (62 % at the solid part).
 
+## 0.29
+
+The Modern dock is the top bar mirrored: low 96 px tiles 14 px above the bottom edge on a glass band as tall as the tiles plus 14 px, fading upwards over the same height. Icons only: 128 x 96 tiles with the icon alone (no name, like the top bar). Both: flat tiles of one width (290 px) with the icon on the left and the name beside it (ends with an ellipsis if too long). Text: 232 px tiles with the name centred. When the apps do not fit, as many whole tiles as fit (up to six in Both) are shown and the row pages. Marks are drawn at the smaller size (no scaling), so minimal and colour icons stay crisp.
+

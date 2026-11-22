@@ -878,7 +878,10 @@ try {
     check('Modern dock is saved and draws a full-width bar from the bottom edge that fades upwards', (await stored()).dockStyle === 'modern' && m.cls && m.shown && m.bottom === 0 && m.left === 0 && m.width === 1920 && m.fade, m);
     const t = await current.evaluate(() => { const s = document.getElementById('stage').getBoundingClientRect(), r = [...document.querySelectorAll('.dock .tile')].map(e => e.getBoundingClientRect()), d = document.querySelector('.dock .tile.is-focus').getBoundingClientRect();
       return { bottom: Math.round(s.bottom - Math.max(...r.map(x => x.bottom))), h: Math.round(d.height) }; });
-    check('Modern dock tiles are smaller (80 %) and sit 14 px above the bottom edge', Math.abs(t.bottom - 14) <= 1 && Math.abs(t.h - 200 * 0.8) <= 1, t);
+    check('Modern dock tiles are low (96 px) and sit 14 px above the bottom edge', Math.abs(t.bottom - 14) <= 1 && Math.abs(t.h - 96) <= 1, t);
+    const both = await current.evaluate(() => { const tiles = [...document.querySelectorAll('.dock .tile')].slice(0, 4), r = tiles.map(e => e.getBoundingClientRect());
+      return { widths: r.map(x => Math.round(x.width)), beside: tiles.every(e => { const i = e.querySelector('.dock-icon .mark').getBoundingClientRect(), l = e.querySelector('.label').getBoundingClientRect(); return i.right <= l.left + 1 && Math.abs((i.top + i.bottom) / 2 - (l.top + l.bottom) / 2) < 6; }) }; });
+    check('Both: the name sits beside the icon, in tiles of one width', new Set(both.widths).size === 1 && both.beside, both);
     check('Its focused app has the same white ring as the top widgets', /255, 255, 255\) 0px 0px 0px 3px inset|inset 0px 0px 0px 3px rgb\(255, 255, 255\)/.test(m.ring), m.ring);
   });
   await run('A remote button can open the Home screen', async () => {

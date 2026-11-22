@@ -4,7 +4,7 @@
 
   /* ---------- Bundled data ---------- */
   var ASSETS = 'assets/', ICONS = ASSETS + 'icons/', WP = ASSETS + 'wallpapers/';
-  var APP_VERSION = '0.28.1';
+  var APP_VERSION = '0.29.0';
   var CAP = 9, SCRIM_Y = 560, DOCK_BOTTOM = 1032; // the Dock sits 48 px above the bottom edge; names and actions go above it
   var DOCK_MODES = { both: { tw: 288, th: 200, pitch: 296 }, text: { tw: 288, th: 104, pitch: 296 }, icons: { tw: 200, th: 156, pitch: 206 } }; // icons-only tiles leave room under the icon for the focused app's name
   var GRID_ROW = 240, GRID_COL = 344, COLS = 5;
@@ -267,8 +267,10 @@
     return html.indexOf('class="mark') >= 0 ? html.replace('class="mark', 'class="mark is-dock-mark') : html;
   }
   function dockAppMark(a) {
-    var w = S.c.apps === 'icons' ? 128 : 112;
-    return withDockMark(appMark(a, w, DOCK_MARK_H, DOCK_MARK_H, true));
+    var w = S.c.apps === 'icons' ? 128 : 112, h = DOCK_MARK_H;
+    /* Modern dock: smaller marks for its low tiles (icon beside the name in Both). */
+    if (S.c.dockStyle === 'modern') { w = S.c.apps === 'icons' ? 96 : 56; h = S.c.apps === 'icons' ? 52 : 44; }
+    return withDockMark(appMark(a, w, h, h, true));
   }
   function prefersBundledColor(a) {
     var brand = a.brand || a.id;
@@ -2756,18 +2758,18 @@
   /* Everything on one shelf when it fits. Otherwise show five whole tiles and move the
      window one tile when focus passes an edge; the side cues show that more apps exist. */
   /* Tiles: the same row with a gap between separate tiles. */
-  function dockMode() { var m = DOCK_MODES[S.c.apps]; return S.c.dockStyle !== 'shelf' ? { tw: m.tw, th: m.th, pitch: m.pitch + 12 } : m; }
+  /* Modern dock: low tiles like the top bar's widgets. Both puts the name beside the icon, in tiles of one width. */
+  var MODERN_MODES = { icons: { tw: 128, th: 96, pitch: 140 }, both: { tw: 290, th: 96, pitch: 300 }, text: { tw: 232, th: 96, pitch: 244 } };
+  function dockMode() { var m = DOCK_MODES[S.c.apps]; return S.c.dockStyle === 'modern' ? MODERN_MODES[S.c.apps] : S.c.dockStyle !== 'shelf' ? { tw: m.tw, th: m.th, pitch: m.pitch + 12 } : m; }
   function dockGeom(n) {
-    var m = dockMode(), contentW = n > 0 ? (n - 1) * m.pitch + m.tw : 0, fits = n > 0 && contentW <= (S.c.dockStyle === 'modern' ? 1760 / MODERN_SCALE : S.c.dockStyle !== 'shelf' ? 1760 : 1696);
-    var vis = fits ? n : Math.max(1, Math.min(5, n)), shelfW = fits ? contentW : vis * m.pitch - 8, w = shelfW + 32;
+    var m = dockMode(), contentW = n > 0 ? (n - 1) * m.pitch + m.tw : 0, fits = n > 0 && contentW <= (S.c.dockStyle === 'modern' ? 1792 : S.c.dockStyle !== 'shelf' ? 1760 : 1696);
+    var vis = fits ? n : Math.max(1, Math.min(S.c.dockStyle === 'modern' ? Math.floor((1792 + m.pitch - m.tw) / m.pitch) : 5, n)), shelfW = fits ? contentW : vis * m.pitch - 8, w = shelfW + 32;
     if (n < 0) { w = 912; shelfW = 880; vis = 0; }
     var g = { x: Math.round((1920 - w) / 2), y: DOCK_BOTTOM - m.th - 32, h: m.th + 32, w: w, shelf: shelfW, vis: vis, empty: n < 0, tw: m.tw, th: m.th, pitch: m.pitch, s: 1 };
-    /* Modern dock: the same row drawn at 80 % and lowered, so the tiles end 14 px above the bottom
-       edge, like the top bar's widgets 14 px below the top. */
-    if (S.c.dockStyle === 'modern') { g.s = MODERN_SCALE; g.y = Math.round(1080 - 14 + 16 * g.s - g.h); }
+    /* Modern dock: the tiles end 14 px above the bottom edge, like the top bar's widgets 14 px below the top. */
+    if (S.c.dockStyle === 'modern') g.y = 1080 - 14 + 16 - g.h;
     return g;
   }
-  var MODERN_SCALE = 0.8;
   /* An eased fade: solid glass up to `solid` %, then thinning out without a visible step. */
   var FADE_STEPS = [[0, 1], [.08, .92], [.17, .8], [.27, .65], [.37, .5], [.47, .36], [.57, .24], [.68, .14], [.79, .07], [.9, .025], [1, 0]];
   function fadeGradient(dir, solid, alpha, rgb) {
@@ -2777,7 +2779,7 @@
   }
   var bottomBarKey = '';
   function paintBottomBar(top) {
-    var el = $('bottomBar'), solidH = 1080 - top + 14, h = solidH + 120, key = h + '|' + S.c.bg;
+    var el = $('bottomBar'), solidH = 1080 - top - 2, h = solidH * 2, key = h + '|' + S.c.bg;
     if (!el || key === bottomBarKey) return;
     bottomBarKey = key;
     el.style.height = h + 'px';
@@ -2826,7 +2828,7 @@
     keyed(track, empty ? [] : items, function (el, it, i) {
       var a = it.id ? app(it.id) : null, left = i * g.pitch, focus = tileFocus && i === anchor, sel = tileSel && i === anchor;
       var lifted = hs.lifted && i === anchor;
-      setContent(el, it.kind + '|' + (it.id || '') + '|' + (it.id ? dockLabelSize(it.id) : full) + '|' + S.c.bg + '|' + S.c.apps + '|' + S.c.iconStyle + '|' + homeFont(), '<span class="tile-content">' + dockTileHtml(it, full) + '</span>');
+      setContent(el, it.kind + '|' + (it.id || '') + '|' + (it.id ? dockLabelSize(it.id) : full) + '|' + S.c.bg + '|' + S.c.apps + '|' + S.c.iconStyle + '|' + S.c.dockStyle + '|' + homeFont(), '<span class="tile-content">' + dockTileHtml(it, full) + '</span>');
       el.className = 'tile k-' + it.kind + (focus ? ' is-focus' : '') + (sel ? ' is-sel' : '') + (lifted ? ' is-lifted' : '')
         + (a && !a.mark ? ' is-text' : '') + (it.kind === 'add' && full ? ' is-full' : '') + (it.kind === 'app' && S.press === it.id ? ' is-press' : '')
         + (lifted && i === 0 ? ' no-l' : '') + (lifted && i >= ns - 1 ? ' no-r' : '');
