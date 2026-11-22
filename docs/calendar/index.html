@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#11171a">
+<title>Frame Home · Calendar</title>
+<style>
+  /* Frame Home calendar helper. The TV's channel and a 32-byte key arrive in the URL fragment, which
+     browsers never send to a server. The secret iCal address is encrypted here (keystream =
+     SHA-256(key | nonce | counter)) before it passes through ntfy.sh; only the TV has the key. */
+  :root {
+    --bg: #f2efe8; --card: #ffffff; --ink: #1d1a16; --mute: rgba(29, 26, 22, .62); --line: rgba(29, 26, 22, .12);
+    --accent: #1d1a16; --accent-ink: #f2efe8; --ok: #2f8a4c; --warn: #a2560f; --track: rgba(29, 26, 22, .10);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #11171a; --card: #1b2327; --ink: #f4f4f1; --mute: rgba(244, 244, 241, .64); --line: rgba(244, 244, 241, .12);
+      --accent: #f3f3ef; --accent-ink: #141618; --ok: #7fd18b; --warn: #e9a35b; --track: rgba(244, 244, 241, .12); }
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { -webkit-text-size-adjust: 100%; }
+  body { min-height: 100vh; background: var(--bg); color: var(--ink); font: 17px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; -webkit-font-smoothing: antialiased; }
+  main { max-width: 520px; margin: 0 auto; padding: max(28px, env(safe-area-inset-top)) 20px max(32px, env(safe-area-inset-bottom)); display: flex; flex-direction: column; gap: 20px; }
+  h1 { font-size: 22px; line-height: 1.2; font-weight: 650; letter-spacing: -.3px; }
+  .sub { color: var(--mute); font-size: 15px; margin-top: 4px; }
+  .card { background: var(--card); border-radius: 22px; padding: 18px; box-shadow: 0 1px 0 var(--line), 0 10px 30px rgba(0, 0, 0, .06); display: flex; flex-direction: column; gap: 12px; }
+  h2 { font-size: 17px; font-weight: 650; }
+  .step { display: inline-grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; background: var(--accent); color: var(--accent-ink); font-size: 14px; margin-right: 8px; }
+  p { font-size: 15px; }
+  .note { color: var(--mute); font-size: 13px; }
+  .row { display: flex; gap: 10px; }
+  a.button, button { appearance: none; border: 0; font: inherit; font-weight: 600; border-radius: 16px; min-height: 52px; padding: 0 16px; display: flex; align-items: center; justify-content: center; width: 100%; cursor: pointer; text-decoration: none; -webkit-tap-highlight-color: transparent; }
+  a.button { background: var(--accent); color: var(--accent-ink); }
+  button.soft { background: var(--track); color: var(--ink); min-height: 44px; font-size: 15px; }
+  button.send { background: var(--accent); color: var(--accent-ink); }
+  button:disabled { opacity: .45; cursor: default; }
+  textarea { width: 100%; min-height: 96px; border-radius: 14px; border: 1px solid var(--line); background: transparent; color: var(--ink); font: 14px/1.4 ui-monospace, Menlo, monospace; padding: 12px; resize: vertical; }
+  .status { font-size: 15px; min-height: 22px; }
+  .status.ok { color: var(--ok); } .status.warn { color: var(--warn); }
+  .missing { display: none; }
+  body.no-channel .card { display: none; } body.no-channel .missing { display: block; }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1 data-t="title">Show your calendar on Frame Home</h1>
+    <p class="sub" data-t="subtitle">Frame Home reads your calendar through its secret iCal address. The address is encrypted on this phone, so only your TV can read it.</p>
+  </header>
+
+  <section class="card">
+    <h2><span class="step">1</span><span data-t="s1">Copy the secret iCal address</span></h2>
+    <p><b>Google Calendar</b> <span data-t="google">(in a browser): Settings → choose your calendar under “Settings for my calendars” → Integrate calendar → Secret address in iCal format.</span></p>
+    <p><b>Outlook</b> <span data-t="outlook">(outlook.com or Microsoft 365 on the web): Settings → Calendar → Shared calendars → Publish a calendar → choose the calendar and “Can view all details” → Publish → copy the ICS link.</span></p>
+    <p class="note" data-t="phone">On a phone the Google Calendar and Outlook apps do not show this address. Open calendar.google.com or outlook.com in the browser and switch to the desktop site (Chrome: ⋮ → Desktop site; Safari: aA → Request Desktop Website).</p>
+    <p class="note" data-t="s1note">Treat it like a password: anyone with the address can see your events. You can reset it in the same place.</p>
+  </section>
+
+  <section class="card">
+    <h2><span class="step">2</span><span data-t="s2">Paste it and send it to the TV</span></h2>
+    <textarea id="paste" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="https://calendar.google.com/calendar/ical/…/basic.ics"></textarea>
+    <button class="send" id="send" type="button" disabled data-t="send">Send to TV</button>
+    <p class="status" id="status" aria-live="polite"></p>
+  </section>
+
+  <p class="missing" data-t="missing">Open this page by scanning the QR code on the TV.</p>
+</main>
+<script>
+(function () {
+  'use strict';
+  var EN = { bad: 'This does not look like a calendar address. It starts with https:// or webcal://.', sending: 'Encrypting and sending…', sent: 'Sent. Look at the TV.', failed: 'Could not reach the relay. Try again.', nocrypto: 'This browser cannot encrypt. Open the page in Chrome or Safari.' };
+  var TEXT = {
+    hu: {
+      title: 'Naptár a Frame Home-on', subtitle: 'A Frame Home a naptárad titkos iCal-címén keresztül olvassa az eseményeidet. A címet ez a telefon titkosítja, így csak a TV-d tudja elolvasni.',
+      s1: 'Másold ki a titkos iCal-címet',
+      google: '(böngészőben): Beállítások → a naptárad a „Saját naptáraim beállításai” alatt → Naptár integrálása → Titkos cím iCal formátumban.',
+      outlook: '(outlook.com vagy Microsoft 365 a weben): Beállítások → Naptár → Megosztott naptárak → Naptár közzététele → válaszd a naptárat és a „Minden részlet megtekinthető” lehetőséget → Közzététel → másold ki az ICS-hivatkozást.',
+      phone: 'Telefonon a Google Naptár és az Outlook app nem mutatja ezt a címet. Nyisd meg a calendar.google.com vagy az outlook.com oldalt a böngészőben, és válts asztali nézetre (Chrome: ⋮ → Asztali verzió; Safari: aA → Asztali webhely kérése).',
+      s1note: 'Úgy kezeld, mint egy jelszót: akinek megvan a cím, látja az eseményeidet. Ugyanott vissza is állíthatod.',
+      s2: 'Illeszd be, és küldd el a TV-nek', send: 'Küldés a TV-re', missing: 'Ezt az oldalt a TV-n lévő QR-kód beolvasásával nyisd meg.',
+      bad: 'Ez nem úgy néz ki, mint egy naptárcím. https://-sel vagy webcal://-lal kezdődik.', sending: 'Titkosítás és küldés…', sent: 'Elküldve. Nézd a TV-t.', failed: 'Nem értem el a továbbítót. Próbáld újra.', nocrypto: 'Ez a böngésző nem tud titkosítani. Nyisd meg az oldalt Chrome-ban vagy Safariban.'
+    }
+  };
+  var lang = /^hu\b/i.test(navigator.language || '') ? 'hu' : 'en';
+  function t(key) { return (TEXT[lang] && TEXT[lang][key]) || EN[key] || key; }
+  document.documentElement.lang = lang;
+  Array.prototype.forEach.call(document.querySelectorAll('[data-t]'), function (el) { var v = TEXT[lang] && TEXT[lang][el.getAttribute('data-t')]; if (v) el.textContent = v; });
+  var frag = {};
+  location.hash.replace(/^#/, '').split('&').forEach(function (pair) { var i = pair.indexOf('='); if (i > 0) frag[pair.slice(0, i)] = decodeURIComponent(pair.slice(i + 1)); });
+  if (!/^framehome-cal-[A-Za-z0-9]{16,40}$/.test(frag.t || '') || !/^[A-Za-z0-9_-]{43}$/.test(frag.k || '')) { document.body.className = 'no-channel'; return; }
+  try { history.replaceState(null, '', location.pathname); } catch (e) { /* keep */ }
+  function b64urlDecode(s) { var b = atob(s.replace(/-/g, '+').replace(/_/g, '/') + '===='.slice(s.length % 4 || 4)), a = new Uint8Array(b.length); for (var i = 0; i < b.length; i++) a[i] = b.charCodeAt(i); return a; }
+  function b64url(a) { var s = ''; for (var i = 0; i < a.length; i++) s += String.fromCharCode(a[i]); return btoa(s).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, ''); }
+  var key = b64urlDecode(frag.k), statusEl = document.getElementById('status'), paste = document.getElementById('paste'), send = document.getElementById('send');
+  function say(text, kind) { statusEl.textContent = text; statusEl.className = 'status' + (kind ? ' ' + kind : ''); }
+  paste.addEventListener('input', function () { send.disabled = !paste.value.trim(); say(''); });
+  /* keystream block i = SHA-256(key | nonce | i), XORed with the UTF-8 address. */
+  function encrypt(text) {
+    var data = new TextEncoder().encode(text), nonce = crypto.getRandomValues(new Uint8Array(16)), blocks = [], n = Math.ceil(data.length / 32), i;
+    for (i = 0; i < n; i++) {
+      var input = new Uint8Array(key.length + nonce.length + 4);
+      input.set(key); input.set(nonce, key.length);
+      input[input.length - 4] = (i >>> 24) & 255; input[input.length - 3] = (i >>> 16) & 255; input[input.length - 2] = (i >>> 8) & 255; input[input.length - 1] = i & 255;
+      blocks.push(crypto.subtle.digest('SHA-256', input));
+    }
+    return Promise.all(blocks).then(function (list) {
+      var out = new Uint8Array(data.length), j;
+      for (j = 0; j < data.length; j++) out[j] = data[j] ^ new Uint8Array(list[j >> 5])[j & 31];
+      return { code: b64url(out), n: b64url(nonce) };
+    });
+  }
+  send.addEventListener('click', function () {
+    var url = paste.value.trim().replace(/^webcals?:\/\//i, 'https://');
+    if (!/^https:\/\/\S+$/.test(url)) { say(t('bad'), 'warn'); return; }
+    if (!window.crypto || !crypto.subtle) { say(t('nocrypto'), 'warn'); return; }
+    send.disabled = true; say(t('sending'));
+    encrypt(url).then(function (msg) {
+      var x = new XMLHttpRequest();
+      x.open('POST', 'https://ntfy.sh/' + frag.t, true);
+      x.setRequestHeader('Tags', 'frame-home-calendar');
+      x.onload = function () { if (x.status >= 200 && x.status < 300) say(t('sent'), 'ok'); else { send.disabled = false; say(t('failed'), 'warn'); } };
+      x.onerror = function () { send.disabled = false; say(t('failed'), 'warn'); };
+      x.send(JSON.stringify(msg));
+    }, function () { send.disabled = false; say(t('nocrypto'), 'warn'); });
+  });
+}());
+</script>
+</body>
+</html>
