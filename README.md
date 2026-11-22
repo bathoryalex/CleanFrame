@@ -4,9 +4,9 @@
 
 A quieter home screen for Samsung TVs. Your apps, a photograph, the time and the weather, with an interface made for the TV remote.
 
-![Frame Home: centred clock with seconds, date, weather and indoor temperature, name days and the next calendar event on small cards, an Alexa light switch and icon-only controls at the top right, and minimal app icons in the Tiles layout](docs/images/frame-home-home.jpg)
+![Frame Home: the top Dock bar with the song on the left and five Alexa switches and icon-only controls on the right, a thin centred clock with seconds, the date, weather and indoor temperature, name days and a calendar event on small cards, and the Modern dock at the bottom with icons and names side by side](docs/images/frame-home-home.jpg)
 
-*Tiles layout, minimal icons, icon-only controls, an Alexa switch with its name, the centred 24-hour clock with seconds, name days and a calendar event. Rendered in the browser preview with sample Alexa and calendar data.*
+*Top Dock bar, thin 24-hour clock with seconds, name days and a calendar event, and the Modern dock with icons and names. Rendered in the browser preview on the Desert stars wallpaper with sample Spotify, Alexa and calendar data.*
 
 This repo uses [Nathan Clark's CleanFrame](https://github.com/nthnclrk/CleanFrame) as a base and changes it to suit my Samsung TV (**Frame Home**, its own app identity). It is still evolving; upstream remains the better reference for a general-purpose project.
 
