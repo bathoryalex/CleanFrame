@@ -209,3 +209,10 @@ The Light background is removed with its styles; Photo and Dark remain.
 - **Moving a switch** (Right in Switches): the row turns warm (filled), lifts slightly and says "Up and Down move it · OK places it".
 - **Top bar names** keep room for descenders, so g, p and y are no longer cut off.
 
+## 0.32
+
+- **Settings overview**: every card is the same size (296 x 262) and each group frame sizes to its cards. Personalization (Background, Layout, Style) and Home (Apps on Home, Wi‑Fi QR) share the top row; Connections and system (Date and time, Language, Connections, Samsung Home) is below.
+- **Style** combines Typography and Focus on one page: Clock (clock style), Home text (font) and Focus (focus style, material) cards. Its card shows the font and the focus style.
+- **Date and time** replaces Language and clock (time format, clock position, seconds, date, weather, Date details) and sits under Connections and system.
+- **Language** is a tile of its own: it shows EN or HU, and OK switches between English and Magyar at once, without a page.
+

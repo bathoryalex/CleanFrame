@@ -203,6 +203,7 @@ async function act(action) { const result = await call('activate', action); if (
 async function scene(name) { await call('scene', name); await current.evaluate(() => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)))); }
 async function look(patch) { await call('look', patch); await ready(); }
 async function group(name) {
+  if (name === 'focus') name = 'typography'; // Focus lives on the Style page since 0.32
   await scene('settings'); await act('settings.group.' + name);
   await current.waitForFunction(expected => ShoreQA.state().settingsGroup === expected, name);
 }
@@ -455,8 +456,8 @@ try {
   });
   await run('Settings overview and visible choices', async () => {
     await page(); await scene('settings');
-    const expected = ['settings.group.background', 'settings.group.layout', 'settings.group.typography', 'settings.group.focus', 'settings.editor', 'settings.group.region', 'settings.samsung-home'];
-    check('Overview has all seven settings groups', same((await call('actions')).filter(a => expected.includes(a)).sort(), expected.slice().sort()));
+    const expected = ['settings.group.background', 'settings.group.layout', 'settings.group.typography', 'settings.editor', 'settings.group.wifiqr', 'settings.group.region', 'settings.group.lang', 'settings.samsung-home'];
+    check('Overview has all eight settings cards', same((await call('actions')).filter(a => expected.includes(a)).sort(), expected.slice().sort()));
     const specs = {
       background: { bg: ['dark', 'photo'] },
       layout: { layoutView: ['dock', 'tiles', 'modern'], apps: ['icons', 'both', 'text'], controls: ['icons', 'both', 'text'] },
@@ -473,7 +474,7 @@ try {
       }
       check(name + ' detail has no persistent category rail', !(await call('actions')).some(a => a.startsWith('settings.group.')));
       await nav('back');
-      check(name + ' Back restores overview category focus', (await state()).view === 'settings' && (await state()).focusAction === 'settings.group.' + name, await call('where'));
+      check(name + ' Back restores overview category focus', (await state()).view === 'settings' && (await state()).focusAction === 'settings.group.' + (name === 'focus' ? 'typography' : name), await call('where'));
     }
     await group('background');
     const backgroundActions = await call('actions');
@@ -489,9 +490,11 @@ try {
   await run('Language, clock and weather preferences', async () => {
     await page(); await group('region');
     const actions = await call('actions');
-    check('Region group offers every choice', ['choice.lang.en', 'choice.lang.hu', 'choice.clock.24', 'choice.clock.12', 'choice.weather.off', 'choice.weather.now', 'choice.weather.day', 'choice.clockPos.corner', 'choice.clockPos.center', 'choice.clockPos.large'].every(a => actions.includes(a)), actions);
-    await act('choice.lang.hu');
-    check('Hungarian is saved and applied at once', (await state()).lang === 'hu' && await current.evaluate(() => document.documentElement.lang === 'hu' && document.getElementById('appearanceTitle').textContent === 'Nyelv és óra'));
+    check('Date and time offers every choice', ['choice.clock.24', 'choice.clock.12', 'choice.weather.off', 'choice.weather.now', 'choice.weather.day', 'choice.clockPos.corner', 'choice.clockPos.center', 'choice.clockPos.large'].every(a => actions.includes(a)), actions);
+    await nav('back'); await act('settings.group.lang');
+    check('The Language tile switches to Hungarian at once', (await state()).lang === 'hu' && (await state()).view === 'settings' && await current.evaluate(() => document.documentElement.lang === 'hu' && /Magyar/.test(document.querySelector('.settings-card.card-lang').textContent)));
+    await act('settings.group.region');
+    check('Date and time is titled in Hungarian', await current.evaluate(() => document.getElementById('appearanceTitle').textContent === 'Dátum és idő'));
     await act('choice.clock.12');
     const clock = await current.evaluate(() => document.querySelector('#caption .clock').textContent);
     check('12-hour clock shows the Hungarian period first', /^(de\.|du\.)\d{1,2}:\d{2}$/.test(clock) && Number(clock.replace(/^\D+/, '').split(':')[0]) <= 12, clock);
@@ -514,8 +517,8 @@ try {
     await page(); await scene('settings');
     const cards = await current.evaluate(() => [...document.querySelectorAll('.settings-card')].map(e => { return { id: e.getAttribute('data-id'), left: e.offsetLeft, top: e.offsetTop, bottom: e.offsetTop + e.offsetHeight + e.offsetParent.getBoundingClientRect().top }; }));
     const cardGroups = await current.evaluate(() => [...document.querySelectorAll('.settings-group')].map(g => [...g.querySelectorAll('.settings-card')].map(e => e.getAttribute('data-id'))));
-    check('Settings shows nine cards in three framed groups, Connections before Samsung Home', cards.length === 9 && cardGroups.length === 3 && cardGroups[0].join() === 'background,layout,typography,focus' && cardGroups[1].join() === 'editor,region,wifiqr' && cardGroups[2].join() === 'connections,samsung' && cards.every(c => c.bottom <= 1000), cardGroups);
-    await nav('down', 'down', 'right', 'right', 'right', 'right');
+    check('Settings shows equal cards in three framed groups, Connections before Samsung Home', cardGroups.length === 3 && cardGroups[0].join() === 'background,layout,typography' && cardGroups[1].join() === 'editor,wifiqr' && cardGroups[2].join() === 'region,lang,connections,samsung' && await current.evaluate(() => new Set([...document.querySelectorAll('.settings-card')].map(e => e.offsetWidth + 'x' + e.offsetHeight)).size === 1) && cards.every(c => c.bottom <= 1000), cardGroups);
+    await nav('down', 'down', 'right', 'right', 'right');
     check('Arrows move along the grouped rows, across groups', await current.evaluate(() => document.querySelector('.settings-card.is-focus').getAttribute('data-id')) === 'samsung');
     await act('settings.group.connections'); await current.waitForFunction(() => ShoreQA.state().settingsGroup === 'connections');
     await act('conn.alexa'); await current.waitForFunction(() => ShoreQA.state().settingsGroup === 'alexa');
@@ -745,9 +748,9 @@ try {
     await page({ seed: baseline({ date: 'on' }) });
     await group('region');
     const fit = await current.evaluate(() => { const rows = document.getElementById('appearanceRows').getBoundingClientRect(), hint = document.getElementById('appearanceDesc').getBoundingClientRect(); return { rows: Math.round(rows.bottom), hint: Math.round(hint.top) }; });
-    check('Language and clock still fits above the OK hint', fit.rows <= fit.hint, fit);
+    check('Date and time still fits above the OK hint', fit.rows <= fit.hint, fit);
     await act('region.dateinfo');
-    check('Date details open from Language and clock', (await state()).settingsGroup === 'dateinfo');
+    check('Date details open from Date and time', (await state()).settingsGroup === 'dateinfo');
     await act('choice.holidays.on'); await act('choice.namedays.on');
     await act('calendar.connect');
     await current.waitForFunction(() => document.querySelector('.phone-qr') && document.querySelector('.phone-qr')._payload);
@@ -1187,7 +1190,7 @@ try {
         check(name + ' pointer hover does not apply a choice', same(await settingsSnapshot(), before));
       }
       await nav('back');
-      check(name + ' Back cancels the unconfirmed choice', same(await settingsSnapshot(), before) && (await state()).focusAction === 'settings.group.' + name);
+      check(name + ' Back cancels the unconfirmed choice', same(await settingsSnapshot(), before) && (await state()).focusAction === 'settings.group.' + (name === 'focus' ? 'typography' : name));
     }
     check('Browsing Settings does not launch a native app', (await current.evaluate(() => __tv.calls.length)) === 0);
     await group('background'); await act('background.rotation'); const before = await settingsSnapshot();
@@ -1230,7 +1233,7 @@ try {
         check(axis + ' OK applies ' + value + ' once', after.committed[axis] === value && shown && after.rendered.includes(prefix + '-' + value) && same(untouched, before.committed) && expectedWrites === after.writes && after.storageAttempts - before.storageAttempts === expectedWrites - before.writes && rows.some(r => r.action === 'choice.' + axis + '.' + value && r.checked === 'true'), { before, after, rows });
       }
       const applied = await settingsSnapshot(); await nav('back');
-      check(axis + ' applied choice survives Back', same(await settingsSnapshot(), applied) && (await state()).focusAction === 'settings.group.' + name);
+      check(axis + ' applied choice survives Back', same(await settingsSnapshot(), applied) && (await state()).focusAction === 'settings.group.' + (name === 'focus' ? 'typography' : name));
     }
     await group('background'); await act('background.rotation');
     const selected = await settingsSnapshot(); await act('rotation.' + selected.committed.mode);
@@ -1285,9 +1288,9 @@ try {
   await run('Settings normalises remembered inactive focus', async () => {
     await page(); await group('focus'); await choice('material', 'tint'); await ready();
     await nav('back'); await act('settings.group.background'); await choice('bg', 'dark'); await ready();
-    await nav('back'); await act('settings.group.focus');
+    await nav('back'); await act('settings.group.typography');
     const focus = (await state()).focusAction;
-    check('Inactive remembered Material returns to an enabled focus setting', focus === 'select.focus', focus);
+    check('Inactive remembered Material returns to an enabled setting on the Style page', /^select\./.test(focus) && focus !== 'select.material', focus);
     check('Changing Background preserves remembered Material', (await state()).look.material === 'tint');
     await look({ bg: 'photo' }); await group('background'); await act('background.rotation'); await act('rotation.fixed');
     await look({ bg: 'dark' }); const before = await settingsSnapshot();
@@ -1310,7 +1313,7 @@ try {
       await choice('material', 'frost'); await current.waitForFunction(() => !!ShoreQA.state().pending);
       check('Pending choice keeps the committed Home and storage', same(await settingsSnapshot(), before));
       await nav('back'); await ready();
-      check('Back cancels pending choice and restores category focus', same(await settingsSnapshot(), before) && (await state()).view === 'settings' && (await state()).focusAction === 'settings.group.focus');
+      check('Back cancels pending choice and restores category focus', same(await settingsSnapshot(), before) && (await state()).view === 'settings' && (await state()).focusAction === 'settings.group.typography');
       releaseImages();
       await current.waitForLoadState('networkidle');
       check('Late image completion cannot commit a cancelled choice', held.length > 0 && same(await settingsSnapshot(), before) && !(await state()).pending);

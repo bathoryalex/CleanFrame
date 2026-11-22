@@ -4,7 +4,7 @@
 
   /* ---------- Bundled data ---------- */
   var ASSETS = 'assets/', ICONS = ASSETS + 'icons/', WP = ASSETS + 'wallpapers/';
-  var APP_VERSION = '0.31.0';
+  var APP_VERSION = '0.32.0';
   var CAP = 9, SCRIM_Y = 560, DOCK_BOTTOM = 1032; // the Dock sits 48 px above the bottom edge; names and actions go above it
   var DOCK_MODES = { both: { tw: 288, th: 200, pitch: 296 }, text: { tw: 288, th: 104, pitch: 296 }, icons: { tw: 200, th: 156, pitch: 206 } }; // icons-only tiles leave room under the icon for the focused app's name
   var GRID_ROW = 240, GRID_COL = 344, COLS = 5;
@@ -1048,23 +1048,24 @@
     var n = S.c.home.length;
     return [{ id: 'background', icon: 'art', label: T('Background'), value: S.c.bg === 'photo' ? T(wall(S.c.wall).name) : T(VALUE_NAMES[S.c.bg]) },
       { id: 'layout', icon: 'layout', label: T('Layout'), value: T(S.c.dockStyle === 'tiles' ? 'Tiles' : S.c.dockStyle === 'modern' ? 'Modern dock' : 'Dock') + (S.c.topStyle === 'bar' ? ', ' + T('Top dock') : '') },
-      { id: 'typography', icon: 'type', label: T('Typography'), value: FONTS[S.c.font].name },
-      { id: 'focus', icon: 'focus', label: T('Focus'), value: T(VALUE_NAMES[S.c.focus]) + (materialApplies() ? ', ' + T(VALUE_NAMES[S.c.material]) : '') },
+      { id: 'typography', icon: 'type', label: T('Style'), value: FONTS[S.c.font].name + ' · ' + T(VALUE_NAMES[S.c.focus]) },
       { id: 'editor', icon: 'apps', label: T('Apps on Home'), value: T(n === 1 ? '{0} app' : '{0} apps', n) },
-      { id: 'region', icon: 'clock', label: T('Language and clock'), value: PREF_NAMES[S.c.lang] + ', ' + T(PREF_NAMES[S.c.clock]) + (S.c.clockPos === 'corner' ? '' : ', ' + T(PREF_NAMES[S.c.clockPos])) },
-      { id: 'wifiqr', icon: 'wifiqr', label: T('Wifi QR code'), value: wifiReady() ? S.c.wifiSsid : T('Not set') }
+      { id: 'wifiqr', icon: 'wifiqr', label: T('Wifi QR code'), value: wifiReady() ? S.c.wifiSsid : T('Not set') },
+      { id: 'region', icon: 'clock', label: T('Date and time'), value: T(PREF_NAMES[S.c.clock]) + (S.c.clockPos === 'corner' ? '' : ', ' + T(PREF_NAMES[S.c.clockPos])) },
+      /* Two languages: OK on the tile switches between them, no page needed. */
+      { id: 'lang', icon: 'lang', label: T('Language'), value: PREF_NAMES[S.c.lang], toggle: true }
     ].concat(FA || FS ? [{ id: 'connections', icon: 'alexa', label: T('Connections'), value: connectionsSummary() }] : []).concat([
       { id: 'samsung', icon: 'home', label: T('Samsung Home'), value: T('Leave Frame Home'), direct: true }]);
   }
   function settingsIds() { return settingsRows().map(function (r) { return r.id; }); }
-  var SETTINGS_GROUPS = [{ id: 'personal', label: 'Personalization', ids: ['background', 'layout', 'typography', 'focus'] },
-    { id: 'home', label: 'Home and clock', ids: ['editor', 'region', 'wifiqr'] },
-    { id: 'system', label: 'Connections and system', ids: ['connections', 'samsung'] }];
+  var SETTINGS_GROUPS = [{ id: 'personal', label: 'Personalization', row: 0, ids: ['background', 'layout', 'typography'] },
+    { id: 'home', label: 'Home', row: 0, ids: ['editor', 'wifiqr'] },
+    { id: 'system', label: 'Connections and system', row: 1, ids: ['region', 'lang', 'connections', 'samsung'] }];
   function settingsGroups() {
     var have = settingsIds();
-    return SETTINGS_GROUPS.map(function (g) { return { id: g.id, label: g.label, ids: g.ids.filter(function (id) { return have.indexOf(id) >= 0; }) }; }).filter(function (g) { return g.ids.length; });
+    return SETTINGS_GROUPS.map(function (g) { return { id: g.id, label: g.label, row: g.row, ids: g.ids.filter(function (id) { return have.indexOf(id) >= 0; }) }; }).filter(function (g) { return g.ids.length; });
   }
-  function settingsLayout() { var g = settingsGroups(); return [g[0].ids, g.slice(1).reduce(function (a, x) { return a.concat(x.ids); }, [])].filter(function (r) { return r.length; }); }
+  function settingsLayout() { var rows = [[], []]; settingsGroups().forEach(function (g) { rows[g.row] = rows[g.row].concat(g.ids); }); return rows.filter(function (r) { return r.length; }); }
   /* A card's horizontal centre on screen, or its share of the row before the first render. */
   function cardCentre(id, share) {
     var el = sheetEl && sheetEl.querySelector('.settings-card[data-id="' + id + '"]'), r;
@@ -1096,11 +1097,13 @@
     point: function (t, z, i, id) { if (z === 'row' && id) { t.f.id = id; this.key(t, 'ok'); } }
   };
   function settingsOk(id) {
+    if (id === 'lang') { applyPref('lang', S.c.lang === 'hu' ? 'en' : 'hu'); return; }
+    if (id === 'focus') id = 'typography';
     if (id === 'editor') openEditor('settings');
     else if (id === 'samsung') perform('Samsung Home', FrameDevice.home);
     else openAppearance(id);
   }
-  var DETAIL_NAMES = { background: 'Background', layout: 'Layout', typography: 'Typography', focus: 'Focus', rotation: 'Rotation', region: 'Language and clock', wifiqr: 'Wifi QR code settings', alexa: 'Alexa', spotify: 'Spotify', connections: 'Connections', dateinfo: 'Date details' };
+  var DETAIL_NAMES = { background: 'Background', layout: 'Layout', typography: 'Style', focus: 'Style', rotation: 'Rotation', region: 'Date and time', wifiqr: 'Wifi QR code settings', alexa: 'Alexa', spotify: 'Spotify', connections: 'Connections', dateinfo: 'Date details' };
   var PARENT = { rotation: 'background', alexa: 'connections', spotify: 'connections', dateinfo: 'region' };
   function backLabel(t) { return T(PARENT[t.group] ? DETAIL_NAMES[PARENT[t.group]] : 'Settings'); }
   function choice(axis, value, disabled) {
@@ -1123,17 +1126,16 @@
       { id: 'topStyle', group: T('Top bar: widgets and controls'), title: T('Style'), horizontal: true, items: options('topStyle', PREF_VALUES.topStyle) },
       { id: 'controls', title: T('Wi‑Fi, All apps and Settings'), horizontal: true, items: options('controls', ['text', 'icons', 'both']) }
     ].concat(FA ? [{ id: 'switchStyle', title: T('Alexa switches'), horizontal: true, items: options('switchStyle', ['text', 'icons', 'both']) }] : []);
-    if (t.group === 'typography') return [{ id: 'clockStyle', title: T('Clock style'), horizontal: true, items: options('clockStyle', PREF_VALUES.clockStyle) },
-      { id: 'font', title: T('Font'), items: options('font', LOOK_VALUES.font) }];
-    if (t.group === 'focus') return [
+    function focusSections() { return [
       { id: 'focus', title: T('Focus style'), horizontal: true, items: options('focus', ['type', 'glass']) },
       { id: 'material', title: T('Material'), horizontal: true, items: options('material', ['soft', 'frost', 'tint'], inactive),
         reason: inactive ? T('Materials are available with a Photo background.') : '' }
-    ];
+    ]; }
+    if (t.group === 'typography' || t.group === 'focus') return [{ id: 'clockStyle', title: T('Clock style'), horizontal: true, items: options('clockStyle', PREF_VALUES.clockStyle) },
+      { id: 'font', title: T('Font'), items: options('font', LOOK_VALUES.font) }].concat(focusSections());
     if (t.group === 'rotation') return [{ id: 'mode', title: '', items: options('mode', MODES.map(function (m) { return m.id; }), flat),
       reason: flat ? T('Choose Photo in Background to use rotation.') : T('Timed changes pause while Settings or another panel is open.') }];
     if (t.group === 'region') return [
-      { id: 'lang', title: T('Language'), horizontal: true, items: options('lang', PREF_VALUES.lang) },
       { id: 'clock', title: T('Time format'), horizontal: true, items: options('clock', PREF_VALUES.clock) },
       { id: 'date', title: T('Date'), horizontal: true, items: options('date', PREF_VALUES.date) },
       { id: 'clockPos', title: T('Clock'), horizontal: true, items: options('clockPos', PREF_VALUES.clockPos) },
@@ -2977,9 +2979,9 @@
   var CARD_HEADS = {
     background: { bg: 'Background', wall: 'Background', rotation: 'Background' },
     layout: { layout: 'Bottom bar: apps', apps: 'Bottom bar: apps', iconStyle: 'Bottom bar: apps', topStyle: 'Top bar: widgets and controls', controls: 'Top bar: widgets and controls', switchStyle: 'Top bar: widgets and controls' },
-    typography: { clockStyle: 'Clock', font: 'Home text' },
-    focus: { focus: 'Focus', material: 'Focus' },
-    region: { lang: '', clock: 'Clock', clockPos: 'Clock', seconds: 'Clock', date: 'Date and weather', weather: 'Date and weather', dateinfo: 'Date and weather' },
+    typography: { clockStyle: 'Clock', font: 'Home text', focus: 'Focus', material: 'Focus' },
+    focus: { clockStyle: 'Clock', font: 'Home text', focus: 'Focus', material: 'Focus' },
+    region: { clock: 'Clock', clockPos: 'Clock', seconds: 'Clock', date: 'Date and weather', weather: 'Date and weather', dateinfo: 'Date and weather' },
     rotation: { mode: 'Rotation' },
     wifiqr: { ssid: 'Network', pass: 'Network', sec: 'Network' }
   };
@@ -3285,17 +3287,20 @@
         var visual;
         if (r.id === 'background') visual = S.c.bg === 'photo' ? '<img class="card-photo" src="' + esc(wallAsset(S.c.wall, 'thumb')) + '" alt="">' : '<span class="card-photo card-flat-' + S.c.bg + '"></span>';
         else if (r.id === 'typography') visual = '<span class="card-chip card-type" style="font-family:\'' + FONTS[S.c.font].family + '\',Manrope,sans-serif">Aa</span>';
+        else if (r.id === 'lang') visual = '<span class="card-chip card-type">' + (S.c.lang === 'hu' ? 'HU' : 'EN') + '</span>';
         else visual = '<span class="card-chip">' + icon(r.icon) + '</span>';
         byId[r.id] = '<button type="button" tabindex="-1" class="settings-card card-' + r.id + (r.id === t.f.id ? ' is-focus' : '') + (r.direct ? ' is-direct' : '') + '" data-z="row" data-i="0" data-id="' + r.id + '" data-action="settings.' + (r.id === 'editor' ? 'editor' : r.direct ? 'samsung-home' : 'group.' + r.id) + '" aria-label="' + esc(r.label + ', ' + r.value) + '">'
           + '<span class="card-visual">' + visual + '</span><span class="card-copy"><span class="card-name">' + esc(r.label) + '</span><span class="card-value">' + esc(r.value) + '</span></span>'
           + (r.direct ? '<span class="card-go">' + icon('right') + '</span>' : '') + '</button>';
       });
-      html = settingsGroups().map(function (g) {
-        return '<section class="settings-group group-' + g.id + '" style="--cards:' + g.ids.length + '"><h3 class="settings-group-head">' + esc(T(g.label)) + '</h3><div class="settings-group-cards">' + g.ids.map(function (id) { return byId[id]; }).join('') + '</div></section>';
+      html = [0, 1].map(function (row) {
+        return '<div class="settings-group-row">' + settingsGroups().filter(function (g) { return g.row === row; }).map(function (g) {
+          return '<section class="settings-group group-' + g.id + '"><h3 class="settings-group-head">' + esc(T(g.label)) + '</h3><div class="settings-group-cards">' + g.ids.map(function (id) { return byId[id]; }).join('') + '</div></section>';
+        }).join('') + '</div>';
       }).join('');
       setHTML(el.list, html);
       el.list.className = 'settings-grid is-grouped';
-      setHTML(el.hint, T(t.f.id === 'samsung' ? 'Open Samsung’s Home screen' : 'Open selected group'));
+      setHTML(el.hint, T(t.f.id === 'samsung' ? 'Open Samsung’s Home screen' : t.f.id === 'lang' ? 'Switch the language' : 'Open selected group'));
     },
     message: function (t, el) {
       setHTML(el.acts, messageContent(t).actions.map(function (a, i) {

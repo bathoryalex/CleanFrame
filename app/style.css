@@ -1118,3 +1118,11 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000}
 .settings-grid.is-grouped .card-go{top:24px;right:22px}
 .settings-grid.is-grouped .settings-card.is-focus{transform:scale(1.035)}
 .settings-grid.is-grouped .card-name{white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;font-size:30px;line-height:36px}
+/* Settings overview (0.32): every card the same size; groups size to their cards. */
+.settings-grid.is-grouped{display:flex;flex-direction:column;gap:26px;width:auto}
+.settings-group-row{display:flex;gap:26px;align-items:flex-start}
+.settings-grid.is-grouped .group-personal{grid-column:auto}
+.settings-group-cards{display:flex;gap:18px}
+.settings-grid.is-grouped .settings-card{flex:none;width:296px;height:262px}
+.settings-grid.is-grouped .card-name{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:30px;line-height:38px}
+.settings-grid.is-grouped .card-lang .card-type{font-size:30px;letter-spacing:.5px}
