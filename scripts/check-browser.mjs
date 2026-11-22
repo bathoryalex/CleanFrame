@@ -162,7 +162,7 @@ async function page(options = {}) {
     if (r.method() === 'OPTIONS') return route.fulfill({ status: 204, headers: sp });
     if (r.headers()['authorization'] !== 'Bearer BQtest') return route.fulfill({ status: 401, headers: sp, contentType: 'application/json', body: '{"error":{"status":401}}' });
     if (r.method() === 'GET') return route.fulfill({ headers: sp, contentType: 'application/json', body: JSON.stringify({ is_playing: Q.playing, device: { name: 'Echo Dot Max' },
-      progress_ms: 61000, item: { id: 't1', name: 'Song A', duration_ms: 210000, artists: [{ name: 'Artist A' }, { name: 'Guest B' }], album: { name: 'Album A', images: [{ url: 'https://i.scdn.co/image/big', width: 640 }, { url: 'https://i.scdn.co/image/small', width: 64 }] } } }) });
+      progress_ms: 61000, item: { id: 't1', name: Q.title || 'Song A', duration_ms: 210000, artists: Q.artists || [{ name: 'Artist A' }, { name: 'Guest B' }], album: { name: 'Album A', images: [{ url: 'https://i.scdn.co/image/big', width: 640 }, { url: 'https://i.scdn.co/image/small', width: 64 }] } } }) });
     Q.calls.push(r.method() + ' ' + path);
     if (Q.refuse) return route.fulfill({ status: 403, headers: sp, contentType: 'application/json', body: JSON.stringify({ error: { status: 403, message: 'Player command failed: Premium required', reason: Q.refuse } }) });
     if (path.endsWith('/pause')) Q.playing = false; if (path.endsWith('/play')) Q.playing = true;
@@ -538,9 +538,9 @@ try {
     await current.waitForFunction(() => document.querySelectorAll('.weather.indoor').length === 2);
     check('Home shows the temperature and the humidity', await current.evaluate(() => [...document.querySelectorAll('.weather.indoor')].map(e => e.textContent).join(' ')) === '22.4° 45%');
     check('The colour-button legend stays hidden until it is needed', !(await current.locator('#keyLegend').textContent()));
-    await current.evaluate(() => window.dispatchEvent(new Event('blur')));
-    check('The remote’s colour picker (focus leaves the app) shows the legend', /Piano lamp/.test(await current.locator('#keyLegend').textContent()) && await current.locator('#keyLegend .key-green').count() === 1);
-    await current.evaluate(() => window.dispatchEvent(new Event('focus')));
+    await nav('up');
+    check('With the top row focused the legend names the green button', /Piano lamp/.test(await current.locator('#keyLegend').textContent()) && await current.locator('#keyLegend .key-green').count() === 1);
+    await nav('down');
     check('Home controls start with the light and the group', await current.evaluate(() => [...document.querySelectorAll('#utils .u')].map(b => b.getAttribute('data-action')).join()) === 'util.sw0,util.sw1,util.wifi,util.apps,util.settings');
     await act('util.sw1');
     await current.waitForFunction(() => document.querySelectorAll('.u-lamp.is-lit').length === 2);

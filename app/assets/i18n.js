@@ -221,6 +221,10 @@ window.CleanFrameI18n = {
     'Alpine glow': 'Alpesi fény',
     'Bliss': 'Bliss',
     /* Alexa */
+    'Wi‑Fi, All apps and Settings': 'Wi‑Fi, Összes app és Beállítások',
+    'Alexa switches': 'Alexa-kapcsolók',
+    'With the top row': 'A felső sorral',
+    'Always': 'Mindig',
     'Test the remote buttons': 'Távirányító gombjainak tesztje',
     'Remote test': 'Távirányító-teszt',
     'Press the colour button and the other buttons. Everything the TV tells Frame Home appears here. Press Back twice to leave.': 'Nyomd meg a színes gombot és a többi gombot is. Minden, amit a TV a Frame Home-nak jelez, itt jelenik meg. Kilépés: kétszer Vissza.',

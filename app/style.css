@@ -833,12 +833,8 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000}
 .np.is-lyrics .np-btn.np-lyrics-btn{width:72px;padding:0}
 .np.is-lyrics .np-btn.np-lyrics-btn span{display:none}
 .np.is-lyrics .np-lyrics{display:block;position:relative;grid-column:2;grid-row:1 / span 2;height:860px;overflow:hidden;animation:lyrics-in 520ms cubic-bezier(.22,1,.28,1) both}
-.np.is-lyrics .np-art-wrap,.np.is-lyrics .np-copy{animation:np-col-in 460ms cubic-bezier(.22,1,.28,1) both}
-.np:not(.is-lyrics) .np-art-wrap,.np:not(.is-lyrics) .np-copy{animation:np-col-back 460ms cubic-bezier(.22,1,.28,1) both}
-@keyframes np-col-back{from{transform:translate3d(24px,0,0) scale(.97)}to{transform:none}}
-@keyframes lyrics-in{from{opacity:0;transform:translate3d(48px,0,0)}to{opacity:1;transform:none}}
-@keyframes np-col-in{from{transform:translate3d(-24px,0,0) scale(.97)}to{transform:none}}
-.np{transition:opacity 200ms linear,transform 260ms cubic-bezier(.22,1,.28,1)}
+@keyframes lyrics-in{from{opacity:0;transform:translate3d(40px,0,0)}to{opacity:1;transform:translate3d(0,0,0)}}
+.np{transition:opacity 200ms linear,transform 260ms cubic-bezier(.22,1,.28,1);will-change:opacity,transform}
 .np.is-switching{opacity:0;transform:scale(.985)}
 .lyrics-track{position:absolute;left:0;right:0;top:0;transition:transform 420ms var(--ease)}
 .lyric{margin:0;padding:10px 0;font-size:44px;line-height:56px;font-weight:600;letter-spacing:-.8px;opacity:.12;transition:opacity 300ms linear,transform 300ms var(--ease);transform-origin:left center}
@@ -866,14 +862,32 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000}
 .np-stage .np-btn{color:#f6f1e7;background:rgba(255,255,255,.12)}
 .np-stage .np-btn.is-focus{background:#f6f1e7;color:#141618}
 @media(prefers-reduced-motion:reduce){.np-stage{transform:none!important}.np-bg,.np-shade,.np-stage{transition-duration:120ms}}
-/* Icons-only Dock: the focused app's name sits inside the Dock, under its icon, and rises in. */
-.stage.l-dock.a-icons .dock .tile .dock-icon-solo{bottom:60px}
-.stage.l-dock.a-icons .dock .tile .label.icon-name{top:auto;bottom:22px;left:-36px;right:-36px;font-size:26px;line-height:32px;font-weight:600;letter-spacing:-.3px;opacity:0;transform:translate3d(0,10px,0);transition:opacity 180ms linear,transform 280ms cubic-bezier(.22,1,.28,1)}
-.stage.l-dock.a-icons .dock .tile.is-focus .label.icon-name,.stage.l-dock.a-icons .dock .tile.is-lifted .label.icon-name{opacity:1;transform:none}
+/* Icons-only Dock: icons stay centred; the focused icon moves up and its name rises in under it,
+   inside the tile (sized to fit, else an ellipsis). */
+.stage.l-dock.a-icons .dock .tile .dock-icon-solo{bottom:0;transition:transform 280ms cubic-bezier(.22,1,.28,1)}
+.stage.l-dock.a-icons .dock .tile.is-focus .dock-icon-solo,.stage.l-dock.a-icons .dock .tile.is-lifted .dock-icon-solo{transform:translate3d(0,-18px,0)}
+.stage.l-dock.a-icons .dock .tile .label.icon-name{top:auto;bottom:14px;left:8px;right:8px;line-height:30px;font-weight:600;letter-spacing:-.3px;opacity:0;transform:translate3d(0,10px,0);transition:opacity 180ms linear,transform 280ms cubic-bezier(.22,1,.28,1)}
+.stage.l-dock.a-icons .dock .tile.is-focus .label.icon-name,.stage.l-dock.a-icons .dock .tile.is-lifted .label.icon-name{opacity:1;transform:none;transition-delay:40ms}
 .stage.l-dock.a-icons .dock .tile:not(.is-focus):not(.is-lifted) .label.icon-name{opacity:0}
-@media(prefers-reduced-motion:reduce){.stage.l-dock.a-icons .dock .tile .label.icon-name{transform:none;transition-duration:120ms}}
+@media(prefers-reduced-motion:reduce){.stage.l-dock.a-icons .dock .tile .label.icon-name,.stage.l-dock.a-icons .dock .tile .dock-icon-solo{transform:none!important;transition-duration:120ms}}
 .rt-meta{position:absolute;left:140px;top:224px;margin:0;font-size:26px;color:var(--mute)}
 .rt-log{position:absolute;left:140px;top:284px;right:140px;margin:0;padding:0;list-style:none;font:500 30px/46px ui-monospace,Menlo,Consolas,monospace;letter-spacing:0}
 .rt-log li:first-child{color:var(--ink)}
 .rt-log li{color:var(--mute)}
+/* Ticker for long song titles and artists. */
+.mq{display:block;flex:1;min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.mq-in{display:inline-block;white-space:nowrap}
+.mq.is-moving{text-overflow:clip}
+.mq.is-moving .mq-in{animation-name:mq-scroll;animation-timing-function:ease-in-out;animation-iteration-count:infinite;animation-direction:alternate;will-change:transform}
+@keyframes mq-scroll{0%,14%{transform:translate3d(0,0,0)}86%,100%{transform:translate3d(var(--mq-shift),0,0)}}
+.music-artist .mq{display:block}
+@media(prefers-reduced-motion:reduce){.mq.is-moving .mq-in{animation:none}.mq.is-moving{text-overflow:ellipsis}}
+/* Alexa switches keep their own style whatever the Wi‑Fi, All apps and Settings controls use. */
+.quiet-utils .u.sw-both,.quiet-utils .u.sw-text{width:auto;padding:0 14px;justify-content:flex-start}
+.quiet-utils .u.sw-both .u-label,.quiet-utils .u.sw-text .u-label{display:inline}
+.quiet-utils .u.sw-both .u-content .ico{display:inline-block;width:32px;height:32px}
+.quiet-utils .u.sw-text .u-content .ico{display:none}
+.quiet-utils .u.sw-icons{width:64px;padding:0;justify-content:center}
+.quiet-utils .u.sw-icons .u-label{display:none}
+.quiet-utils .u.sw-icons .u-content .ico{display:inline-block;width:36px;height:36px}
 
