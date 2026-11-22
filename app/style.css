@@ -282,7 +282,6 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000}
 .focus-status{position:absolute;z-index:5;height:28px;display:none;align-items:center;justify-content:center;text-align:center;font-size:22px;line-height:28px;font-weight:600;letter-spacing:-.2px;color:var(--warn);white-space:nowrap;pointer-events:none}
 .focus-status.is-on{display:flex}
 .focus-status.dark-ink{color:var(--solid-warn)}
-.focus-status.photo-status{background:none}
 .build-version{position:absolute;right:28px;bottom:22px;z-index:4;max-width:420px;text-align:right;font-size:22px;line-height:28px;font-weight:500;letter-spacing:0;color:var(--mute);opacity:.8;pointer-events:none}
 .dock-action.has-local-status{top:924px;height:84px}
 .dock-action.has-local-status>span,.er-rm.has-local-status>span{transform:translateY(-13px);font-size:26px}

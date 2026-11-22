@@ -2864,7 +2864,7 @@
     else if (action.indexOf('layout.') === 0) y += 54;
     else y += action.indexOf('arrange.remove.') === 0 || action.indexOf('arrange.restore.') === 0 ? 43 : 40;
     solid = /(?:^|\s)(?:u|btn|er-rm|dock-action|set-row)(?:\s|$)/.test(target.className) && !utilsEl.contains(target) && target.parentNode.className.indexOf('s-head') < 0;
-    focusStatus.className = 'focus-status is-on' + (solid ? ' dark-ink' : '') + (photoFree ? ' photo-status' : '');
+    focusStatus.className = 'focus-status is-on' + (solid ? ' dark-ink' : '');
     focusStatus.textContent = text;
     focusStatus.style.left = clamp(x + 8, 112, 1808 - Math.min(w - 16, 800)) + 'px';
     focusStatus.style.top = clamp(y, 72, 988) + 'px';
