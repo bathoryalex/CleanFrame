@@ -4,7 +4,7 @@
 
   /* ---------- Bundled data ---------- */
   var ASSETS = 'assets/', ICONS = ASSETS + 'icons/', WP = ASSETS + 'wallpapers/';
-  var APP_VERSION = '0.29.1';
+  var APP_VERSION = '0.30.0';
   var CAP = 9, SCRIM_Y = 560, DOCK_BOTTOM = 1032; // the Dock sits 48 px above the bottom edge; names and actions go above it
   var DOCK_MODES = { both: { tw: 288, th: 200, pitch: 296 }, text: { tw: 288, th: 104, pitch: 296 }, icons: { tw: 200, th: 156, pitch: 206 } }; // icons-only tiles leave room under the icon for the focused app's name
   var GRID_ROW = 240, GRID_COL = 344, COLS = 5;
@@ -63,9 +63,9 @@
   };
   var PRIVATE_FONTS = window.CleanFramePrivateFontIDs || [], fontMetrics = {}, unavailableFonts = {}, widthCache = {}, fontsReady = false;
   var LOOK_KEYS = ['bg', 'layout', 'apps', 'iconStyle', 'font', 'controls', 'focus', 'material'];
-  var LOOK_VALUES = { bg: ['dark', 'light', 'photo'], layout: ['dock'], apps: ['icons', 'both', 'text'], iconStyle: ['color', 'minimal'], font: Object.keys(FONTS).filter(function (id) { return id === 'manrope' || PRIVATE_FONTS.indexOf(id) >= 0; }), controls: ['icons', 'both', 'text'], focus: ['type', 'glass'], material: ['soft', 'frost', 'tint'] };
+  var LOOK_VALUES = { bg: ['dark', 'photo'], layout: ['dock'], apps: ['icons', 'both', 'text'], iconStyle: ['color', 'minimal'], font: Object.keys(FONTS).filter(function (id) { return id === 'manrope' || PRIVATE_FONTS.indexOf(id) >= 0; }), controls: ['icons', 'both', 'text'], focus: ['type', 'glass'], material: ['soft', 'frost', 'tint'] };
   var LOOK_NAMES = { bg: 'Background', layout: 'Layout', apps: 'Apps', font: 'Font', controls: 'Home controls', focus: 'Focus', material: 'Material' };
-  var VALUE_NAMES = { dark: 'Dark', light: 'Light', photo: 'Photo', list: 'List', dock: 'Dock', type: 'Type', glass: 'Glass', soft: 'Soft', frost: 'Frost', tint: 'Clear tint', icons: 'Icons', both: 'Icons and text', text: 'Text', color: 'Color', minimal: 'Minimal' };
+  var VALUE_NAMES = { dark: 'Dark', photo: 'Photo', list: 'List', dock: 'Dock', type: 'Type', glass: 'Glass', soft: 'Soft', frost: 'Frost', tint: 'Clear tint', icons: 'Icons', both: 'Icons and text', text: 'Text', color: 'Color', minimal: 'Minimal' };
   var UTIL = { art: ['Art Mode', 'art'], wifi: ['Wi‑Fi QR', 'wifiqr'], apps: ['All apps', 'apps'], arrange: ['Arrange', 'arrange'], settings: ['Settings', 'settings'] };
   var KEYBOARD_COLS = 26; // the on-screen keyboard is a fixed grid, so Up and Down move by a row
   var WIFI_CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_. !@#$%&*+';
@@ -284,7 +284,7 @@
       if (COLOR_BRANDS.indexOf(brand) >= 0) return colorMarkImgInk(brand, w, h);
     }
     if (minimalIconSrc(brand)) return dock ? dockMinimalMarkImg(minimalIconSrc(brand), w, h, brand) : colorMarkImg(minimalIconSrc(brand), w, h);
-    if (a.mark && (maskSupport || S.c.bg !== 'light')) return dock ? markHtmlDock(brand, w, h) : markHtml(brand, w, h, size);
+    if (a.mark) return dock ? markHtmlDock(brand, w, h) : markHtml(brand, w, h, size);
     var words = a.name.split(/\s+/), letters = words[0].charAt(0) + (words.length > 1 ? words[1].charAt(0) : '');
     return '<span class="mark monogram' + (a.icon ? ' native-icon' : '') + '" style="width:' + w + 'px;height:' + h + 'px;font-size:' + Math.round(size * .65) + 'px"><span>' + esc(letters.toUpperCase()) + '</span>'
       + (a.icon ? '<img alt="" data-native-icon="true" src="' + esc(a.icon) + '">' : '') + '</span>';
@@ -1085,7 +1085,7 @@
     var flat = S.c.bg !== 'photo', inactive = !materialApplies();
     function options(axis, values, disabled) { return values.map(function (value) { return choice(axis, value, disabled); }); }
     if (t.group === 'background') return [
-      { id: 'bg', title: T('Background type'), items: options('bg', ['photo', 'light', 'dark']) },
+      { id: 'bg', title: T('Background type'), items: options('bg', ['photo', 'dark']) },
       { id: 'wall', title: T('Wallpaper'), items: [{ action: 'background.wallpaper', label: T(wall(S.c.wall).name), thumbnail: true, disabled: flat }]
         .concat(FCW ? [{ action: 'background.custom', label: T('Picture from phone'), phone: true }] : []) },
       { id: 'rotation', title: T('Rotation'), items: [{ action: 'background.rotation', label: T(mode().name), disabled: flat }], reason: flat ? T('Choose Photo to use wallpaper and rotation.') : '' }
@@ -1126,13 +1126,19 @@
     ];
     return [];
   }
+  /* A section whose items are all choices of one setting is shown as one select row (OK opens its list,
+     Left/Right step through it); other items are rows of their own. */
+  function isSelect(section) { return section.items.length > 0 && section.items.every(function (item) { return !!item.axis; }); }
+  function selectItem(section) {
+    var enabled = section.items.filter(function (item) { return !item.disabled; });
+    return { action: 'select.' + section.id, select: section, label: section.title, disabled: !enabled.length };
+  }
   function detailRows(t) {
     var rows = [[{ action: 'settings.back', label: backLabel(t) }]];
-    detailSections(t).forEach(function (section) {
-      var enabled = section.items.filter(function (item) { return !item.disabled; });
-      if (section.horizontal && enabled.length) rows.push(enabled);
-      else enabled.forEach(function (item) { rows.push([item]); });
-    });
+    detailCards(t).forEach(function (card) { card.sections.forEach(function (section) {
+      if (isSelect(section)) { var it = selectItem(section); if (!it.disabled) rows.push([it]); return; }
+      section.items.filter(function (item) { return !item.disabled; }).forEach(function (item) { rows.push([item]); });
+    }); });
     if (S.lookError) rows.push([{ action: 'settings.retry', label: T('Try again') }]);
     return rows;
   }
@@ -1146,6 +1152,7 @@
     if (item.action !== 'settings.back') S.detailFocus[t.group] = item.action;
     if (column !== undefined) t.f.column = column;
     if (item.axis) S.appearanceFocus = item.axis;
+    if (item.select) S.appearanceFocus = item.select.items[0].axis;
   }
   function applyRotation(value) {
     var c;
@@ -1211,9 +1218,11 @@
   V.appearance = {
     norm: function (t) {
       var rows = detailRows(t), exists = false, applied = null;
+      if (t.f.action && !/^select\./.test(t.f.action)) t.f.action = selectFor(t, t.f.action) || t.f.action;
+      if (S.detailFocus[t.group]) S.detailFocus[t.group] = selectFor(t, S.detailFocus[t.group]) || S.detailFocus[t.group];
+      rows.forEach(function (items) { items.forEach(function (item) { if (item.select && !applied && item.select.items.some(function (x) { return x.axis && S.c[x.axis] === x.value && x.axis === S.appearanceFocus; })) applied = item; }); });
       rows.forEach(function (items) { items.forEach(function (item) {
         if (item.action === t.f.action) exists = true;
-        if (item.axis && item.value === S.c[item.axis]) applied = item;
       }); });
       if (!exists) {
         var saved = S.detailFocus[t.group], row = saved && rows.some(function (items) { return items.some(function (item) { return item.action === saved; }); }) ? saved : null;
@@ -1226,8 +1235,17 @@
       if (t.f.column === undefined) t.f.column = detailLocation(t).column;
     },
     key: function (t, k) {
-      var at = detailLocation(t), row = at.row, column = at.column;
+      var at = detailLocation(t), row = at.row, column = at.column, opts, i;
+      if (t.drop) {
+        /* An open list: Up/Down move, OK applies and closes, Back or Left closes. */
+        opts = dropOptions(t);
+        if (k === 'up' || k === 'down') { i = t.drop.i; do { i += k === 'up' ? -1 : 1; } while (opts[i] && opts[i].disabled); if (opts[i]) t.drop.i = i; }
+        else if (k === 'ok') { var pick = opts[t.drop.i]; t.drop = null; if (pick && !pick.disabled) detailOk(t, pick); }
+        else if (k === 'back' || k === 'left') t.drop = null;
+        return;
+      }
       if (k === 'back') { detailBack(); return; }
+      if (k === 'ok' && at.item.select) { if (!S.pending && !at.item.disabled) { opts = at.item.select.items; t.drop = { id: at.item.select.id, i: Math.max(0, opts.map(function (x) { return S.c[x.axis] === x.value; }).indexOf(true)) }; } return; }
       if (k === 'ok') { detailOk(t, at.item); return; }
       if (k === 'up' || k === 'down') {
         row = clamp(row + (k === 'up' ? -1 : 1), 0, at.rows.length - 1);
@@ -1239,13 +1257,30 @@
       }
     },
     point: function (t, z, i, action) {
+      var choiceItem = null;
       if (z !== 'detail') return;
-      detailRows(t).some(function (items) { return items.some(function (item, column) {
+      if (detailRows(t).some(function (items) { return items.some(function (item, column) {
         if (item.action !== action) return false;
-        detailFocus(t, item, column); detailOk(t, item); return true;
-      }); });
+        detailFocus(t, item, column);
+        if (item.select) this.key(t, 'ok'); else detailOk(t, item);
+        return true;
+      }, this); }, this)) return;
+      /* A choice inside a select's list (also when the list is closed): apply it directly. */
+      detailSections(t).forEach(function (section) { section.items.forEach(function (item) { if (item.action === action) choiceItem = { item: item, section: section }; }); });
+      if (!choiceItem || choiceItem.item.disabled) return;
+      t.drop = null; detailFocus(t, selectItem(choiceItem.section), 0); detailOk(t, choiceItem.item);
     }
   };
+  function selectFor(t, action) {
+    var out = null;
+    detailSections(t).forEach(function (section) { if (isSelect(section) && section.items.some(function (item) { return item.action === action; })) out = 'select.' + section.id; });
+    return out;
+  }
+  function dropOptions(t) {
+    var out = [];
+    detailSections(t).forEach(function (section) { if (t.drop && section.id === t.drop.id) out = section.items; });
+    return out;
+  }
   function messageContent(t) { return t.content || MSG[t.msg]; }
   V.message = {
     sheet: true,
@@ -2331,7 +2366,7 @@
     var t = top(), sheet = !!V[t.id].sheet, shown = wall(S.shown ? S.shown.wall : S.c.wall), palette = ADAPTIVE_INK[shown.id];
     var adaptive = applyAdaptiveInk(palette), tr = adaptive && palette.tr ? palette.tr.pol : shown.ut.tr, br = adaptive && palette.br ? palette.br.pol : shown.ut.br;
     S.c.layoutView = S.c.dockStyle === 'shelf' ? 'dock' : S.c.dockStyle;
-    stage.className = 'stage bg-' + S.c.bg + ' l-dock dock-' + S.c.dockStyle + ' clockstyle-' + S.c.clockStyle + ' m-' + (materialApplies() ? S.c.material : 'none') + ' f-' + S.c.focus + ' a-' + S.c.apps + ' i-' + S.c.iconStyle + ' u-' + S.c.controls + ' clock-' + S.c.clockPos + (S.c.clockPos !== 'corner' ? ' clock-big' : '') + ' top-' + S.c.topStyle + ' tone-' + shown.tone + ' tr-' + tr + ' br-' + br + wallClasses(shown) + inkRungClasses(palette, adaptive) + ' at-' + t.id + ' font-' + homeFont() + (homeFont() !== 'manrope' ? ' font-custom' : '') + (S.fontSwitch ? ' is-font-switch' : '') + (adaptive ? ' has-adaptive-ink adaptive-tl-' + palette.tl.pol : '') + (!adaptive && shown.clockInk ? ' has-clock-ink' : '') + (!adaptive && shown.dockClockInk ? ' has-dock-clock-ink' : '') + (registeredMaterial(shown.id) ? ' registered-material' : '') + (sheet ? ' is-sheet' : '') + (t.id === 'wifiqr' ? ' is-wifi-qr' : '') + (S.hdmiInApp ? ' is-hdmi-input' : '') + (S.reflow ? ' is-reflow' : '');
+    stage.className = 'stage bg-' + S.c.bg + ' l-dock dock-' + S.c.dockStyle + ' clockstyle-' + S.c.clockStyle + ' m-' + (materialApplies() ? S.c.material : 'none') + ' f-' + S.c.focus + ' a-' + S.c.apps + ' i-' + S.c.iconStyle + ' u-' + S.c.controls + ' clock-' + S.c.clockPos + (S.c.clockPos !== 'corner' ? ' clock-big' : '') + ' top-' + S.c.topStyle + ' tone-' + shown.tone + ' tr-' + tr + ' br-' + br + wallClasses(shown) + inkRungClasses(palette, adaptive) + ' at-' + t.id + ' font-' + homeFont() + (homeFont() !== 'manrope' ? ' font-custom' : '') + (S.fontSwitch ? ' is-font-switch' : '') + (adaptive ? ' has-adaptive-ink adaptive-tl-' + palette.tl.pol : '') + (!adaptive && shown.clockInk ? ' has-clock-ink' : '') + (!adaptive && shown.dockClockInk ? ' has-dock-clock-ink' : '') + (registeredMaterial(shown.id) ? ' registered-material' : '') + (sheet ? ' is-sheet' : '') + (t.id === 'wifiqr' ? ' is-wifi-qr' : '') + (t.id === 'appearance' && !PREVIEW_GROUPS[t.group] ? ' no-preview' : '') + (S.hdmiInApp ? ' is-hdmi-input' : '') + (S.reflow ? ' is-reflow' : '');
     if (!adaptive && shown.clockInk) stage.style.setProperty('--clock-ink', shown.clockInk);
     else stage.style.removeProperty('--clock-ink');
     if (!adaptive && shown.dockClockInk) stage.style.setProperty('--dock-clock-ink', shown.dockClockInk);
@@ -2786,7 +2821,7 @@
     if (!el || key === bottomBarKey) return;
     bottomBarKey = key;
     el.style.height = h + 'px';
-    el.style.background = S.c.bg === 'light' ? fadeGradient('0deg', solidH / h * 100, .56, '255,255,255') : S.c.bg === 'dark' ? fadeGradient('0deg', solidH / h * 100, .07, '255,255,255') : fadeGradient('0deg', solidH / h * 100, .62, '12,16,18');
+    el.style.background = S.c.bg === 'dark' ? fadeGradient('0deg', solidH / h * 100, .07, '255,255,255') : fadeGradient('0deg', solidH / h * 100, .62, '12,16,18');
   }
   /* Where the (possibly scaled) dock is on screen; scaling is about the bottom centre. */
   function dockVisual(g) { var b = g.y + g.h; return { x: 960 + (g.x - 960) * g.s, y: b - g.h * g.s, w: g.w * g.s, h: g.h * g.s, map: function (x) { return 960 + (x - 960) * g.s; } }; }
@@ -2889,49 +2924,102 @@
     }
     FILLS[t.id](t, slotEls);
   }
+  /* Settings pages are cards of rows. The heading of each card, by page and section. */
+  var CARD_HEADS = {
+    background: { bg: 'Background', wall: 'Background', rotation: 'Background' },
+    layout: { layout: 'Bottom bar: apps', apps: 'Bottom bar: apps', iconStyle: 'Bottom bar: apps', topStyle: 'Top bar: widgets and controls', controls: 'Top bar: widgets and controls', switchStyle: 'Top bar: widgets and controls' },
+    typography: { clockStyle: 'Clock', font: 'Home text' },
+    focus: { focus: 'Focus', material: 'Focus' },
+    region: { lang: '', clock: 'Clock', clockPos: 'Clock', seconds: 'Clock', date: 'Date and weather', weather: 'Date and weather', dateinfo: 'Date and weather' },
+    rotation: { mode: 'Rotation' },
+    wifiqr: { ssid: 'Network', pass: 'Network', sec: 'Network' }
+  };
+  /* Pages whose changes show on Home keep the live preview on the right; the others use the width. */
+  var PREVIEW_GROUPS = { background: 1, layout: 1, typography: 1, focus: 1, region: 1, dateinfo: 1 };
+  /* Sections with the same heading share one card, in the order the headings first appear. */
+  function detailCards(t) {
+    var heads = CARD_HEADS[t.group] || {}, cards = [], byHead = {};
+    detailSections(t).forEach(function (section, n) {
+      var head = heads[section.id] !== undefined ? T(heads[section.id]) : section.group || (isSelect(section) ? '' : section.title || ''), key = heads[section.id] !== undefined || section.group ? 'h:' + head : 's:' + n;
+      if (!byHead[key]) { byHead[key] = { head: head, sections: [] }; cards.push(byHead[key]); }
+      byHead[key].sections.push(section);
+    });
+    return cards;
+  }
+  function detailCardsHtml(t, command) {
+    var cards = detailCards(t).map(function (c) { return { head: c.head, sections: c.sections, html: '' }; });
+    cards.forEach(function (card) { card.sections.forEach(function (section) {
+      card.html += isSelect(section) ? selectRowHtml(t, section, command) : section.items.map(function (item) { return linkRowHtml(t, item, command, section, card.head); }).join('')
+        + (section.reason ? '<p class="set-note">' + esc(section.reason) + '</p>' : '');
+    }); });
+    return '<div class="set-scroll">' + cards.map(function (c) { return '<section class="set-card">' + (c.head ? '<h3 class="set-card-head">' + esc(c.head) + '</h3>' : '') + c.html + '</section>'; }).join('') + '</div>';
+  }
+  function optionLabel(item) { return item.axis && item.value === 'both' ? T('Icons and text') : item.label; }
+  function selectRowHtml(t, section, command) {
+    var it = selectItem(section), open = t.drop && t.drop.id === section.id, cur = section.items.filter(function (x) { return S.c[x.axis] === x.value; })[0];
+    var value = cur ? optionLabel(cur) : '';
+    return '<div class="set-select-wrap' + (open ? ' is-open' : '') + '">'
+      + command(it, '<span class="set-label">' + esc(section.title || '') + '</span><span class="set-value">' + esc(value) + '</span>' + icon('down', 'set-chev'), 'set-row set-select')
+      + '<div class="select-pop" role="radiogroup" aria-label="' + esc(section.title || '') + '">' + section.items.map(function (item, i) {
+        var applied = S.c[item.axis] === item.value;
+        return '<button type="button" tabindex="-1" class="setting-choice select-opt' + (open && t.drop.i === i ? ' is-focus' : '') + (applied ? ' is-applied' : '') + (item.disabled ? ' is-disabled' : '') + '" role="radio" aria-checked="' + applied + '" aria-disabled="' + !!item.disabled + '"'
+          + ' data-drop="1" data-z="detail" data-i="0" data-id="' + item.action + '" data-action="' + item.action + '"><span class="setting-name">' + esc(optionLabel(item)) + '</span><span class="setting-tick" aria-hidden="true">' + (applied ? icon('check') : '') + '</span></button>';
+      }).join('') + '</div>' + (section.reason ? '<p class="set-note">' + esc(section.reason) + '</p>' : '') + '</div>';
+  }
+  function linkRowHtml(t, item, command, section, head) {
+    /* A one-item section reads as "Title  value": Wallpaper · Misty coast, Rotation · Fixed. */
+    var titled = section && section.title && section.title !== head && (section.items.length === 1 || item.thumbnail);
+    var label = titled ? section.title : item.label, value = titled ? item.label : item.description || '', body = '';
+    body += '<span class="set-label">' + esc(label) + '</span>';
+    if (item.phone) body += '<span class="setting-swatch setting-phone" aria-hidden="true">' + icon('phone') + '</span>';
+    if (item.thumbnail) body += '<img class="setting-swatch" src="' + esc(wallAsset(S.c.wall, 'thumb')) + '" alt="">';
+    body += (value ? '<span class="set-value">' + esc(value) + '</span>' : '') + icon('right', 'set-chev');
+    return command(item, body, 'set-row set-link');
+  }
+  /* Long pages scroll so the focused row (or an open list) stays in view. */
+  function placeDetailRows() {
+    var box = appearanceRows, el = box.querySelector('.set-scroll'), f, max = box.clientHeight || 740, y = 0, top, bottom, r0;
+    if (!el) return;
+    f = el.querySelector('.set-select-wrap.is-open') || el.querySelector('.set-row.is-focus');
+    if (f) {
+      r0 = el.getBoundingClientRect(); var rf = f.getBoundingClientRect(), sc = (stage.getBoundingClientRect().width / 1920) || 1;
+      top = (rf.top - r0.top) / sc; bottom = top + rf.height / sc + (f.classList.contains('is-open') ? f.querySelector('.select-pop').getBoundingClientRect().height / sc : 0);
+      var card = f.closest ? f.closest('.set-card') : null, ctop = card ? (card.getBoundingClientRect().top - r0.top) / sc : top;
+      if (bottom - ctop <= max - 8) top = ctop;
+      y = box._scroll || 0; if (bottom - y > max - 8) y = bottom - max + 8; if (top - y < 0) y = top;
+    }
+    y = Math.max(0, Math.min(y, Math.max(0, el.offsetHeight - max)));
+    box._scroll = y; el.style.transform = y ? 'translate3d(0,' + (-Math.round(y)) + 'px,0)' : '';
+  }
   function renderAppearance(t) {
     appearanceEl.hidden = !isSettingsDetail(t);
     if (appearanceEl.hidden) { appearanceEl.removeAttribute('aria-modal'); return; }
     appearanceEl.setAttribute('aria-modal', 'true');
     if (t.id === 'wallpaper') { renderWallpaper(t); return; }
     V.appearance.norm(t);
-    appearanceEl.className = 'appearance detail-' + t.group;
+    appearanceEl.className = 'appearance settings-v2 detail-' + t.group + (PREVIEW_GROUPS[t.group] ? '' : ' no-preview');
     appearanceRows.className = 'appearance-rows';
     appearanceTitle.textContent = T(DETAIL_NAMES[t.group]);
     var at = detailLocation(t), selected = at.item, error = S.lookError, status = '', hint;
     function command(item, inner, cls) {
       var applied = item.axis && S.c[item.axis] === item.value;
       var loading = !!(item.axis && S.pending && S.pending.target[item.axis] === item.value && S.pending.row === item.axis);
-      return '<button type="button" tabindex="-1" class="setting-choice' + (cls ? ' ' + cls : '') + (t.f.action === item.action ? ' is-focus' : '') + (item.disabled ? ' is-disabled' : '') + (applied ? ' is-applied' : '') + (loading ? ' is-loading' : '') + '"'
+      return '<button type="button" tabindex="-1" class="setting-choice' + (cls ? ' ' + cls : '') + (t.f.action === item.action && !t.drop ? ' is-focus' : '') + (item.disabled ? ' is-disabled' : '') + (applied ? ' is-applied' : '') + (loading ? ' is-loading' : '') + '"'
         + (item.axis ? ' role="radio" aria-checked="' + !!applied + '"' : '') + ' aria-label="' + esc(item.axis && item.value === 'both' ? T('Icons and text') : item.label) + '" aria-disabled="' + !!item.disabled + '" aria-busy="' + loading + '"'
         + ' data-z="detail" data-i="0" data-id="' + item.action + '" data-action="' + item.action + '">' + inner
         + (item.axis ? '<span class="setting-tick" aria-hidden="true">' + (applied ? icon('check') : '') + '</span>' : '') + '</button>';
     }
     setHTML(appearanceBack, command({ action: 'settings.back', label: backLabel(t) }, icon('left') + '<span>' + backLabel(t) + '</span>', 'setting-back'));
-    setHTML(appearanceRows, detailSections(t).map(function (section) {
-      return (section.group ? '<h3 class="setting-group">' + esc(section.group) + '</h3>' : '') + '<section class="setting-section' + (section.horizontal ? ' is-horizontal' : '') + ' section-' + section.id + '">'
-        + (section.title ? '<h3 class="setting-label" id="setting-' + section.id + '">' + section.title + '</h3>' : '')
-        + '<div class="setting-options"' + (section.items[0].axis ? ' role="radiogroup" aria-label="' + esc(section.title || T(LOOK_NAMES[section.id] || DETAIL_NAMES[t.group])) + '"' : '') + '>'
-        + section.items.map(function (item) {
-          var swatch = item.axis === 'bg', body = '';
-          if (item.phone) body += '<span class="setting-swatch setting-phone" aria-hidden="true">' + icon('phone') + '</span>';
-          if (swatch || item.thumbnail) body += item.value === 'light' || item.value === 'dark'
-            ? '<span class="setting-swatch swatch-' + item.value + '" aria-hidden="true"></span>'
-            : '<img class="setting-swatch" src="' + esc(wallAsset(S.c.wall, 'thumb')) + '" alt="">';
-          body += '<span class="setting-copy"><span class="setting-name">' + esc(item.label) + '</span>'
-            + (item.description ? '<span class="setting-description">' + esc(item.description) + '</span>' : '') + '</span>';
-          if (!item.axis) body += icon('right', 'setting-forward');
-          return command(item, body, item.description ? 'has-description' : '');
-        }).join('') + '</div>'
-        + (section.reason ? '<p class="setting-reason">' + esc(section.reason) + '</p>' : '') + '</section>';
-    }).join(''));
+    setHTML(appearanceRows, detailCardsHtml(t, command));
+    placeDetailRows();
     if (S.pending) status = '<p>' + esc(S.pending.row === 'font' ? T('Loading {0}…', FONTS[S.pending.target.font].name) : T('Loading your choice…')) + '</p><p>' + T('Back cancels this change.') + '</p>';
     else if (error) {
       status = '<p class="setting-error">' + esc(error.type === 'save' ? T('Couldn’t save this change.') : error.type === 'font' ? T('Couldn’t load {0}.', FONTS[error.font].name) : T('Couldn’t load this appearance.')) + ' ' + T('Your current choice is kept.') + '</p>'
         + command({ action: 'settings.retry', label: T('Try again') }, '<span>' + T('Try again') + '</span>', 'setting-retry');
     }
     setHTML(appearanceStatus, status);
-    hint = selected.disabled ? '' : selected.action === 'settings.back' ? T('Return to {0}', backLabel(t)) : T(selected.action === 'settings.retry' ? 'Retry this change' : selected.axis ? 'Apply selected setting' : selected.action === 'background.wallpaper' ? 'Choose a wallpaper' : selected.action === 'background.rotation' ? 'Choose a rotation interval' : selected.action === 'background.custom' || selected.action === 'alexa.connect' || selected.action === 'spotify.connect' ? 'Show the QR code' : /^(alexa\.list|conn)\./.test(selected.action) || selected.action === 'region.dateinfo' ? 'Open' : selected.action === 'calendar.connect' ? 'Show the QR code' : selected.action === 'spotify.signout' ? 'Sign out of Spotify' : selected.action === 'alexa.signout' ? 'Sign out of Alexa' : 'Open on the TV');
+    hint = t.drop ? T('Apply · Back closes the list') : selected.select ? T('Show the choices') : '';
+    if (!hint) hint = selected.disabled ? '' : selected.action === 'settings.back' ? T('Return to {0}', backLabel(t)) : T(selected.action === 'settings.retry' ? 'Retry this change' : selected.axis ? 'Apply selected setting' : selected.action === 'background.wallpaper' ? 'Choose a wallpaper' : selected.action === 'background.rotation' ? 'Choose a rotation interval' : selected.action === 'background.custom' || selected.action === 'alexa.connect' || selected.action === 'spotify.connect' ? 'Show the QR code' : /^(alexa\.list|conn)\./.test(selected.action) || selected.action === 'region.dateinfo' ? 'Open' : selected.action === 'calendar.connect' ? 'Show the QR code' : selected.action === 'spotify.signout' ? 'Sign out of Spotify' : selected.action === 'alexa.signout' ? 'Sign out of Alexa' : 'Open on the TV');
     setHTML(appearanceDesc, hint ? '<span class="remote-key">OK</span><span>' + esc(hint) + '</span>' : '');
   }
   function renderWallpaper(t) {
@@ -3447,7 +3535,7 @@
     var root = isSettingsDetail(top()) ? appearanceEl : sheetEl.hidden ? homeEl : sheetEl, els = root.querySelectorAll('[data-action]'), i;
     if (action === 'appearance.bg' && top().id === 'appearance' && top().group === 'background') action = 'background.wallpaper';
     if (action === 'settings.appearance' && top().id === 'settings') action = 'settings.group.background';
-    for (i = 0; i < els.length; i++) if (renderedAction(els[i]) && els[i].getAttribute('data-action') === action) { pointAt(els[i]); return true; }
+    for (i = 0; i < els.length; i++) if ((renderedAction(els[i]) || els[i].getAttribute('data-drop')) && els[i].getAttribute('data-action') === action) { pointAt(els[i]); return true; }
     return false;
   }
   function pointAt(el) {
@@ -3557,7 +3645,7 @@
   QA.look = function (patch) { setLook(patch, {}); return QA.state(); };
   QA.scene = function (name) { if (['home', 'apps', 'settings', 'appearance', 'editor'].indexOf(name) < 0) throw new Error('Unknown view'); goScene(name); return QA.state(); };
   QA.activate = function (action) { return activate(action) ? QA.state() : null; };
-  QA.actions = function () { var view = isSettingsDetail(top()) ? appearanceEl : sheetEl.hidden ? homeEl : sheetEl; return Array.prototype.filter.call(view.querySelectorAll('[data-action]'), renderedAction).map(function (el) { return el.getAttribute('data-action'); }); };
+  QA.actions = function () { var view = isSettingsDetail(top()) ? appearanceEl : sheetEl.hidden ? homeEl : sheetEl; return Array.prototype.filter.call(view.querySelectorAll('[data-action]'), function (el) { return renderedAction(el) || !!el.getAttribute('data-drop'); }).map(function (el) { return el.getAttribute('data-action'); }); };
 
   /* ---------- Start ---------- */
   cueL.innerHTML = icon('left'); cueR.innerHTML = icon('right');

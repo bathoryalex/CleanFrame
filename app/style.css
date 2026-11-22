@@ -33,7 +33,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000}
 .ut-dim{position:absolute;left:0;top:0;width:1920px;height:1080px;display:none;background:radial-gradient(ellipse 640px 240px at 1620px 104px,rgba(10,8,6,.20),rgba(10,8,6,0));pointer-events:none}
 .tone-light .ut-dim{background:radial-gradient(ellipse 640px 240px at 1620px 104px,rgba(10,8,6,.30),rgba(10,8,6,0))}
 .bg-photo .ut-dim{display:block}
-.bg-dark .bg,.bg-light .bg{display:none}
+.bg-dark .bg{display:none}
 .is-sheet .home,.is-sheet .bg{visibility:hidden}
 .is-hdmi-input .home,.is-hdmi-input .bg,.is-hdmi-input .caption{visibility:hidden}
 
@@ -166,8 +166,8 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000}
 
 /* ---------- Sheets: one matte layer. Home is hidden behind it: no glass on glass. ---------- */
 .sheet{position:absolute;left:0;top:0;width:1920px;height:1080px;background:#0f1416}
-.bg-dark .sheet,.bg-light .sheet{background:var(--ground)}
-.bg-dark .sheet-bg,.bg-light .sheet-bg,.bg-dark .sheet-veil,.bg-light .sheet-veil{display:none}
+.bg-dark .sheet{background:var(--ground)}
+.bg-dark .sheet-bg,.bg-dark .sheet-veil{display:none}
 .at-appearance .sheet,.at-wallpaper .sheet{z-index:1}
 .bg-photo.m-tint .sheet{--plate:rgba(14,12,10,.42);--lift:rgba(14,12,10,.62);--plate-edge:none}
 .sheet-bg{position:absolute;left:0;top:0;width:1920px;height:1080px;max-width:none;object-fit:cover}
@@ -304,13 +304,12 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000}
 
 /* ---------- Unified appearance ---------- */
 .stage{--mute:rgba(246,241,231,.76);--faint:rgba(246,241,231,.58);--line:rgba(246,241,231,.18);--knock:#1d1a16;--solid-mute:rgba(29,26,22,.68);--solid-warn:#8a4b00;--ink:#f6f1e7;--ground:#0d0d0d;--tr-ink:var(--ink);--br-ink:var(--ink);--tr-rest:.62;--br-rest:.62;--tr-peer:.434;--br-peer:.434;--tr-a:.20;--tr-b:.12;--br-a:.20;--br-b:.12;--tr-under:rgba(14,10,6,.38);--br-under:rgba(14,10,6,.38);--tr-shadow:0 1px 2px rgba(14,10,6,.4),0 2px 8px rgba(14,10,6,.24);--br-shadow:var(--tr-shadow);background:var(--ground)}
-.bg-light{--mute:rgba(29,26,22,.70);--faint:rgba(29,26,22,.52);--line:rgba(29,26,22,.14);--knock:#f2efe8;--solid-mute:rgba(242,239,232,.72);--solid-warn:#e8b36a;--ground:#f2efe8;--ink:#1d1a16;--warn:#8a4b00;--solid:#1d1a16;--solid-ink:#f2efe8;--plate:rgba(29,26,22,.07);--plate-edge:none;--lift:rgba(29,26,22,.13);--tr-peer:.52;--br-peer:.52}
 .bg-dark{--mute:rgba(246,241,231,.72);--faint:rgba(246,241,231,.50);--line:rgba(246,241,231,.14);--knock:#0d0d0d;--solid-mute:rgba(29,26,22,.68);--solid-warn:#8a4b00;--warn:#e8b36a;--plate:rgba(246,241,231,.08);--plate-edge:inset 0 1px 0 rgba(255,250,240,.1);--lift:rgba(246,241,231,.15)}
 .scene{position:absolute;left:0;top:0;width:1920px;height:1080px;background:var(--ground);overflow:hidden;transform-origin:0 0}
 .at-appearance .scene,.at-wallpaper .scene{z-index:2;transform:translate3d(858px,288px,0) scale(.48);border-radius:32px;pointer-events:none}
-.bg-dark.at-appearance .scene,.bg-light.at-appearance .scene{box-shadow:0 0 0 4px var(--line)}
-.bg-dark .clock,.bg-light .clock{opacity:.72;text-shadow:none}
-.bg-dark .cap-title,.bg-light .cap-title,.bg-dark .cap-line,.bg-light .cap-line{color:var(--ink);text-shadow:none}
+.bg-dark.at-appearance .scene{box-shadow:0 0 0 4px var(--line)}
+.bg-dark .clock{opacity:.72;text-shadow:none}
+.bg-dark .cap-title,.bg-dark .cap-line{color:var(--ink);text-shadow:none}
 .u-content{position:relative;z-index:2;display:inline-flex;align-items:center;gap:12px;transition:transform 140ms var(--ease)}
 .quiet-utils .u-content{gap:10px;transform-origin:50% 50%}
 .quiet-utils .u[data-action="util.settings"] .ico{width:34px;height:34px}
@@ -319,11 +318,11 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000}
 /* The mask and clip keep the rounded edge on TV engines that do not clip a composited field by border-radius alone. */
 
 .quiet-utils.is-both .u[data-action="util.settings"]{padding-right:15px}
-.bg-dark .mat,.bg-light .mat{display:none}
+.bg-dark .mat{display:none}
 .m-tint .mat-img{transform-origin:960px 792px;transform:scale(1.02)}
 .m-tint .mat-scrim{transform-origin:960px 232px;transform:scale(1.02)}
 .m-frost .mat-scrim{display:none}
-.bg-dark .wall-keep,.bg-light .wall-keep{color:var(--ink)}
+.bg-dark .wall-keep{color:var(--ink)}
 .tile-content{position:absolute;inset:0;border-radius:inherit;transform-origin:50% 50%;transition:opacity 160ms linear,transform var(--t) var(--ease)}
 .f-type .plate{opacity:0}
 .f-type .tile-content{opacity:.62}
@@ -358,8 +357,8 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000}
 .quiet-utils .u.is-idle.is-focus{opacity:.62}
 .quiet-utils .ut-underlay,.tone-light .quiet-utils .ut-underlay{stroke:var(--u-under)}
 .util-focus-label{color:var(--tr-ink);text-shadow:var(--tr-shadow)}
-.bg-dark .quiet-utils .u,.bg-light .quiet-utils .u,.bg-dark .util-focus-label,.bg-light .util-focus-label{text-shadow:none}
-.bg-dark .ut-underlay,.bg-light .ut-underlay{display:none}
+.bg-dark .quiet-utils .u,.bg-dark .util-focus-label{text-shadow:none}
+.bg-dark .ut-underlay{display:none}
 /* Generated photo-family inks apply only to unlocked Home palettes. */
 .bg-photo.has-adaptive-ink .home{--ink:var(--home-app-ink);color:var(--home-app-ink)}
 .bg-photo.has-adaptive-ink.l-dock .caption .clock{color:var(--tl-clock-ink)}
@@ -392,7 +391,6 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000}
 .setting-forward{width:28px;height:28px;margin-left:auto;flex:none}
 .setting-swatch{flex:none;width:80px;height:50px;margin-right:8px;object-fit:cover;border-radius:8px}
 .setting-choice.is-disabled .setting-swatch{opacity:.5}
-.swatch-light{background:#f2efe8;box-shadow:inset 0 0 0 1px rgba(29,26,22,.12)}
 .swatch-dark{background:#0d0d0d;box-shadow:inset 0 0 0 1px rgba(246,241,231,.15)}
 .setting-reason{margin-top:16px;font-size:26px;line-height:36px;color:var(--mute)}
 .is-horizontal .setting-options{flex-direction:row;gap:12px}
@@ -489,8 +487,8 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000}
 .wifi-qr-bg,.wifi-qr-shade{position:absolute;left:0;top:0;width:1920px;height:1080px;opacity:0;transition:opacity 320ms linear;will-change:opacity}
 .wifi-qr-bg{max-width:none;object-fit:cover}
 .wifi-qr-shade{background:rgba(8,12,14,.46)}
-.bg-dark .wifi-qr-bg,.bg-light .wifi-qr-bg{display:none}
-.bg-dark .wifi-qr-shade,.bg-light .wifi-qr-shade{background:rgba(8,12,14,.72)}
+.bg-dark .wifi-qr-bg{display:none}
+.bg-dark .wifi-qr-shade{background:rgba(8,12,14,.72)}
 .is-on .wifi-qr-bg,.is-on .wifi-qr-shade{opacity:1}
 .wifi-qr-card{position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;gap:20px;padding:40px 48px 36px;border-radius:32px;background:linear-gradient(165deg,rgba(255,255,255,.22),rgba(255,255,255,.08) 55%,rgba(255,255,255,.12));box-shadow:0 24px 80px rgba(6,10,12,.42),inset 0 1px 0 rgba(255,255,255,.28);opacity:0;transform:translate3d(0,28px,0) scale(.94);transition:opacity 260ms linear,transform 420ms cubic-bezier(.22,1,.28,1);will-change:opacity,transform}
 .is-on .wifi-qr-card{opacity:1;transform:translate3d(0,0,0) scale(1);transition-delay:60ms}
@@ -527,7 +525,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000}
 /* Centred clock: Centre and Large centre sit in the open space above the dock, or grow in place in List. */
 .stage.l-dock.clock-big .caption{left:160px;right:160px;top:40px;bottom:300px;max-width:none;justify-content:center;align-items:center;text-align:center}
 .stage.l-dock.clock-big .caption::before{content:"";position:absolute;left:50%;top:50%;width:1100px;height:520px;margin:-260px 0 0 -550px;border-radius:50%;background:radial-gradient(closest-side,rgba(8,12,14,.22),rgba(8,12,14,0));pointer-events:none}
-.bg-dark.l-dock.clock-big .caption::before,.bg-light.l-dock.clock-big .caption::before{display:none}
+.bg-dark.l-dock.clock-big .caption::before{display:none}
 .stage.l-dock.clock-big .caption-head{position:relative;flex-direction:column;align-items:center;gap:6px}
 .stage.clock-big .home .clock{font-size:150px;line-height:164px;letter-spacing:-4px}
 .stage.clock-large .home .clock{font-size:220px;line-height:232px;letter-spacing:-6px}
@@ -576,13 +574,10 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000}
    on a neighbour; the focused card lifts with the solid plate used across the interface. */
 .settings-grid{position:absolute;left:140px;top:196px;width:1640px;display:grid;grid-template-columns:repeat(4,386px);grid-auto-rows:328px;gap:32px 32px}
 .settings-card{position:relative;display:flex;flex-direction:column;justify-content:space-between;padding:28px 28px 26px;border-radius:32px;background:rgba(255,255,255,.075);box-shadow:inset 0 1px 0 rgba(255,255,255,.10),inset 0 0 0 1px rgba(255,255,255,.05);color:var(--ink);overflow:hidden;transform:translateZ(0);transition:transform 180ms var(--ease),background-color 140ms linear,box-shadow 180ms var(--ease),color 140ms linear}
-.bg-light .settings-card{background:rgba(29,26,22,.05);box-shadow:inset 0 0 0 1px rgba(29,26,22,.06)}
 .settings-card.is-focus{background:var(--solid);color:var(--solid-ink);transform:scale(1.045);box-shadow:0 22px 56px rgba(4,8,10,.38)}
 .card-visual{display:block}
 .card-chip{display:flex;align-items:center;justify-content:center;width:88px;height:88px;border-radius:26px;background:rgba(255,255,255,.10)}
-.bg-light .card-chip{background:rgba(29,26,22,.07)}
 .settings-card.is-focus .card-chip{background:rgba(20,22,24,.08)}
-.bg-light .settings-card.is-focus .card-chip{background:rgba(242,239,232,.14)}
 .card-chip .ico{width:46px;height:46px;stroke-width:1.6}
 .card-type{font-size:44px;line-height:1;font-weight:500;letter-spacing:-1px}
 .card-photo{display:block;width:100%;height:120px;border-radius:20px;object-fit:cover;box-shadow:0 6px 18px rgba(4,8,10,.22)}
@@ -689,7 +684,6 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000}
 .np-main{width:128px;height:128px}
 .np-main .ico{width:52px;height:52px}
 .np-btn.is-focus{background:var(--solid);color:var(--solid-ink);transform:scale(1.08)}
-.bg-light .np-btn{background:rgba(29,26,22,.06)}
 /* Lyrics: the cover and controls move left, the lines take the right; the current line is bright. */
 .np-btn.np-lyrics-btn{width:auto;padding:0 30px 0 24px;border-radius:48px;gap:12px;font-size:28px;font-weight:500}
 .np-btn.np-lyrics-btn .ico{fill:none;width:34px;height:34px}
@@ -730,8 +724,8 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000}
 .np-bg,.np-shade{position:absolute;left:0;top:0;width:1920px;height:1080px;opacity:0;transition:opacity 320ms linear;will-change:opacity}
 .np-bg{max-width:none;object-fit:cover}
 .np-shade{background:rgba(8,12,14,.5)}
-.bg-dark .np-bg,.bg-light .np-bg{display:none}
-.bg-dark .np-shade,.bg-light .np-shade{background:rgba(8,12,14,.86)}
+.bg-dark .np-bg{display:none}
+.bg-dark .np-shade{background:rgba(8,12,14,.86)}
 .np-overlay.is-on .np-bg,.np-overlay.is-on .np-shade{opacity:1}
 .np-stage{position:absolute;inset:0;color:#f6f1e7;opacity:0;transform:translate3d(0,36px,0) scale(.96);transition:opacity 260ms linear,transform 420ms cubic-bezier(.22,1,.28,1);will-change:opacity,transform}
 .np-overlay.is-on .np-stage{opacity:1;transform:translate3d(0,0,0) scale(1);transition-delay:60ms}
@@ -838,7 +832,6 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000}
 .dock-tiles .dock{background:none!important;box-shadow:none!important}
 .dock-tiles .dock::before,.dock-tiles .dock::after{display:none}
 .dock-tiles .dock .tile::before{content:"";position:absolute;inset:0;z-index:-1;border-radius:28px;background:rgba(14,18,20,.42);box-shadow:inset 0 0 0 1px rgba(255,255,255,.12),0 14px 34px rgba(4,8,10,.28);transition:background-color 160ms linear}
-.bg-light.dock-tiles .dock .tile::before{background:rgba(255,255,255,.55);box-shadow:inset 0 0 0 1px rgba(29,26,22,.08),0 10px 26px rgba(4,8,10,.12)}
 .dock-tiles .dock .plate{display:none}
 /* Tiles focus follows Settings → Focus. Glass: the tile turns to lighter glass in the chosen material
    with a soft bright edge (no white slab). Type: the tile stays dark, a ring marks it and the other
@@ -849,8 +842,6 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000}
 .dock-tiles.f-glass.m-tint .dock .tile.is-focus::before{background:rgba(255,255,255,.04);box-shadow:inset 0 0 0 2px rgba(255,255,255,.60),0 18px 40px rgba(4,8,10,.34)}
 .dock-tiles.f-type .dock .tile.is-focus::before{background:rgba(14,18,20,.42);box-shadow:inset 0 0 0 3px rgba(246,241,231,.92),0 18px 40px rgba(4,8,10,.34)}
 .dock-tiles.f-type .dock .tile:not(.is-focus) .tile-content{opacity:.6}
-.bg-light.dock-tiles.f-glass .dock .tile.is-focus::before{background:rgba(255,255,255,.80);box-shadow:inset 0 0 0 2px rgba(29,26,22,.30),0 14px 30px rgba(4,8,10,.16)}
-.bg-light.dock-tiles.f-type .dock .tile.is-focus::before{background:rgba(255,255,255,.55);box-shadow:inset 0 0 0 3px rgba(29,26,22,.80)}
 .bg-dark.dock-tiles.f-type .dock .tile.is-focus::before{box-shadow:inset 0 0 0 3px rgba(246,241,231,.85)}
 /* Date details: the holiday on the date line; name days and the calendar each on a small card below. */
 .cap-holiday{color:#ffd58a}
@@ -865,7 +856,6 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000}
 .cap-cal .ico{flex:none;width:26px;height:26px;stroke-width:1.8}
 .cap-cal b{font-weight:600}
 .cap-cal-when{opacity:.7;margin-right:2px}
-.bg-light .cap-pill{color:#1d1a16;background:rgba(255,255,255,.55);box-shadow:inset 0 0 0 1px rgba(29,26,22,.08)}
 .bg-dark .cap-pill{background:rgba(255,255,255,.07);box-shadow:inset 0 0 0 1px rgba(255,255,255,.10)}
 /* Top row in the Dock and Tiles layouts: every item is a card, and focus looks the same on each
    (a bright ring on lighter glass). Wi-Fi, All apps and Settings share one card. */
@@ -881,8 +871,6 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000}
 .l-dock .music .cap-music{margin:0;padding:12px 20px 12px 12px}
 .l-dock .cap-music.is-focus,.l-dock.f-type .cap-music.is-focus{transform:none;background:rgba(255,255,255,.14);box-shadow:inset 0 0 0 3px #fff,0 10px 28px rgba(4,8,10,.30)}
 .l-dock .cap-music.is-paused:not(.is-focus){opacity:.85}
-.bg-light.l-dock .quiet-utils .u-group,.bg-light.l-dock .cap-music{background:rgba(255,255,255,.55);box-shadow:inset 0 0 0 1px rgba(29,26,22,.08);color:#1d1a16}
-.bg-light.l-dock .quiet-utils .u-group .u.is-focus,.bg-light.l-dock .cap-music.is-focus{background:rgba(255,255,255,.85);box-shadow:inset 0 0 0 3px #1d1a16}
 .bg-dark.l-dock .quiet-utils .u-group,.bg-dark.l-dock .cap-music{background:rgba(255,255,255,.07);box-shadow:inset 0 0 0 1px rgba(255,255,255,.10)}
 .detail-region .setting-choice.has-description{min-height:0;padding:8px 22px}
 .detail-region .setting-choice.has-description .setting-name{font-size:30px;line-height:38px}
@@ -945,7 +933,6 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000}
    switches and controls on the right, each a tile as tall as the song card (120 px). */
 .topbar-bg{display:none}
 .stage.top-bar .topbar-bg{display:block;position:absolute;left:0;top:0;width:1920px;height:152px;z-index:2;pointer-events:none;background:linear-gradient(180deg,rgba(10,14,16,.68),rgba(10,14,16,.52));box-shadow:inset 0 -1px 0 rgba(255,255,255,.10),0 14px 40px rgba(4,8,10,.22)}
-.stage.bg-light.top-bar .topbar-bg{background:rgba(255,255,255,.66);box-shadow:inset 0 -1px 0 rgba(29,26,22,.08),0 10px 30px rgba(4,8,10,.10)}
 .stage.bg-dark.top-bar .topbar-bg{background:rgba(255,255,255,.05);box-shadow:inset 0 -1px 0 rgba(255,255,255,.08)}
 .stage.top-bar .ut-dim{display:none}
 .stage.top-bar .utils{z-index:3;top:16px;right:112px;gap:12px;align-items:stretch}
@@ -967,7 +954,6 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000}
 .stage.top-bar .quiet-utils .u.u-lamp.is-lit.is-focus{background:rgba(255,186,84,.40)}
 .stage.top-bar .music .cap-music{height:120px;margin:0;padding:12px 20px 12px 12px;border-radius:18px;background:rgba(255,255,255,.07);box-shadow:inset 0 0 0 1px rgba(255,255,255,.10)}
 .stage.top-bar .music .cap-music.is-focus{background:rgba(255,255,255,.18);box-shadow:inset 0 0 0 3px #fff,0 10px 28px rgba(4,8,10,.30)}
-.stage.bg-light.top-bar .quiet-utils .u,.stage.bg-light.top-bar .music .cap-music{background:rgba(255,255,255,.55);box-shadow:inset 0 0 0 1px rgba(29,26,22,.08)}
 /* Layout settings: two titled groups (bottom bar, top bar) on one compact page. */
 .setting-group{margin:0 0 4px;font-size:22px;line-height:28px;font-weight:600;letter-spacing:1.2px;text-transform:uppercase;color:var(--mute)}
 .setting-section+.setting-group{margin-top:22px}
@@ -1004,7 +990,6 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000}
 .stage.top-bar .music .music-artist{font-size:18px;line-height:22px}
 .stage.top-bar .music .music-progress{margin-top:4px;font-size:15px;line-height:18px}
 .stage.top-bar .music .cap-music.is-focus{background:rgba(255,255,255,.18);box-shadow:inset 0 0 0 3px #fff,0 8px 22px rgba(4,8,10,.28)}
-.stage.bg-light.top-bar .quiet-utils .u,.stage.bg-light.top-bar .music .cap-music{background:rgba(255,255,255,.55)}
 .stage.top-bar .quiet-utils.is-icons .u:not(.u-lamp) .u-label,.stage.top-bar .quiet-utils .u.u-lamp.sw-icons .u-label{display:none}
 .stage.top-bar .quiet-utils .u.u-lamp.sw-text .ico{display:none}
 /* Divider between the Alexa switches and the controls: the same 18 px on both sides (the bar's
@@ -1021,7 +1006,6 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000}
 .l-dock .quiet-utils .u.u-lamp.is-lit.is-focus,.stage.top-bar .quiet-utils .u.u-lamp.is-lit.is-focus{background:rgba(255,222,176,.22)}
 /* Top Dock bar: lighter glass whose lower edge fades out softly instead of ending in a line. */
 .stage.top-bar .topbar-bg{height:156px;background:linear-gradient(180deg,rgba(12,16,18,.58) 0,rgba(12,16,18,.46) 62%,rgba(12,16,18,.22) 82%,rgba(12,16,18,0) 100%);box-shadow:none}
-.stage.bg-light.top-bar .topbar-bg{background:linear-gradient(180deg,rgba(255,255,255,.56) 0,rgba(255,255,255,.44) 62%,rgba(255,255,255,.18) 82%,rgba(255,255,255,0) 100%);box-shadow:none}
 .stage.bg-dark.top-bar .topbar-bg{background:linear-gradient(180deg,rgba(255,255,255,.06) 0,rgba(255,255,255,.04) 62%,rgba(255,255,255,0) 100%);box-shadow:none}
 /* Switches list: the chosen ones first with their place on Home; a lifted one moves with Up/Down. */
 .alexa-order{flex:none;min-width:30px;margin-right:6px;font-size:22px;font-weight:600;font-variant-numeric:tabular-nums;opacity:.55}
@@ -1031,13 +1015,11 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000}
    along an eased curve over about 110 px. The photo's own top shade is left out under the bar, so
    two gradients no longer overlap into a lighter stripe. */
 .stage.top-bar .topbar-bg{height:220px;background:linear-gradient(180deg,rgba(12,16,18,.54) 0,rgba(12,16,18,.50) 50%,rgba(12,16,18,.45) 56%,rgba(12,16,18,.38) 62%,rgba(12,16,18,.30) 68%,rgba(12,16,18,.22) 74%,rgba(12,16,18,.15) 80%,rgba(12,16,18,.09) 86%,rgba(12,16,18,.045) 92%,rgba(12,16,18,.015) 97%,rgba(12,16,18,0) 100%)}
-.stage.bg-light.top-bar .topbar-bg{height:220px;background:linear-gradient(180deg,rgba(255,255,255,.52) 0,rgba(255,255,255,.48) 50%,rgba(255,255,255,.36) 62%,rgba(255,255,255,.20) 74%,rgba(255,255,255,.08) 86%,rgba(255,255,255,.02) 95%,rgba(255,255,255,0) 100%)}
 .stage.top-bar .bg .shade{display:none!important}
 /* Modern dock (apps): the same glass as the top Dock bar, anchored to the bottom edge and fading out
    upwards, with app tiles styled like the top widgets (flat glass, 16 px corners, white focus ring). */
 .bottombar-bg{display:none}
 .stage.dock-modern .bottombar-bg{display:block;position:absolute;left:0;bottom:0;width:1920px;height:380px;pointer-events:none;background:linear-gradient(0deg,rgba(12,16,18,.54) 0,rgba(12,16,18,.50) 56%,rgba(12,16,18,.45) 61%,rgba(12,16,18,.38) 66%,rgba(12,16,18,.30) 71%,rgba(12,16,18,.22) 76%,rgba(12,16,18,.15) 81%,rgba(12,16,18,.09) 87%,rgba(12,16,18,.045) 92%,rgba(12,16,18,.015) 97%,rgba(12,16,18,0) 100%)}
-.stage.bg-light.dock-modern .bottombar-bg{background:linear-gradient(0deg,rgba(255,255,255,.52) 0,rgba(255,255,255,.48) 56%,rgba(255,255,255,.36) 66%,rgba(255,255,255,.20) 76%,rgba(255,255,255,.08) 87%,rgba(255,255,255,.02) 95%,rgba(255,255,255,0) 100%)}
 .stage.bg-dark.dock-modern .bottombar-bg{background:linear-gradient(0deg,rgba(255,255,255,.06) 0,rgba(255,255,255,.04) 56%,rgba(255,255,255,0) 100%)}
 .stage.dock-modern .bg .scrim{display:none}
 .dock-modern .dock .mat,.dock-modern .dock .mat-img,.dock-modern .dock .mat-scrim,.dock-modern .dock .plate{display:none}
@@ -1045,8 +1027,6 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000}
 .dock-modern .dock::before,.dock-modern .dock::after{display:none}
 .dock-modern .dock .tile::before{content:"";position:absolute;inset:0;z-index:-1;border-radius:16px;background:rgba(255,255,255,.07);box-shadow:none;transition:background 160ms linear,box-shadow 160ms linear}
 .dock-modern .dock .tile.is-focus::before{background:rgba(255,255,255,.18);box-shadow:inset 0 0 0 3px #fff,0 8px 22px rgba(4,8,10,.28)}
-.bg-light.dock-modern .dock .tile::before{background:rgba(255,255,255,.55)}
-.bg-light.dock-modern .dock .tile.is-focus::before{background:rgba(255,255,255,.85);box-shadow:inset 0 0 0 3px #1d1a16}
 .dock-modern .dock .tile .tile-content{opacity:1}
 /* Darker glass for both bars (0.28.1); the bottom bar's height and fade are set by the script to sit
    just behind the smaller Modern dock tiles. */
@@ -1067,3 +1047,30 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000}
 .stage.dock-modern.a-both .dock .tile .label.dock-label .label-ink{line-height:28px;padding:0}
 .stage.dock-modern.a-both .dock .tile .dock-icon:not(.dock-icon-solo){left:16px}
 .stage.dock-modern.a-both .dock .tile .dock-icon .mark{display:flex;align-items:center;justify-content:center}
+/* ---------- Settings pages (0.30): cards of rows, select rows with a list, link rows ---------- */
+.settings-v2 .appearance-rows{top:214px;width:680px;height:740px;overflow:hidden;padding:0 4px}
+.settings-v2.no-preview .appearance-rows{width:1180px}
+.at-appearance.no-preview .scene{opacity:0;visibility:hidden}
+.settings-v2 .set-scroll{display:flex;flex-direction:column;gap:18px;padding:4px 0 24px;transition:transform 220ms cubic-bezier(.22,1,.28,1)}
+.settings-v2 .set-card{position:relative;padding:8px;border-radius:24px;background:rgba(255,255,255,.05);box-shadow:inset 0 0 0 1px rgba(255,255,255,.08)}
+.settings-v2 .set-card-head{margin:6px 16px 6px;font-size:20px;line-height:26px;font-weight:600;letter-spacing:1.2px;text-transform:uppercase;color:var(--mute)}
+.settings-v2 .set-row{display:flex;align-items:center;gap:16px;width:100%;min-height:68px;padding:10px 16px 10px 18px;border-radius:16px;font-size:28px;line-height:34px;font-weight:500;letter-spacing:-.3px;text-align:left}
+.settings-v2 .set-row+.set-row,.settings-v2 .set-select-wrap+.set-row,.settings-v2 .set-row+.set-select-wrap,.settings-v2 .set-select-wrap+.set-select-wrap{margin-top:2px}
+.settings-v2 .set-label{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.settings-v2 .set-value{flex:none;max-width:56%;font-size:24px;line-height:30px;font-weight:500;color:var(--mute);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:right}
+.settings-v2 .set-row.is-focus .set-value{color:var(--solid-mute)}
+.settings-v2 .set-chev{flex:none;width:24px;height:24px;opacity:.6}
+.settings-v2 .set-row .setting-swatch{flex:none;width:72px;height:44px;border-radius:10px;object-fit:cover}
+.settings-v2 .set-row.is-disabled{opacity:.42}
+.settings-v2 .set-select-wrap{position:relative}
+.settings-v2 .set-select-wrap.is-open>.set-row{background:rgba(255,255,255,.10);color:var(--ink)}
+.settings-v2 .set-select-wrap.is-open>.set-row .set-chev{transform:rotate(180deg);opacity:.9}
+.settings-v2 .select-pop{display:none;margin:6px 0 4px 18px;padding:6px;border-radius:18px;background:rgba(18,22,24,.96);box-shadow:inset 0 0 0 1px rgba(255,255,255,.12),0 18px 40px rgba(4,8,10,.4)}
+.settings-v2 .set-select-wrap.is-open .select-pop{display:block}
+.settings-v2 .select-opt{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;min-height:56px;padding:8px 16px;border-radius:12px;font-size:26px;line-height:32px;font-weight:500;color:#f6f1e7;background:none}
+.settings-v2 .select-opt.is-focus{background:#f6f1e7;color:#141618}
+.settings-v2 .select-opt.is-disabled{opacity:.4}
+.settings-v2 .select-opt .setting-tick{width:24px;height:24px;flex:none}
+.settings-v2 .select-opt .setting-tick .ico{width:24px;height:24px}
+.settings-v2 .set-note{margin:2px 18px 8px;font-size:21px;line-height:28px;color:var(--mute)}
+.settings-v2 .set-row .setting-phone{display:none}

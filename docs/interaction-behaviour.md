@@ -15,7 +15,7 @@ Settings opens a grouped overview of large cards in a grid of four columns (each
 
 | Group | Choices |
 | --- | --- |
-| Background | Photo, Light, Dark; Wallpaper and Rotation when Photo is active; Picture from phone |
+| Background | Photo or Dark (Light was removed in 0.30; a saved Light opens as Photo); Wallpaper and Rotation when Photo is active; Picture from phone |
 | Layout | Two titled groups. Bottom bar: Dock, Tiles or Modern dock, app display (Text, Icons, Both), colour or minimal icons. Top bar: Separate widgets or Dock, and Text, Icons or Both for Wi‑Fi/All apps/Settings and for Alexa switches |
 | Typography | Manrope, Neue Montreal, Mori, Pangram Sans, Geist and Newsreader, when available |
 | Focus | Type or Glass; Soft, Frost or Clear tint material |
@@ -23,7 +23,7 @@ Settings opens a grouped overview of large cards in a grid of four columns (each
 | Language and clock | English or Magyar; 24-hour or 12-hour clock; clock in the Corner, Centre or Large centre; weather Off, Basic (temperature) or Full (with today's high and low) |
 | Wifi QR code settings | Network name, password and security for the home-screen QR code |
 
-Up/Down moves between rows. Left/Right moves between choices in a horizontal row. Focus alone changes neither the preview nor saved preferences in these appearance groups. Wallpaper has its own temporary photo preview, described below. OK applies the focused value. A checkmark identifies the applied value; the filled plate identifies remote focus. Applying the current value does not write again.
+Up/Down moves between rows (see Settings pages, 0.30). Focus alone changes neither the preview nor saved preferences in these appearance groups. Wallpaper has its own temporary photo preview, described below. OK applies the focused value. A checkmark identifies the applied value; the filled plate identifies remote focus. Applying the current value does not write again.
 
 Material applies with a photo background (the Dock's shelf, and the focused tile in Tiles). Inactive material choices remain visible with an explanation and are skipped during navigation. Their stored value is retained. Wallpaper and rotation are also inactive on flat backgrounds.
 
@@ -188,4 +188,15 @@ The Modern dock is the top bar mirrored: low 96 px tiles 14 px above the bottom 
 ## 0.29.1
 
 Modern dock, Icons only: back to the 0.28.1 look and behaviour, the Tiles row drawn at 80 % with the focused app's name rising in under its icon. Both: seven 236 px tiles across (short names: Nintendo Switch → Nintendo, Nuvio Legacy → Nuvio), icon and name centred vertically in each tile; the page cues stay on screen.
+
+## Settings pages (0.30)
+
+Every settings page is a column of cards. A card has an optional uppercase heading and rows: Layout has a Bottom bar: apps card and a Top bar: widgets and controls card; Language and clock has the language, a Clock card and a Date and weather card; Background, Focus, Typography and Wi‑Fi QR group their rows the same way; Alexa, Spotify, Connections and Date details keep their own sections as cards.
+
+- **Setting rows** show the name on the left and the current value on the right with a down chevron. OK opens a short list under the row (the applied choice focused and ticked); Up/Down move in it, OK applies and closes it, Back or Left closes it without applying. Left and Right do nothing on a row, so focus alone never changes anything. Inactive choices are shown dimmed in the list and skipped; a setting whose choices are all inactive is skipped by the remote and its note says why.
+- **Link rows** (wallpaper, rotation, Picture from phone, Alexa and Spotify screens, Wi‑Fi fields, Date details) show a value or summary and a right chevron; OK opens them. A one-item section reads as "Title · value", for example Wallpaper · Misty coast with its thumbnail, or Rotation · Fixed.
+- Long pages scroll so the focused row, or the open list, stays in view, keeping its whole card visible when it fits.
+- The live Home preview stays on the right for Background, Layout, Typography, Focus, Language and clock, and Date details, where a change shows on Home. Wi‑Fi QR, Connections, Alexa, Spotify and Rotation hide it and use the full width.
+
+The Light background is removed with its styles; Photo and Dark remain.
 

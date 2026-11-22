@@ -212,16 +212,24 @@ const settingsSnapshot = () => current.evaluate(() => {
   return { stored: localStorage.getItem('cleanframe.home.v1'), committed: s.committed, shown: s.shown, rendered, writes: s.writes, storageAttempts: window.__storageAttempts };
 });
 const choice = (axis, value) => act('choice.' + axis + '.' + value);
-const radios = () => current.evaluate(() => [...document.querySelectorAll('#stage [role="radio"]')].filter(e => e.getClientRects().length && getComputedStyle(e).visibility !== 'hidden').map(e => ({ action: e.getAttribute('data-action'), checked: e.getAttribute('aria-checked'), disabled: e.getAttribute('aria-disabled') === 'true', focused: e.classList.contains('is-focus'), text: e.textContent.trim() })));
+const radios = () => current.evaluate(() => [...document.querySelectorAll('#stage [role="radio"]')].filter(e => e.getAttribute('data-drop') || e.getClientRects().length && getComputedStyle(e).visibility !== 'hidden').map(e => ({ action: e.getAttribute('data-action'), checked: e.getAttribute('aria-checked'), disabled: e.getAttribute('aria-disabled') === 'true', focused: e.classList.contains('is-focus'), text: e.textContent.trim() })));
 async function focusedChoice() {
   const action = (await state()).focusAction;
   return (await radios()).find(r => r.action === action);
 }
+// Settings pages show each setting as a select row; OK opens its list, where Up/Down reach the choices.
 async function unselectedChoice() {
-  for (const direction of ['right', 'right', 'down', 'left', 'left', 'down', 'right', 'right', 'down']) {
-    await nav(direction);
-    const radio = await focusedChoice();
-    if (radio && radio.checked === 'false' && !radio.disabled) return radio;
+  for (let row = 0; row < 8; row++) {
+    await nav('down');
+    const select = (await state()).focusAction;
+    if (!/^select\./.test(select)) continue;
+    await nav('ok');
+    for (let step = 0; step < 6; step++) {
+      const radio = await focusedChoice();
+      if (radio && radio.checked === 'false' && !radio.disabled) return { ...radio, select };
+      await nav(step < 3 ? 'down' : 'up');
+    }
+    await nav('back');
   }
   throw Error('Remote could not reach an unselected choice');
 }
@@ -304,6 +312,8 @@ try {
     check('Migrated preferences survive reload', (await state()).look.controls === 'text' && (await state()).dock[0] === 'youtube');
     await closePage();
     await page({ seed: baseline({ look: { layout: 'list', bg: 'photo', apps: 'text', controls: 'both', focus: 'glass', material: 'soft', font: 'manrope', wall: walls[0].id } }) });
+    await closePage(); await page({ seed: baseline({ look: { bg: 'light', layout: 'dock', apps: 'both', controls: 'both', focus: 'glass', material: 'soft', font: 'manrope', wall: walls[0].id } }) });
+    check('A saved Light background opens as the photo', (await state()).look.bg === 'photo');
     check('A saved List layout opens as the Dock', (await state()).look.layout === 'dock' && await current.evaluate(() => /\bl-dock\b/.test(document.getElementById('stage').className)));
   });
   await run('Invalid preferences and saved native pins', async () => {
@@ -406,13 +416,13 @@ try {
     await current.evaluate(() => { window.__failWrites = false; }); await nav('ok');
     check('Retry commits through same action', !(await stored()).dock.includes('youtube'));
     await scene('home'); const old = await state(), oldStored = await stored();
-    await current.evaluate(() => { window.__failWrites = true; }); await call('look', { bg: old.look.bg === 'light' ? 'dark' : 'light' });
+    await current.evaluate(() => { window.__failWrites = true; }); await call('look', { bg: old.look.bg === 'dark' ? 'photo' : 'dark' });
     await current.waitForFunction(() => !ShoreQA.state().pending);
     check('Failed appearance write keeps display and preferences', (await state()).look.bg === old.look.bg && same(await stored(), oldStored));
   });
   await run('Appearance axes, fonts, scaling and matching materials', async () => {
     await page();
-    for (const bg of ['dark', 'light', 'photo']) for (const layout of ['dock']) for (const focus of ['type', 'glass']) {
+    for (const bg of ['dark', 'photo']) for (const layout of ['dock']) for (const focus of ['type', 'glass']) {
       await look({ bg, layout, focus }); const s = await state();
       check('Independent axes ' + [bg, layout, focus].join('/'), s.look.bg === bg && s.look.layout === layout && s.look.focus === focus && s.shown.bg === bg, s.look);
     }
@@ -448,7 +458,7 @@ try {
     const expected = ['settings.group.background', 'settings.group.layout', 'settings.group.typography', 'settings.group.focus', 'settings.editor', 'settings.group.region', 'settings.samsung-home'];
     check('Overview has all seven settings groups', same((await call('actions')).filter(a => expected.includes(a)).sort(), expected.slice().sort()));
     const specs = {
-      background: { bg: ['dark', 'light', 'photo'] },
+      background: { bg: ['dark', 'photo'] },
       layout: { layoutView: ['dock', 'tiles', 'modern'], apps: ['icons', 'both', 'text'], controls: ['icons', 'both', 'text'] },
       typography: { font: (await state()).fonts.available },
       focus: { focus: ['type', 'glass'], material: ['soft', 'frost', 'tint'] }
@@ -733,7 +743,7 @@ try {
   await run('Date details: holidays, name days and a calendar from the phone', async () => {
     await page({ seed: baseline({ date: 'on' }) });
     await group('region');
-    const fit = await current.evaluate(() => { const rows = document.querySelector('#appearanceRows .setting-section:last-child .setting-options').getBoundingClientRect(), hint = document.getElementById('appearanceDesc').getBoundingClientRect(); return { rows: Math.round(rows.bottom), hint: Math.round(hint.top) }; });
+    const fit = await current.evaluate(() => { const rows = document.getElementById('appearanceRows').getBoundingClientRect(), hint = document.getElementById('appearanceDesc').getBoundingClientRect(); return { rows: Math.round(rows.bottom), hint: Math.round(hint.top) }; });
     check('Language and clock still fits above the OK hint', fit.rows <= fit.hint, fit);
     await act('region.dateinfo');
     check('Date details open from Language and clock', (await state()).settingsGroup === 'dateinfo');
@@ -804,10 +814,10 @@ try {
       localStorage.setItem('cleanframe.spotify.v1', JSON.stringify({ refresh: 'AQtest', access: 'BQtest', until: Date.now() + 3600000 })); });
     await current.reload(); await ready(); await current.waitForFunction(() => document.querySelector('.cap-music') && document.querySelector('.u-lamp'));
     await group('layout');
-    const heads = await current.evaluate(() => [...document.querySelectorAll('.setting-group')].map(e => e.textContent));
-    check('Layout has a bottom bar group and a top bar group', heads.length === 2 && /Bottom bar/.test(heads[0]) && /Top bar/.test(heads[1]), heads);
+    const heads = await current.evaluate(() => [...document.querySelectorAll('.set-card-head')].map(e => e.textContent));
+    check('Layout has a bottom bar card and a top bar card', heads.length === 2 && /Bottom bar/i.test(heads[0]) && /Top bar/i.test(heads[1]), heads);
     check('The top bar style offers separate widgets and Dock', same(await current.evaluate(() => [...document.querySelectorAll('[data-action^="choice.topStyle."]')].map(e => e.getAttribute('data-action'))), ['choice.topStyle.cards', 'choice.topStyle.bar']));
-    const fit = await current.evaluate(() => { const rows = document.querySelector('#appearanceRows .setting-section:last-child .setting-options').getBoundingClientRect(), hint = document.getElementById('appearanceDesc').getBoundingClientRect(); return { rows: Math.round(rows.bottom), hint: Math.round(hint.top) }; });
+    const fit = await current.evaluate(() => { const rows = document.querySelector('#appearanceRows .set-card:last-child').getBoundingClientRect(), hint = document.getElementById('appearanceDesc').getBoundingClientRect(); return { rows: Math.round(rows.bottom), hint: Math.round(hint.top) }; });
     check('Layout still fits above the OK hint', fit.rows <= fit.hint, fit);
     await act('choice.topStyle.bar'); await scene('home'); await current.waitForTimeout(300);
     const g = await current.evaluate(() => { const s = document.getElementById('stage').getBoundingClientRect(), r = e => { const b = e.getBoundingClientRect(); return { top: b.top - s.top, bottom: b.bottom - s.top, left: b.left - s.left, right: b.right - s.left, height: b.height }; };
@@ -897,6 +907,27 @@ try {
     await group('layout');
     await current.evaluate(() => { document.dispatchEvent(new KeyboardEvent('keydown', { keyCode: 403, bubbles: true })); document.dispatchEvent(new KeyboardEvent('keyup', { keyCode: 403, bubbles: true })); });
     check('The red button set to Home screen closes Settings', (await state()).view === 'home');
+  });
+  await run('Settings pages: cards, lists that open with OK, preview only where it helps', async () => {
+    await page(); await group('layout');
+    const cards = await current.evaluate(() => [...document.querySelectorAll('.set-card')].map(c => [c.querySelector('.set-card-head') && c.querySelector('.set-card-head').textContent, c.querySelectorAll('.set-row').length]));
+    check('Layout is two cards: bottom bar and top bar', cards.length === 2 && cards[0][1] === 3 && cards[1][1] >= 2, cards);
+    const before = await settingsSnapshot();
+    await nav('up', 'up', 'up', 'up', 'down', 'down');
+    check('Each setting is one row with its value', (await state()).focusAction === 'select.apps' && /Icons and text/.test(await current.evaluate(() => document.querySelector('.set-row.is-focus .set-value').textContent)));
+    await nav('left', 'right');
+    check('Left and Right do not change a setting', same(await settingsSnapshot(), before));
+    await nav('ok');
+    check('OK opens the list with the applied choice focused', await current.evaluate(() => !!document.querySelector('.set-select-wrap.is-open') && document.querySelector('.select-opt.is-focus').getAttribute('aria-checked') === 'true' && ShoreQA.where().focusCount === 1));
+    await nav('up', 'back');
+    check('Back closes the list without applying', same(await settingsSnapshot(), before) && await current.evaluate(() => !document.querySelector('.set-select-wrap.is-open')) && (await state()).view === 'appearance');
+    await nav('ok', 'up', 'ok');
+    check('OK in the list applies the choice and closes it', (await stored()).look ? (await stored()).look.apps === 'icons' : (await stored()).apps === 'icons');
+    check('Layout keeps the live preview', await current.evaluate(() => document.getElementById('stage').className.indexOf('no-preview') < 0));
+    await group('wifiqr');
+    check('Wi‑Fi settings drop the preview and use the width', await current.evaluate(() => /no-preview/.test(document.getElementById('stage').className) && document.getElementById('appearanceRows').getBoundingClientRect().width > 1000 * (document.getElementById('stage').getBoundingClientRect().width / 1920)));
+    await group('background');
+    check('Background offers Photo and Dark only', same(await current.evaluate(() => [...document.querySelectorAll('[data-action^="choice.bg."]')].map(e => e.getAttribute('data-action'))), ['choice.bg.photo', 'choice.bg.dark']));
   });
   await run('Alexa: 0.13 choices carry over', async () => {
     await page({ seed: baseline({ alexaTemp: 'amzn1.alexa.endpoint.temp-1', alexaTempName: 'TIMMERFLOTTE', alexaLamp: 'amzn1.alexa.endpoint.lamp-1', alexaLampName: 'Left lamp' }) });
@@ -1133,7 +1164,7 @@ try {
       check(name + ' arrows browse choices without preview or storage writes', visited.size > 1, [...visited]);
       const firstRadio = (await radios())[0];
       if (firstRadio) {
-        await current.locator('[data-action="' + firstRadio.action + '"]').hover();
+        await current.locator('[data-action="' + firstRadio.action + '"]').dispatchEvent('mouseover');
         check(name + ' pointer hover does not apply a choice', same(await settingsSnapshot(), before));
       }
       await nav('back');
@@ -1152,14 +1183,14 @@ try {
     check('On-screen Back returns to the matching overview category', (await state()).view === 'settings' && (await state()).focusAction === 'settings.group.layout');
     check('On-screen Back keeps unconfirmed choice unapplied', same(await settingsSnapshot(), before));
     await act('settings.group.layout');
-    check('Reopening restores the last real choice after on-screen Back', (await state()).focusAction === candidate.action, { expected: candidate.action, actual: (await state()).focusAction });
+    check('Reopening restores the last real setting after on-screen Back', (await state()).focusAction === candidate.select, { expected: candidate.select, actual: (await state()).focusAction });
     await nav('back'); await act('settings.group.layout');
-    check('Physical Back also preserves the last real choice', (await state()).focusAction === candidate.action);
+    check('Physical Back also preserves the last real setting', (await state()).focusAction === candidate.select);
   });
   await run('Settings OK applies explicit choices atomically', async () => {
     await page();
     const specs = [
-      ['background', 'bg', ['dark', 'light', 'photo']],
+      ['background', 'bg', ['dark', 'photo']],
       ['layout', 'apps', ['icons', 'text', 'both']],
       ['layout', 'controls', ['text', 'both', 'icons']],
       ['typography', 'font', (await state()).fonts.available],
@@ -1200,16 +1231,16 @@ try {
   });
   await run('Settings inactive Material retains its choice', async () => {
     await page(); await look({ material: 'tint' });
-    for (const patch of [{ bg: 'dark' }, { bg: 'light' }]) {
+    for (const patch of [{ bg: 'dark' }]) {
       await look(patch); await group('focus'); const before = await settingsSnapshot();
       const materials = (await radios()).filter(r => r.action.startsWith('choice.material.'));
       check('Material stays visible but inactive for ' + JSON.stringify(patch), materials.length === 3 && materials.every(r => r.disabled) && materials.some(r => r.action === 'choice.material.tint' && r.checked === 'true'), materials);
       const focusBefore = (await state()).focusAction;
-      await current.locator('[data-action="choice.material.frost"]').click({ force: true });
+      await current.locator('[data-action="choice.material.frost"]').dispatchEvent('click');
       check('Inactive Material ignores pointer focus and application', same(await settingsSnapshot(), before) && (await state()).focusAction === focusBefore);
       await walkEnabledChoices();
       check('Remote navigation skips inactive Material', same(await settingsSnapshot(), before));
-      const reason = await current.locator('.setting-reason:visible').allTextContents();
+      const reason = await current.locator('.set-note:visible').allTextContents();
       check('Inactive Material has a visible explanation', reason.some(text => /material/i.test(text) && text.length > 20), reason);
     }
     await look({ bg: 'photo', layout: 'dock', focus: 'glass' }); await group('focus');
@@ -1218,7 +1249,7 @@ try {
   });
   await run('Settings inactive photo tools retain wallpaper preferences', async () => {
     await page();
-    for (const bg of ['dark', 'light']) {
+    for (const bg of ['dark']) {
       await look({ bg }); await group('background'); const before = await settingsSnapshot();
       for (const action of ['background.wallpaper', 'background.rotation']) {
         check(bg + ' marks ' + action + ' inactive', await current.locator('[data-action="' + action + '"]').getAttribute('aria-disabled') === 'true');
@@ -1228,7 +1259,7 @@ try {
       }
       await walkEnabledChoices();
       check(bg + ' remote navigation skips inactive photo tools', same(await settingsSnapshot(), before));
-      const reason = await current.locator('.setting-reason:visible').allTextContents();
+      const reason = await current.locator('.set-note:visible').allTextContents();
       check(bg + ' explains how to enable photo tools', reason.some(text => /photo/i.test(text) && /wallpaper|rotation/i.test(text)), reason);
     }
   });
@@ -1236,19 +1267,19 @@ try {
     await page(); await group('focus'); await choice('material', 'tint'); await ready();
     await nav('back'); await act('settings.group.background'); await choice('bg', 'dark'); await ready();
     await nav('back'); await act('settings.group.focus');
-    const focus = await focusedChoice();
-    check('Inactive remembered Material returns to an enabled focus choice', focus && !focus.disabled && focus.action.startsWith('choice.focus.'), focus);
+    const focus = (await state()).focusAction;
+    check('Inactive remembered Material returns to an enabled focus setting', focus === 'select.focus', focus);
     check('Changing Background preserves remembered Material', (await state()).look.material === 'tint');
     await look({ bg: 'photo' }); await group('background'); await act('background.rotation'); await act('rotation.fixed');
     await look({ bg: 'dark' }); const before = await settingsSnapshot();
     check('All-inactive Rotation restores its enabled Back action', (await state()).focusAction === 'settings.back');
     const visited = await walkEnabledChoices();
     check('All-inactive Rotation traps focus on its enabled Back action', visited.every(a => a === 'settings.back') && same(await settingsSnapshot(), before), visited);
-    await current.locator('[data-action="rotation.5"]').click({ force: true });
+    await current.locator('[data-action="rotation.5"]').dispatchEvent('click');
     check('Inactive Rotation ignores pointer clicks', (await state()).focusAction === 'settings.back' && same(await settingsSnapshot(), before));
     await nav('back');
-    const returned = await focusedChoice();
-    check('Rotation Back skips its now-inactive Background row', (await state()).settingsGroup === 'background' && returned && !returned.disabled && returned.action.startsWith('choice.bg.'), returned);
+    const returned = (await state()).focusAction;
+    check('Rotation Back skips its now-inactive Background row', (await state()).settingsGroup === 'background' && returned === 'select.bg', returned);
   });
   await run('Settings Back cancels pending assets and late callbacks', async () => {
     await page(); await group('focus'); const before = await settingsSnapshot();
@@ -1293,12 +1324,12 @@ try {
     await current.unroute('**/*-field-frost.jpg'); await act('settings.retry'); await ready();
     check('Retry applies the same failed choice', (await state()).look.material === 'frost' && (await state()).shown.material === 'frost' && (await state()).writes === original.writes + 1);
     await group('background'); const before = await settingsSnapshot();
-    await current.evaluate(() => { __failWrites = true; }); await choice('bg', 'light');
+    await current.evaluate(() => { __failWrites = true; }); await choice('bg', 'dark');
     await current.waitForFunction(() => !ShoreQA.state().pending);
     const failed = await settingsSnapshot();
     check('Failed choice write keeps the committed radio and preview', same(failed.committed, before.committed) && same(failed.shown, before.shown) && failed.stored === before.stored && failed.writes === before.writes && (await radios()).some(r => r.action === 'choice.bg.photo' && r.checked === 'true'));
     await current.evaluate(() => { __failWrites = false; }); await act('settings.retry'); await ready();
-    check('Storage Retry applies once through the explicit choice', (await state()).look.bg === 'light' && (await state()).shown.bg === 'light' && (await state()).writes === before.writes + 1);
+    check('Storage Retry applies once through the explicit choice', (await state()).look.bg === 'dark' && (await state()).shown.bg === 'dark' && (await state()).writes === before.writes + 1);
   });
   await run('Settings choices fit both target viewports', async () => {
     await page();
