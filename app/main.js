@@ -4,7 +4,7 @@
 
   /* ---------- Bundled data ---------- */
   var ASSETS = 'assets/', ICONS = ASSETS + 'icons/', WP = ASSETS + 'wallpapers/';
-  var APP_VERSION = '0.29.0';
+  var APP_VERSION = '0.29.1';
   var CAP = 9, SCRIM_Y = 560, DOCK_BOTTOM = 1032; // the Dock sits 48 px above the bottom edge; names and actions go above it
   var DOCK_MODES = { both: { tw: 288, th: 200, pitch: 296 }, text: { tw: 288, th: 104, pitch: 296 }, icons: { tw: 200, th: 156, pitch: 206 } }; // icons-only tiles leave room under the icon for the focused app's name
   var GRID_ROW = 240, GRID_COL = 344, COLS = 5;
@@ -268,8 +268,8 @@
   }
   function dockAppMark(a) {
     var w = S.c.apps === 'icons' ? 128 : 112, h = DOCK_MARK_H;
-    /* Modern dock: smaller marks for its low tiles (icon beside the name in Both). */
-    if (S.c.dockStyle === 'modern') { w = S.c.apps === 'icons' ? 96 : 56; h = S.c.apps === 'icons' ? 52 : 44; }
+    /* Modern dock, Both: a small mark beside the name. */
+    if (S.c.dockStyle === 'modern' && S.c.apps === 'both') { w = 56; h = 44; }
     return withDockMark(appMark(a, w, h, h, true));
   }
   function prefersBundledColor(a) {
@@ -2759,15 +2759,18 @@
      window one tile when focus passes an edge; the side cues show that more apps exist. */
   /* Tiles: the same row with a gap between separate tiles. */
   /* Modern dock: low tiles like the top bar's widgets. Both puts the name beside the icon, in tiles of one width. */
-  var MODERN_MODES = { icons: { tw: 128, th: 96, pitch: 140 }, both: { tw: 290, th: 96, pitch: 300 }, text: { tw: 232, th: 96, pitch: 244 } };
-  function dockMode() { var m = DOCK_MODES[S.c.apps]; return S.c.dockStyle === 'modern' ? MODERN_MODES[S.c.apps] : S.c.dockStyle !== 'shelf' ? { tw: m.tw, th: m.th, pitch: m.pitch + 12 } : m; }
+  /* Icons only keeps the tile row of Tiles, drawn at 80 % (the name rises in on focus); Both and Text
+     use low tiles, seven Both tiles across. */
+  var MODERN_MODES = { both: { tw: 236, th: 96, pitch: 246 }, text: { tw: 232, th: 96, pitch: 244 } }, MODERN_ICON_SCALE = 0.8;
+  function modernScale() { return S.c.dockStyle === 'modern' && S.c.apps === 'icons' ? MODERN_ICON_SCALE : 1; }
+  function dockMode() { var m = DOCK_MODES[S.c.apps]; return S.c.dockStyle === 'modern' && MODERN_MODES[S.c.apps] ? MODERN_MODES[S.c.apps] : S.c.dockStyle !== 'shelf' ? { tw: m.tw, th: m.th, pitch: m.pitch + 12 } : m; }
   function dockGeom(n) {
-    var m = dockMode(), contentW = n > 0 ? (n - 1) * m.pitch + m.tw : 0, fits = n > 0 && contentW <= (S.c.dockStyle === 'modern' ? 1792 : S.c.dockStyle !== 'shelf' ? 1760 : 1696);
+    var m = dockMode(), contentW = n > 0 ? (n - 1) * m.pitch + m.tw : 0, fits = n > 0 && contentW <= (S.c.dockStyle === 'modern' ? (modernScale() !== 1 ? 1760 / modernScale() : 1792) : S.c.dockStyle !== 'shelf' ? 1760 : 1696);
     var vis = fits ? n : Math.max(1, Math.min(S.c.dockStyle === 'modern' ? Math.floor((1792 + m.pitch - m.tw) / m.pitch) : 5, n)), shelfW = fits ? contentW : vis * m.pitch - 8, w = shelfW + 32;
     if (n < 0) { w = 912; shelfW = 880; vis = 0; }
     var g = { x: Math.round((1920 - w) / 2), y: DOCK_BOTTOM - m.th - 32, h: m.th + 32, w: w, shelf: shelfW, vis: vis, empty: n < 0, tw: m.tw, th: m.th, pitch: m.pitch, s: 1 };
     /* Modern dock: the tiles end 14 px above the bottom edge, like the top bar's widgets 14 px below the top. */
-    if (S.c.dockStyle === 'modern') g.y = 1080 - 14 + 16 - g.h;
+    if (S.c.dockStyle === 'modern') { g.s = modernScale(); g.y = Math.round(1080 - 14 + 16 * g.s - g.h); }
     return g;
   }
   /* An eased fade: solid glass up to `solid` %, then thinning out without a visible step. */
@@ -2794,13 +2797,17 @@
     if (!S.reflow) scroll.first = first;
     return first * g.pitch;
   }
+  /* Shorter names for the narrow Modern dock tiles. */
+  var SHORT_NAMES = { 'Nintendo Switch': 'Nintendo', 'Nuvio Legacy': 'Nuvio' };
+  function shortName(name) { return SHORT_NAMES[name] || name; }
   function dockTileHtml(it, full) {
     var a, body;
     if (it.kind === 'add') return '<span class="add">' + icon('plus') + '</span><span class="label">' + T(full ? 'Home is full' : 'Add app') + '</span>';
     a = app(it.id);
+    var name = S.c.dockStyle === 'modern' && S.c.apps !== 'icons' ? shortName(a.name) : a.name;
     body = S.c.apps === 'text' ? '' : dockAppMark(a);
     if (S.c.apps !== 'text') body = '<span class="dock-icon' + (S.c.apps === 'icons' ? ' dock-icon-solo' : '') + '">' + body + '</span>';
-    return body + (S.c.apps === 'icons' ? '<span class="label icon-name"><span class="label-ink">' + esc(a.name) + '</span></span>' : '<span class="label' + (S.c.apps === 'both' ? ' dock-label' : '') + '" style="font-size:' + dockLabelSize(a.id) + 'px' + (S.c.apps === 'text' ? ';top:' + (28 + fontShift('primary', dockLabelSize(a.id))) + 'px' : '') + '"><span class="label-ink">' + esc(a.name) + '</span></span>') + '<span class="nudge nudge-l">' + icon('left') + '</span><span class="nudge nudge-r">' + icon('right') + '</span>';
+    return body + (S.c.apps === 'icons' ? '<span class="label icon-name"><span class="label-ink">' + esc(a.name) + '</span></span>' : '<span class="label' + (S.c.apps === 'both' ? ' dock-label' : '') + '" style="font-size:' + dockLabelSize(a.id) + 'px' + (S.c.apps === 'text' ? ';top:' + (28 + fontShift('primary', dockLabelSize(a.id))) + 'px' : '') + '"><span class="label-ink">' + esc(name) + '</span></span>') + '<span class="nudge nudge-l">' + icon('left') + '</span><span class="nudge nudge-r">' + icon('right') + '</span>';
   }
   function renderDock(hs) {
     var items = hs.items, n = items.length, empty = hs.mode !== 'arrange' && !n, g = dockGeom(empty ? -1 : n);

@@ -882,6 +882,14 @@ try {
     const both = await current.evaluate(() => { const tiles = [...document.querySelectorAll('.dock .tile')].slice(0, 4), r = tiles.map(e => e.getBoundingClientRect());
       return { widths: r.map(x => Math.round(x.width)), beside: tiles.every(e => { const i = e.querySelector('.dock-icon .mark').getBoundingClientRect(), l = e.querySelector('.label').getBoundingClientRect(); return i.right <= l.left + 1 && Math.abs((i.top + i.bottom) / 2 - (l.top + l.bottom) / 2) < 6; }) }; });
     check('Both: the name sits beside the icon, in tiles of one width', new Set(both.widths).size === 1 && both.beside, both);
+    const row = await current.evaluate(() => { const s = document.getElementById('stage').getBoundingClientRect(), vis = [...document.querySelectorAll('.dock .tile')].filter(e => { const r = e.getBoundingClientRect(); return r.left >= s.left && r.right <= s.right; });
+      const cues = [...document.querySelectorAll('.cue.is-on')].map(e => e.getBoundingClientRect()).every(r => r.left >= s.left && r.right <= s.right);
+      const mid = vis.every(t => { const r = t.getBoundingClientRect(), c = e => { const b = e.getBoundingClientRect(); return (b.top + b.bottom) / 2; }; return Math.abs(c(t.querySelector('.dock-icon .mark')) - (r.top + r.bottom) / 2) < 2 && Math.abs(c(t.querySelector('.label-ink')) - (r.top + r.bottom) / 2) < 2; });
+      return { count: vis.length, cues, mid, names: vis.map(e => e.querySelector('.label-ink').textContent) }; });
+    check('Both shows seven apps with short names, icon and name centred, cues on screen', row.count === 7 && row.cues && row.mid && row.names[1] === 'Nintendo' && row.names[2] === 'Nuvio', row);
+    await group('layout'); await act('choice.apps.icons'); await scene('home'); await current.waitForTimeout(300);
+    const ic = await current.evaluate(() => { const t = document.querySelector('.dock .tile.is-focus'); return { h: Math.round(t.getBoundingClientRect().height), name: getComputedStyle(t.querySelector('.label.icon-name')).opacity }; });
+    check('Icons only keeps the Tiles row at 80 % and shows the name of the focused app', Math.abs(ic.h - 156 * 0.8) <= 1 && ic.name === '1', ic);
     check('Its focused app has the same white ring as the top widgets', /255, 255, 255\) 0px 0px 0px 3px inset|inset 0px 0px 0px 3px rgb\(255, 255, 255\)/.test(m.ring), m.ring);
   });
   await run('A remote button can open the Home screen', async () => {

@@ -1054,14 +1054,16 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000}
 /* Modern dock, mirrored top bar: 96 px tiles 14 px above the bottom edge. Icons only: the icon alone
    (no name, like the top bar). Both: icon on the left and the name beside it, every tile one width.
    Text: the name centred. */
-.stage.dock-modern .dock{--dock-mark-h:52px;--dock-mark-w:96px}
 .stage.dock-modern.a-both .dock{--dock-mark-h:44px;--dock-mark-w:56px}
 .stage.dock-modern .dock .tile::before{border-radius:16px}
-.stage.dock-modern.a-icons .dock .tile .label.icon-name{display:none}
-.stage.dock-modern .dock .tile .dock-icon,.stage.dock-modern .dock .tile .dock-icon-solo{top:0;bottom:0;padding:0;align-items:center}
+.stage.dock-modern.a-both .dock .tile .dock-icon{top:0;bottom:0;padding:0;align-items:center}
 .stage.dock-modern.a-both .dock .tile .dock-icon:not(.dock-icon-solo){left:18px;right:auto;width:var(--dock-mark-w);bottom:0;justify-content:center;align-items:center;padding:0}
 .stage.dock-modern.a-both .dock .tile .label.dock-label{top:0;bottom:0;left:88px;right:16px;display:flex;align-items:center;justify-content:flex-start;text-align:left;font-size:24px!important;line-height:30px;letter-spacing:-.3px;font-weight:500}
 .stage.dock-modern.a-both .dock .tile .label.dock-label .label-ink,.stage.dock-modern.a-text .dock .tile .label .label-ink{display:block;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .stage.dock-modern.a-text .dock .tile .label{top:0!important;bottom:0;left:14px;right:14px;display:flex;align-items:center;justify-content:center;font-size:26px!important;line-height:32px;font-weight:600}
-.stage.dock-modern .dock .tile.is-focus .dock-icon .mark,.stage.dock-modern.f-type .dock .tile.is-focus .dock-icon .mark{transform:scale(1.06)}
-.stage.dock-modern.a-icons .dock .tile .dock-icon-solo,.stage.dock-modern.a-icons .dock .tile.is-focus .dock-icon-solo,.stage.dock-modern.a-icons .dock .tile.is-lifted .dock-icon-solo{transform:none!important}
+.stage.dock-modern.a-both .dock .tile.is-focus .dock-icon .mark,.stage.dock-modern.a-both.f-type .dock .tile.is-focus .dock-icon .mark{transform:scale(1.06)}
+/* Modern dock, Both: seven tiles across; icon and name centred vertically in each tile. */
+.stage.dock-modern.a-both .dock .tile .label.dock-label{left:84px;right:14px;font-size:23px!important;line-height:28px;padding:0;margin:0;transform:none}
+.stage.dock-modern.a-both .dock .tile .label.dock-label .label-ink{line-height:28px;padding:0}
+.stage.dock-modern.a-both .dock .tile .dock-icon:not(.dock-icon-solo){left:16px}
+.stage.dock-modern.a-both .dock .tile .dock-icon .mark{display:flex;align-items:center;justify-content:center}
