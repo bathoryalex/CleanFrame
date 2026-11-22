@@ -927,3 +927,8 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000}
 .np-dev-cue .ico{width:26px;height:26px}
 /* The panel's top stays put: loading, the list and errors share one frame that only grows downwards. */
 .np-dev-note.is-wait{color:rgba(246,241,231,.6)}
+/* Devices arriving: the panel's height eases open and each row fades and rises into place. */
+.np-devices.is-growing{overflow:hidden;transition:opacity 180ms linear,transform 260ms cubic-bezier(.22,1,.28,1),height 300ms cubic-bezier(.22,1,.28,1)}
+.np-dev-row.is-entering{animation:np-dev-row-in 280ms cubic-bezier(.22,1,.28,1) both}
+@keyframes np-dev-row-in{from{opacity:0;transform:translate3d(0,10px,0)}to{opacity:1;transform:none}}
+@media(prefers-reduced-motion:reduce){.np-dev-row.is-entering{animation:none}}

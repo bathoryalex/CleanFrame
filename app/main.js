@@ -4,7 +4,7 @@
 
   /* ---------- Bundled data ---------- */
   var ASSETS = 'assets/', ICONS = ASSETS + 'icons/', WP = ASSETS + 'wallpapers/';
-  var APP_VERSION = '0.25.2';
+  var APP_VERSION = '0.25.3';
   var CAP = 9, SCRIM_Y = 560, DOCK_BOTTOM = 1032; // the Dock sits 48 px above the bottom edge; names and actions go above it
   var DOCK_MODES = { both: { tw: 288, th: 200, pitch: 296 }, text: { tw: 288, th: 104, pitch: 296 }, icons: { tw: 200, th: 156, pitch: 206 } }; // icons-only tiles leave room under the icon for the focused app's name
   var GRID_ROW = 240, GRID_COL = 344, COLS = 5;
@@ -1642,6 +1642,23 @@
     }
   }
   function deviceIcon(type) { type = String(type).toLowerCase(); return icon(type === 'smartphone' || type === 'tablet' ? 'phone' : type === 'computer' ? 'computer' : type === 'tv' || type === 'castvideo' || type === 'stb' || type === 'gameconsole' ? 'tv' : 'speaker'); }
+  /* When the devices arrive the panel grows from the loading frame to the list's height and the rows
+     fade in one after another; later renders (focus moves) neither animate nor resize. */
+  function growDevices(box, t) {
+    var d = t.dev, from = box.className.indexOf('is-open') >= 0 ? box.offsetHeight : 0, arrived = d && d.list && !d.shown, to;
+    if (arrived) { d.shown = true; d.enter = Date.now() + 700; }
+    if (!d) { clearTimeout(box._grow); box._growing = false; box.style.height = ''; }
+    box.className = 'np-devices' + (d ? ' is-open' : '') + (box._growing ? ' is-growing' : '');
+    setHTML(box, devicesHtml(t));
+    if (!arrived || !from || REDUCED_MOTION) return;
+    to = box.offsetHeight;
+    if (Math.abs(to - from) < 2) return;
+    clearTimeout(box._grow);
+    box.style.transition = 'none'; box.style.height = from + 'px'; box.offsetHeight;
+    box._growing = true; box.className += ' is-growing';
+    box.style.transition = ''; box.style.height = to + 'px';
+    box._grow = setTimeout(function () { box._growing = false; box.style.height = ''; box.className = box.className.replace(/\s*is-growing/g, ''); }, 340);
+  }
   /* At most DEV_VISIBLE rows show at once; the window follows the focus, with cues above and below. */
   var DEV_VISIBLE = 7;
   function devicesHtml(t) {
@@ -1657,8 +1674,8 @@
     d.top = clamp(d.top, 0, Math.max(0, n - DEV_VISIBLE));
     from = d.top; to = Math.min(n, from + DEV_VISIBLE);
     rows = d.list.slice(from, to).map(function (v, k) {
-      var i = from + k;
-      return '<button type="button" tabindex="-1" class="np-dev-row' + (i === d.i ? ' is-focus' : '') + (v.active ? ' is-active' : '') + (v.restricted ? ' is-restricted' : '') + (d.busy === v.id ? ' is-busy' : '') + '" data-z="npdevrow" data-i="' + i + '">'
+      var i = from + k, entering = d.enter && Date.now() < d.enter;
+      return '<button type="button" tabindex="-1" class="np-dev-row' + (entering ? ' is-entering' : '') + (i === d.i ? ' is-focus' : '') + (v.active ? ' is-active' : '') + (v.restricted ? ' is-restricted' : '') + (d.busy === v.id ? ' is-busy' : '') + '"' + (entering ? ' style="animation-delay:' + (k * 35) + 'ms"' : '') + ' data-z="npdevrow" data-i="' + i + '">'
         + deviceIcon(v.type) + '<span class="np-dev-name">' + esc(v.name) + (v.restricted ? '<small>' + esc(T('Can’t be controlled here')) + '</small>' : '') + '</span>'
         + (v.active ? icon('check', 'np-dev-tick') : d.busy === v.id ? '<span class="np-dev-wait">…</span>' : '') + '</button>';
     }).join('');
@@ -3080,8 +3097,7 @@
       el.artwrap.className = 'np-art-wrap' + (art ? '' : ' is-empty');
       setHTML(el.device, spotifyOn() ? icon('speaker') + '<span>' + esc(n && n.device ? T('Playing on {0}', n.device) : T('Choose a device')) + '</span>' + icon('right', 'np-dev-more') : '');
       el.device.className = 'np-device' + (t.f.row === 'device' && !t.dev ? ' is-focus' : '');
-      setHTML(el.devices, devicesHtml(t));
-      el.devices.className = 'np-devices' + (t.dev ? ' is-open' : '');
+      growDevices(el.devices, t);
       setHTML(el.title, t.lyrics && n ? mq(n.title) : esc(n ? n.title : T('Nothing is playing on Spotify.')));
       setHTML(el.artist, t.lyrics && n ? mq(n.artist) : esc(n ? n.artist : ''));
       setHTML(el.album, esc(n ? n.album : ''));

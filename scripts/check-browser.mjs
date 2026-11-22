@@ -659,9 +659,13 @@ try {
     await current.waitForFunction(() => document.querySelector('.np-devices.is-open .np-dev-note'));
     await current.waitForTimeout(350);
     const loadingTop = await current.evaluate(() => document.querySelector('.np-devices').getBoundingClientRect().top);
+    await current.evaluate(() => { const p = document.querySelector('.np-devices'), h = window.__devGrow = [], t0 = performance.now(); const tick = () => { const v = Math.round(p.getBoundingClientRect().height); if (h[h.length - 1] !== v) h.push(v); if (performance.now() - t0 < 1800) requestAnimationFrame(tick); }; tick(); });
     current.__spotify.slowDevices = false;
     await current.waitForFunction(() => document.querySelectorAll('.np-dev-row').length > 0);
+    await current.waitForTimeout(1500);
     const listTop = await current.evaluate(() => document.querySelector('.np-devices').getBoundingClientRect().top);
+    const grow = await current.evaluate(() => window.__devGrow);
+    check('The panel grows smoothly to the list instead of jumping', new Set(grow).size > 3 && grow.every((v, i) => !i || v >= grow[i - 1]), grow);
     check('The list keeps its top edge when the devices arrive (no jump)', Math.abs(loadingTop - listTop) < 1, { loadingTop, listTop });
     const rows = await current.evaluate(() => [...document.querySelectorAll('.np-dev-row')].map(e => e.textContent + (e.classList.contains('is-focus') ? '*' : '') + (e.classList.contains('is-restricted') ? '!' : '')));
     check('OK lists the devices Spotify reports, the current one focused and restricted ones marked', rows.length === 3 && /Echo Dot Max\*/.test(rows[0]) && /Desk PC/.test(rows[1]) && /!$/.test(rows[2]), rows);
@@ -674,6 +678,7 @@ try {
     current.__spotify.many = true;
     await nav('ok'); await current.waitForFunction(() => document.querySelectorAll('.np-dev-row').length > 0);
     await nav('down', 'down', 'down', 'down', 'down', 'down', 'down', 'down', 'down', 'down');
+    await current.waitForTimeout(450);
     const box = await current.evaluate(() => { const p = document.querySelector('.np-devices').getBoundingClientRect(), f = document.querySelector('.np-dev-row.is-focus').getBoundingClientRect(), s = document.getElementById('stage').getBoundingClientRect();
       return { rows: document.querySelectorAll('.np-dev-row').length, top: p.top - s.top, bottom: p.bottom - s.top, focusIn: f.top >= p.top && f.bottom <= p.bottom, count: document.querySelector('.np-dev-count') && document.querySelector('.np-dev-count').textContent }; });
     check('A long device list shows seven rows on screen and follows the focus', box.rows === 7 && box.top >= 0 && box.bottom <= 1080 && box.focusIn && box.count === '11 / 14', box);
