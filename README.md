@@ -14,7 +14,7 @@ This repo uses [Nathan Clark's CleanFrame](https://github.com/nthnclrk/CleanFram
 
 | Settings | Dock layout |
 | --- | --- |
-| ![Settings as a grid of nine cards](docs/images/frame-home-settings.jpg) | ![Dock layout: one glass shelf with colour icons and names, the clock, weather, date, name days and a calendar event at the top left](docs/images/frame-home-dock.jpg) |
+| ![Settings as a grid of nine cards](docs/images/frame-home-settings.jpg) | ![Dock layout: one glass shelf with colour icons and names, the corner clock with weather and indoor temperature, the date, name days and a calendar event, and the top-row cards](docs/images/frame-home-dock.jpg) |
 
 ## What it does
 
