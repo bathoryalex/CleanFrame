@@ -495,7 +495,7 @@ try {
     await act('choice.clockPos.large');
     check('Large centred clock is applied and saved', (await state()).clockPos === 'large' && await current.evaluate(() => document.getElementById('stage').classList.contains('clock-large')));
     await scene('home');
-    check('Home controls follow the language', await current.evaluate(() => [...document.querySelectorAll('#utils .u-label')].map(e => e.textContent).join('|') === 'Wi‑Fi|Összes app|Beállítások'));
+    check('Home controls follow the language', await current.evaluate(() => [...document.querySelectorAll('#utils .u-label')].map(e => e.textContent).join('|') === 'Wi‑Fi QR|Összes app|Beállítások'));
     await current.reload(); await ready();
     const after = await state();
     check('Preferences survive a restart', after.lang === 'hu' && after.clock === '12' && after.weather === 'off' && after.clockPos === 'large', after);
@@ -798,7 +798,7 @@ try {
     check('Back twice leaves the test', (await state()).view === 'alexalist');
   });
   await run('Top bar: separate widgets or one Dock bar', async () => {
-    await page({ seed: baseline({ clockPos: 'center', alexaTemp: 'amzn1.alexa.endpoint.temp-1', alexaTempName: 'Living room', alexaLamp: 'amzn1.alexa.endpoint.lamp-1', alexaLampName: 'Floor lamp' }) });
+    await page({ seed: baseline({ clockPos: 'center', controls: 'icons', alexaTemp: 'amzn1.alexa.endpoint.temp-1', alexaTempName: 'Living room', alexaLamp: 'amzn1.alexa.endpoint.lamp-1', alexaLampName: 'Floor lamp' }) });
     await current.evaluate(() => { localStorage.setItem('cleanframe.alexa.v1', JSON.stringify({ serial: 'X', domain: 'com', site: 'com', refresh: 'Atzr|test', access: 'Atza|test', at: Date.now() }));
       localStorage.setItem('cleanframe.spotify.v1', JSON.stringify({ refresh: 'AQtest', access: 'BQtest', until: Date.now() + 3600000 })); });
     await current.reload(); await ready(); await current.waitForFunction(() => document.querySelector('.cap-music') && document.querySelector('.u-lamp'));
@@ -813,8 +813,25 @@ try {
       return { stage: document.getElementById('stage').className.indexOf('top-bar') >= 0, bar: r(document.getElementById('topBar')), music: r(document.querySelector('.cap-music')), tiles: [...document.querySelectorAll('.utils .u')].map(e => r(e)) }; });
     check('Dock: one bar across the top edge, with the song and every control inside at the same height', g.stage && g.bar.top === 0 && g.bar.left === 0 && g.bar.right === 1920 && g.music.top >= 0 && g.music.bottom <= g.bar.bottom
       && g.tiles.length === 4 && g.tiles.every(t => Math.abs(t.height - g.music.height) < 1 && t.bottom <= g.bar.bottom), g);
-    await nav('up', 'left');
+    check('The bar content keeps the same margin at the screen edges as above and below', Math.abs(g.music.left - g.music.top) < 1.5 && Math.abs((1920 - g.tiles[g.tiles.length - 1].right) - g.music.top) < 1.5, g);
+    await nav('up');
+    check('Icons only shows no name under the focused icon', await current.evaluate(() => { const l = document.getElementById('utilFocusLabel'); return !l.classList.contains('is-on'); }));
+    await nav('left');
     check('The song in the bar is still reached with Left', (await call('where')).zone === 'music');
+  });
+  await run('Alexa switches can show another icon', async () => {
+    await page({ seed: baseline({ alexaLamp: 'amzn1.alexa.endpoint.lamp-1', alexaLampName: 'Left lamp' }) });
+    await current.evaluate(() => localStorage.setItem('cleanframe.alexa.v1', JSON.stringify({ serial: 'X', domain: 'com', site: 'com', refresh: 'Atzr|test', access: 'Atza|test', at: Date.now() })));
+    await current.reload(); await ready();
+    await group('connections'); await act('conn.alexa'); await act('alexa.list.icons');
+    check('Switch icons lists the switches with their icon', /Left lamp/.test(await current.evaluate(() => document.querySelector('.alexa-list').textContent)));
+    await act('alexa.row.0');
+    const names = await current.evaluate(() => [...document.querySelectorAll('.alexa-row .alexa-name')].map(e => e.textContent));
+    check('Eight icons to choose from', names.length === 7 || names.length === 8, names);
+    await act('alexa.row.1');
+    check('The choice is saved for that light', (await stored()).alexaIcons['amzn1.alexa.endpoint.lamp-1'] === 'fan', (await stored()).alexaIcons);
+    await scene('home');
+    check('Home shows the fan icon on the switch', await current.evaluate(() => document.querySelector('[data-action="util.sw0"]').innerHTML.indexOf('rotate(120 12 12)') >= 0));
   });
   await run('Alexa: 0.13 choices carry over', async () => {
     await page({ seed: baseline({ alexaTemp: 'amzn1.alexa.endpoint.temp-1', alexaTempName: 'TIMMERFLOTTE', alexaLamp: 'amzn1.alexa.endpoint.lamp-1', alexaLampName: 'Left lamp' }) });

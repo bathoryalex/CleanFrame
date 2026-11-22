@@ -975,3 +975,35 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000}
 .detail-layout .setting-section+.setting-section{margin-top:10px}
 .detail-layout .setting-label{margin-bottom:4px;font-size:24px;line-height:30px}
 .detail-layout .is-horizontal .setting-choice{min-height:56px;padding:6px 14px}
+.alexa-icon{flex:none;display:inline-flex;width:34px;height:34px;margin-right:4px}.alexa-icon .ico{width:34px;height:34px}
+/* Top Dock bar, refined: thinner (116 px), content runs to the screen edges with the same 14 px margin
+   on the left and right as above and below, flatter tiles, and the Alexa switches set apart from
+   Wi‑Fi QR, All apps and Settings. Names that do not fit end with an ellipsis. */
+.stage.top-bar .topbar-bg{height:116px;background:linear-gradient(180deg,rgba(12,16,18,.80),rgba(12,16,18,.60));box-shadow:inset 0 -1px 0 rgba(255,255,255,.08),inset 0 1px 0 rgba(255,255,255,.05),0 16px 40px rgba(4,8,10,.20)}
+.stage.top-bar .music{left:14px;top:14px}
+.stage.top-bar .utils{top:14px;right:14px;gap:10px}
+.stage.top-bar .caption{top:150px}
+.stage.top-bar.l-dock.clock-big .caption{top:136px}
+.stage.top-bar .quiet-utils .u-group{gap:10px;margin-left:18px;padding-left:18px;box-shadow:inset 1px 0 0 rgba(255,255,255,.16);border-radius:0}
+.stage.top-bar .quiet-utils .u-group:first-child{margin-left:0;padding-left:0;box-shadow:none}
+.stage.top-bar .quiet-utils .u,.stage.top-bar .quiet-utils .u-group .u,.stage.top-bar .quiet-utils .u.u-lamp{height:88px;min-width:88px;padding:8px 16px;border-radius:16px;background:rgba(255,255,255,.07);box-shadow:none}
+.stage.top-bar .quiet-utils.is-icons .u-group .u,.stage.top-bar .quiet-utils .u.u-lamp.sw-icons{width:88px;padding:0}
+.stage.top-bar .quiet-utils.is-icons .u.u-lamp:not(.sw-icons){width:auto;padding:8px 16px}
+.stage.top-bar .quiet-utils .u-content{gap:4px;max-width:150px}
+.stage.top-bar .quiet-utils .u .ico{width:30px;height:30px}
+.stage.top-bar .quiet-utils .u-lamp .ico{width:26px;height:26px}
+.stage.top-bar .quiet-utils .u-label{display:block;max-width:150px;font-size:19px;line-height:22px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.stage.top-bar .quiet-utils .u-lamp .u-content{gap:4px}
+.stage.top-bar .quiet-utils .u-lamp .sw-track{transform:scale(.8)}
+.stage.top-bar .quiet-utils .u.u-lamp.is-lit{background:rgba(255,186,84,.26);box-shadow:inset 0 0 0 1px rgba(255,214,150,.45)}
+.stage.top-bar .quiet-utils .u.is-focus,.stage.top-bar .quiet-utils .u-group .u.is-focus,.stage.top-bar .quiet-utils .u.u-lamp.is-focus{background:rgba(255,255,255,.18);box-shadow:inset 0 0 0 3px #fff,0 8px 22px rgba(4,8,10,.28)}
+.stage.top-bar .quiet-utils .u.u-lamp.is-lit.is-focus{background:rgba(255,186,84,.38)}
+.stage.top-bar .music .cap-music{height:88px;padding:10px 18px 10px 10px;border-radius:16px;gap:14px;background:rgba(255,255,255,.07);box-shadow:none}
+.stage.top-bar .music .cap-music .music-art{width:68px;height:68px;border-radius:10px}
+.stage.top-bar .music .music-title{font-size:22px;line-height:26px}
+.stage.top-bar .music .music-artist{font-size:18px;line-height:22px}
+.stage.top-bar .music .music-progress{margin-top:4px;font-size:15px;line-height:18px}
+.stage.top-bar .music .cap-music.is-focus{background:rgba(255,255,255,.18);box-shadow:inset 0 0 0 3px #fff,0 8px 22px rgba(4,8,10,.28)}
+.stage.bg-light.top-bar .quiet-utils .u,.stage.bg-light.top-bar .music .cap-music{background:rgba(255,255,255,.55)}
+.stage.top-bar .quiet-utils.is-icons .u:not(.u-lamp) .u-label,.stage.top-bar .quiet-utils .u.u-lamp.sw-icons .u-label{display:none}
+.stage.top-bar .quiet-utils .u.u-lamp.sw-text .ico{display:none}

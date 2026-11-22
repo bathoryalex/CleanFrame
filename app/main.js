@@ -4,7 +4,7 @@
 
   /* ---------- Bundled data ---------- */
   var ASSETS = 'assets/', ICONS = ASSETS + 'icons/', WP = ASSETS + 'wallpapers/';
-  var APP_VERSION = '0.26.0';
+  var APP_VERSION = '0.27.0';
   var CAP = 9, SCRIM_Y = 560, DOCK_BOTTOM = 1032; // the Dock sits 48 px above the bottom edge; names and actions go above it
   var DOCK_MODES = { both: { tw: 288, th: 200, pitch: 296 }, text: { tw: 288, th: 104, pitch: 296 }, icons: { tw: 200, th: 156, pitch: 206 } }; // icons-only tiles leave room under the icon for the focused app's name
   var GRID_ROW = 240, GRID_COL = 344, COLS = 5;
@@ -66,7 +66,7 @@
   var LOOK_VALUES = { bg: ['dark', 'light', 'photo'], layout: ['dock'], apps: ['icons', 'both', 'text'], iconStyle: ['color', 'minimal'], font: Object.keys(FONTS).filter(function (id) { return id === 'manrope' || PRIVATE_FONTS.indexOf(id) >= 0; }), controls: ['icons', 'both', 'text'], focus: ['type', 'glass'], material: ['soft', 'frost', 'tint'] };
   var LOOK_NAMES = { bg: 'Background', layout: 'Layout', apps: 'Apps', font: 'Font', controls: 'Home controls', focus: 'Focus', material: 'Material' };
   var VALUE_NAMES = { dark: 'Dark', light: 'Light', photo: 'Photo', list: 'List', dock: 'Dock', type: 'Type', glass: 'Glass', soft: 'Soft', frost: 'Frost', tint: 'Clear tint', icons: 'Icons', both: 'Icons and text', text: 'Text', color: 'Color', minimal: 'Minimal' };
-  var UTIL = { art: ['Art Mode', 'art'], wifi: ['Wi‑Fi', 'wifi'], apps: ['All apps', 'apps'], arrange: ['Arrange', 'arrange'], settings: ['Settings', 'settings'] };
+  var UTIL = { art: ['Art Mode', 'art'], wifi: ['Wi‑Fi QR', 'wifiqr'], apps: ['All apps', 'apps'], arrange: ['Arrange', 'arrange'], settings: ['Settings', 'settings'] };
   var KEYBOARD_COLS = 26; // the on-screen keyboard is a fixed grid, so Up and Down move by a row
   var WIFI_CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_. !@#$%&*+';
   var MSG = {
@@ -80,10 +80,16 @@
   var SVG = {
     art: '<rect x="3.5" y="4.5" width="17" height="15" rx="2"/><circle cx="9" cy="9.8" r="1.5"/><path d="m4.5 17.5 4.5-4.5 3 3 2.5-2.5 5 5"/>',
     apps: '<rect x="4" y="4" width="6.5" height="6.5" rx="1.6"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.6"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.6"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.6"/>',
+    wifiqr: '<path d="M2.2 9.4a10.6 10.6 0 0 1 13.6 0"/><path d="M5 12.5a6.4 6.4 0 0 1 8 0"/><circle cx="9" cy="15.6" r="1" fill="currentColor" stroke="none"/><rect x="14.4" y="14.4" width="7.4" height="7.4" rx="1.5"/><path d="M17 17h.01M19.2 17h.01M17 19.2h.01M19.2 19.2h.01" stroke-width="1.9" stroke-linecap="round"/>',
     wifi: '<path d="M2.5 8.2a14 14 0 0 1 19 0"/><path d="M5.8 11.6a9.2 9.2 0 0 1 12.4 0"/><path d="M9.1 15a4.5 4.5 0 0 1 5.8 0"/><circle cx="12" cy="18.4" r="1.2"/>',
     arrange: '<path d="M4 8.5h14M15 5.5l3 3-3 3M20 15.5H6M9 12.5l-3 3 3 3"/>',
     settings: '<path d="m9 3-.6 2.4-2 1.2L4 6l-2 3.5L3.8 11v2L2 14.5 4 18l2.4-.6 2 1.2L9 21h6l.6-2.4 2-1.2 2.4.6 2-3.5-1.8-1.5v-2L22 9.5 20 6l-2.4.6-2-1.2L15 3Z"/><circle cx="12" cy="12" r="3.2"/>',
     home: '<path d="M4 11 12 4.5l8 6.5v8a1 1 0 0 1-1 1h-4.5v-6h-5v6H5a1 1 0 0 1-1-1Z"/>',
+    fan: '<circle cx="12" cy="12" r="1.7"/><path d="M12 10.3c-.3-3.4.9-6.3 3.1-6.3 2.6 0 2.7 3.6-1.6 7"/><path d="M12 10.3c-.3-3.4.9-6.3 3.1-6.3 2.6 0 2.7 3.6-1.6 7" transform="rotate(120 12 12)"/><path d="M12 10.3c-.3-3.4.9-6.3 3.1-6.3 2.6 0 2.7 3.6-1.6 7" transform="rotate(240 12 12)"/>',
+    snow: '<path d="M12 3v18M4.2 7.5l15.6 9M4.2 16.5l15.6-9"/><path d="M9.6 4.6 12 6.2l2.4-1.6M9.6 19.4 12 17.8l2.4 1.6M4.4 10.4l2.5-.3.9-2.4M19.6 13.6l-2.5.3-.9 2.4M4.4 13.6l2.5.3.9 2.4M19.6 10.4l-2.5-.3-.9-2.4"/>',
+    flame: '<path d="M12 21c-3.5 0-6-2.4-6-5.7 0-3.5 2.6-5.2 3.4-8.6 2.2 1.3 3.3 3.2 3.3 5.1.9-.8 1.4-1.9 1.5-3.1 1.9 1.6 3.8 4.1 3.8 6.6 0 3.3-2.5 5.7-6 5.7z"/>',
+    plug: '<path d="M9 3v5M15 3v5M6.5 8h11v3.6a5.5 5.5 0 0 1-11 0zM12 17.1V21"/>',
+    power: '<path d="M12 3.2v8"/><path d="M7.2 6.5a7.2 7.2 0 1 0 9.6 0"/>',
     lamp: '<path d="M9 17.5h6M10 20.5h4"/><path d="M12 3.5a5.6 5.6 0 0 0-3.4 10.05c.6.46.9 1.1.9 1.85v.6h5v-.6c0-.75.3-1.39.9-1.85A5.6 5.6 0 0 0 12 3.5Z"/>',
     lampOn: '<path d="M9 17.5h6M10 20.5h4"/><path class="lamp-fill" d="M12 3.5a5.6 5.6 0 0 0-3.4 10.05c.6.46.9 1.1.9 1.85v.6h5v-.6c0-.75.3-1.39.9-1.85A5.6 5.6 0 0 0 12 3.5Z"/><path d="M12 .8v.9M3.6 4.3l.7.6M20.4 4.3l-.7.6M1.6 10h.9M21.5 10h.9"/>',
     alexa: '<path d="M3.5 11.2 12 4.5l8.5 6.7"/><path d="M5.8 9.6V19a1 1 0 0 0 1 1h10.4a1 1 0 0 0 1-1V9.6"/><path d="M9.4 14.6a3.7 3.7 0 0 1 5.2 0"/><path d="M7.6 12.6a6.2 6.2 0 0 1 8.8 0"/><circle cx="12" cy="16.9" r=".9"/>',
@@ -450,6 +456,15 @@
     var list = Array.isArray(s.alexaSwitches) ? s.alexaSwitches : endpointId(s.alexaLamp) ? [{ id: s.alexaLamp, name: s.alexaLampName }] : [];
     return list.map(prefTarget).filter(function (t) { return t && !/^(spotify|app):/.test(t.id); }).slice(0, 4);
   }
+  /* A switch's icon, per light or group id; the bulb unless chosen. */
+  var SWITCH_ICONS = ['light', 'fan', 'snow', 'flame', 'plug', 'tv', 'speaker', 'power'];
+  var SWITCH_ICON_NAMES = { light: 'Light bulb', fan: 'Fan', snow: 'Air conditioning', flame: 'Heating', plug: 'Plug', tv: 'TV', speaker: 'Speaker', power: 'Switch' };
+  function cleanIcons(o) {
+    var out = {}, n = 0;
+    if (o && typeof o === 'object') Object.keys(o).forEach(function (id) { if (n < 64 && typeof id === 'string' && id.length <= 200 && SWITCH_ICONS.indexOf(o[id]) > 0) { out[id] = o[id]; n++; } });
+    return out;
+  }
+  function switchIcon(id) { return S.c.alexaIcons && S.c.alexaIcons[id] || 'light'; }
   function cleanGroups(list) {
     return (Array.isArray(list) ? list : []).filter(function (g) { return g && /^g[a-z0-9]{1,16}$/.test(g.id) && typeof g.name === 'string' && g.name.trim(); }).slice(0, 12)
       .map(function (g) { return { id: g.id, name: g.name.slice(0, 24), members: (Array.isArray(g.members) ? g.members : []).map(prefTarget).filter(function (m) { return m && endpointId(m.id); }).slice(0, 20) }; });
@@ -495,7 +510,7 @@
       lang: pick(s.lang, PREF_VALUES.lang, 'en'), clock: pick(s.clock, PREF_VALUES.clock, '24'), clockPos: pick(s.clockPos, PREF_VALUES.clockPos, 'corner'), date: pick(s.date, PREF_VALUES.date, 'off'), weather: pick(s.weather, PREF_VALUES.weather, 'day'),
       customAt: typeof s.customAt === 'number' && wall(CUSTOM) ? s.customAt : 0, customTone: s.customTone === 'light' ? 'light' : 'dark',
       relayTopic: safeId(s.relayTopic) ? s.relayTopic : '', relayAt: typeof s.relayAt === 'number' ? s.relayAt : 0, relaySince: safeId(s.relaySince) ? s.relaySince : '',
-      alexaReadings: cleanReadings(s), alexaSwitches: cleanSwitches(s), alexaGroups: cleanGroups(s.alexaGroups), alexaKeys: cleanKeys(s.alexaKeys),
+      alexaReadings: cleanReadings(s), alexaSwitches: cleanSwitches(s), alexaGroups: cleanGroups(s.alexaGroups), alexaKeys: cleanKeys(s.alexaKeys), alexaIcons: cleanIcons(s.alexaIcons),
       spotifyShow: pick(s.spotifyShow, PREF_VALUES.spotifyShow, 'on'), keyHints: pick(s.keyHints === 'on' || s.keyHints === 'top' ? 'auto' : s.keyHints, PREF_VALUES.keyHints, 'auto'), switchStyle: pick(s.switchStyle, PREF_VALUES.switchStyle, 'both'),
       clockStyle: pick(s.clockStyle, PREF_VALUES.clockStyle, 'classic'), seconds: pick(s.seconds, PREF_VALUES.seconds, 'off'), dockStyle: s.dockStyle === 'tiles' ? 'tiles' : 'shelf',
       holidays: pick(s.holidays, PREF_VALUES.holidays, 'off'), namedays: pick(s.namedays, PREF_VALUES.namedays, 'off'), calShow: pick(s.calShow, PREF_VALUES.calShow, 'on'), topStyle: pick(s.topStyle, PREF_VALUES.topStyle, 'cards')
@@ -541,7 +556,7 @@
     c.wifiSsid = S.c.wifiSsid; c.wifiPass = S.c.wifiPass; c.wifiSec = S.c.wifiSec;
     c.lang = S.c.lang; c.clock = S.c.clock; c.clockPos = S.c.clockPos; c.date = S.c.date; c.weather = S.c.weather;
     c.customAt = S.c.customAt; c.customTone = S.c.customTone; c.relayTopic = S.c.relayTopic; c.relayAt = S.c.relayAt; c.relaySince = S.c.relaySince;
-    c.alexaReadings = S.c.alexaReadings; c.alexaSwitches = S.c.alexaSwitches; c.alexaGroups = S.c.alexaGroups; c.alexaKeys = S.c.alexaKeys; c.spotifyShow = S.c.spotifyShow; c.keyHints = S.c.keyHints; c.switchStyle = S.c.switchStyle; c.clockStyle = S.c.clockStyle; c.seconds = S.c.seconds; c.dockStyle = S.c.dockStyle; c.holidays = S.c.holidays; c.namedays = S.c.namedays; c.calShow = S.c.calShow; c.topStyle = S.c.topStyle;
+    c.alexaReadings = S.c.alexaReadings; c.alexaSwitches = S.c.alexaSwitches; c.alexaGroups = S.c.alexaGroups; c.alexaKeys = S.c.alexaKeys; c.alexaIcons = S.c.alexaIcons; c.spotifyShow = S.c.spotifyShow; c.keyHints = S.c.keyHints; c.switchStyle = S.c.switchStyle; c.clockStyle = S.c.clockStyle; c.seconds = S.c.seconds; c.dockStyle = S.c.dockStyle; c.holidays = S.c.holidays; c.namedays = S.c.namedays; c.calShow = S.c.calShow; c.topStyle = S.c.topStyle;
     return c;
   }
   function snap() { return { home: S.c.home.slice(), recent: S.c.recent.slice() }; }
@@ -1029,7 +1044,7 @@
       { id: 'focus', icon: 'focus', label: T('Focus'), value: T(VALUE_NAMES[S.c.focus]) + (materialApplies() ? ', ' + T(VALUE_NAMES[S.c.material]) : '') },
       { id: 'editor', icon: 'apps', label: T('Apps on Home'), value: T(n === 1 ? '{0} app' : '{0} apps', n) },
       { id: 'region', icon: 'clock', label: T('Language and clock'), value: PREF_NAMES[S.c.lang] + ', ' + T(PREF_NAMES[S.c.clock]) + (S.c.clockPos === 'corner' ? '' : ', ' + T(PREF_NAMES[S.c.clockPos])) },
-      { id: 'wifiqr', icon: 'wifi', label: T('Wifi QR code'), value: wifiReady() ? S.c.wifiSsid : T('Not set') }
+      { id: 'wifiqr', icon: 'wifiqr', label: T('Wifi QR code'), value: wifiReady() ? S.c.wifiSsid : T('Not set') }
     ].concat(FA || FS ? [{ id: 'connections', icon: 'alexa', label: T('Connections'), value: connectionsSummary() }] : []).concat([
       { id: 'samsung', icon: 'home', label: T('Samsung Home'), value: T('Leave Frame Home'), direct: true }]);
   }
@@ -1390,7 +1405,8 @@
     return [
       { id: 'alexa-home', title: T('On Home'), items: [
         { action: 'alexa.list.readings', label: T('Readings'), description: summary(S.c.alexaReadings.map(function (r) { return r.name + ' (' + T(r.label) + ')'; }), 'Beside the clock') },
-        { action: 'alexa.list.switches', label: T('Switches'), description: summary(liveTargets().map(targetName), 'Beside Wi‑Fi') }] },
+        { action: 'alexa.list.switches', label: T('Switches'), description: summary(liveTargets().map(targetName), 'Beside Wi‑Fi') },
+        { action: 'alexa.list.icons', label: T('Switch icons'), description: summary(liveTargets().map(function (x) { return targetName(x) + ': ' + T(SWITCH_ICON_NAMES[switchIcon(x.id)]); }), 'Choose switches first') }] },
       { id: 'alexa-remote', title: T('Groups'), items: [
         { action: 'alexa.list.groups', label: T('Groups'), description: S.c.alexaGroups.length ? summary(S.c.alexaGroups.map(function (g) { return g.name; }), '') : T('Switch several lights together') }] },
       { id: 'alexa-account', title: T('Account'), items: [
@@ -1483,7 +1499,7 @@
     if (!box) return;
     if (inCorner && first) {
       sr = sceneEl.getBoundingClientRect(); scale = sr.width / 1920 || 1;
-      limit = Math.max(320, Math.min(MUSIC_W, Math.floor((first.getBoundingClientRect().left - sr.left) / scale) - 112 - 40));
+      limit = Math.max(320, Math.min(MUSIC_W, Math.floor((first.getBoundingClientRect().left - sr.left) / scale) - (S.c.topStyle === 'bar' ? 14 : 112) - 40));
     }
     /* Always the same width, whatever the title, so the progress bar keeps its length. */
     if (box._limit !== limit) { box._limit = limit; box.style.width = limit + 'px'; box.style.maxWidth = limit + 'px'; }
@@ -1824,7 +1840,9 @@
             ticked: S.c.alexaReadings.some(function (x) { return x.id === d.id && x.key === r.key; }) });
         });
       });
-    } else if (t.mode === 'switches') rows = switchRows(function (id) { return S.c.alexaSwitches.some(function (x) { return x.id === id; }); });
+    } else if (t.mode === 'icons') rows = liveTargets().map(function (x) { return { id: x.id, label: targetName(x), value: T(SWITCH_ICON_NAMES[switchIcon(x.id)]), forward: true, icon: switchIcon(x.id) }; });
+    else if (t.mode === 'icon') rows = SWITCH_ICONS.map(function (name) { return { id: name, label: T(SWITCH_ICON_NAMES[name]), ticked: switchIcon(t.target) === name, icon: name }; });
+    else if (t.mode === 'switches') rows = switchRows(function (id) { return S.c.alexaSwitches.some(function (x) { return x.id === id; }); });
     else if (t.mode === 'keys') rows = SLOTS.map(function (c) { var tg = S.c.alexaKeys[c]; return { id: c, colour: c, label: T(COLOUR_NAMES[c]), value: tg && targetName(tg) || T('Not set') }; })
       .concat([{ id: 'hints', label: T('Show the buttons on Home'), value: T({ auto: 'When Home opens and a button is pressed', pressed: 'Only when a button is pressed', always: 'Always', off: 'Off' }[S.c.keyHints]) }])
       .concat([{ id: 'test', label: T('Test the remote buttons'), value: '', forward: true }]);
@@ -1861,6 +1879,8 @@
     return {
       readings: [T('Readings'), T('Choose up to {0} values to show beside the clock.', MAX_READINGS)],
       switches: [T('Switches'), T('Choose up to {0} lights or groups for the Home controls.', MAX_SWITCHES)],
+      icons: [T('Switch icons'), T('Choose how each switch looks on Home: a light, a fan, air conditioning and more.')],
+      icon: [t.tname || T('Switch icons'), T('Choose an icon for this switch.')],
       keys: [T('Remote buttons'), T('The colour buttons, CH +, CH − and Guide can each switch a light or group, control Spotify or open an app. CH and Guide keep their usual job until you assign them.')],
       keytarget: [T(COLOUR_NAMES[t.colour] || 'Remote buttons'), T('Choose what this button does.')],
       groups: [T('Groups'), T('A group switches all its lights at once. It shows as on only when every light is on.')],
@@ -1916,6 +1936,12 @@
       if (!next) { showToast(T('Up to {0}. Remove one first.', MAX_MEMBERS)); return; }
       saveAlexa({ alexaGroups: S.c.alexaGroups.map(function (x) { return x.id === g.id ? { id: x.id, name: x.name, members: next } : x; }) }, 'Alexa group lights');
     } else if (t.mode === 'details') openAlexaList('detail', { dev: row.id, devName: row.label });
+    else if (t.mode === 'icons') openAlexaList('icon', { target: row.id, tname: row.label });
+    else if (t.mode === 'icon') {
+      next = {}; Object.keys(S.c.alexaIcons || {}).forEach(function (k) { next[k] = S.c.alexaIcons[k]; });
+      if (row.id === 'light') delete next[t.target]; else next[t.target] = row.id;
+      if (saveAlexa({ alexaIcons: next }, 'Switch icon')) pop();
+    }
   }
   var ALEXA_VISIBLE = 7;
   V.alexalist = {
@@ -1936,13 +1962,15 @@
     if (!saveAlexa({ alexaGroups: S.c.alexaGroups.filter(function (g) { return g.id !== id; }), alexaSwitches: S.c.alexaSwitches.filter(function (x) { return x.id !== gid; }), alexaKeys: keys }, 'Alexa group deleted')) return;
     if (top().id === 'alexalist' && top().mode === 'group') pop();
   }
-  /* Group names are typed with the same on-screen keyboard as the Wi‑Fi name. */
+  /* Group names are typed with the same on-screen keyboard as the Wi‑Fi name, and kept short enough
+     to fit a Home switch tile (longer device names from Alexa are cut with an ellipsis there). */
+  var GROUP_NAME_MAX = 12;
   function openNameEntry(gid) {
     var g = gid ? groupOf(gid) : null;
-    push({ id: 'wifitype', field: 'group', gid: gid, draft: g ? g.name : '', chars: NAME_CHARS, max: 24, f: { zone: 'char', ci: 0, ai: 0 } });
+    push({ id: 'wifitype', field: 'group', gid: gid, draft: g ? g.name : '', chars: NAME_CHARS, max: GROUP_NAME_MAX, f: { zone: 'char', ci: 0, ai: 0 } });
   }
   function saveGroupName(t) {
-    var name = String(t.draft || '').replace(/\s+/g, ' ').trim().slice(0, 24), id, groups;
+    var name = String(t.draft || '').replace(/\s+/g, ' ').trim().slice(0, GROUP_NAME_MAX), id, groups;
     if (!name) { showToast(T('Type a name first.')); return false; }
     if (t.gid) return saveAlexa({ alexaGroups: S.c.alexaGroups.map(function (g) { return g.id === t.gid ? { id: g.id, name: name, members: g.members } : g; }) }, 'Alexa group renamed');
     id = 'g' + Date.now().toString(36);
@@ -2006,6 +2034,12 @@
   window.addEventListener('pagehide', function () { rtLog('pagehide'); });
   window.addEventListener('pageshow', function () { rtLog('pageshow'); });
   window.addEventListener('tizenhwkey', function (ev) { rtLog('tizenhwkey ' + (ev.keyName || '')); });
+  /* What a relaunch (the Home button while Frame Home is already open) brings, if anything. */
+  function requestedOperation() {
+    try { var rc = tizen.application.getCurrentApplication().getRequestedAppControl(); return rc && rc.appControl ? rc.appControl.operation : ''; } catch (e) { return ''; }
+  }
+  window.addEventListener('appcontrol', function () { rtLog('appcontrol (window) ' + requestedOperation()); });
+  document.addEventListener('appcontrol', function () { rtLog('appcontrol (document) ' + requestedOperation()); });
   /* ---------- Your picture: receive a photo from a phone ---------- */
   function relaySince() { return S.c.relaySince || String(S.c.relayAt || Math.floor(Date.now() / 1000) - 600); }
   function savePrefs(patch, label) {
@@ -2657,7 +2691,7 @@
       if (isSw) {
         var sw = liveTargets()[+u.slice(2)], lit = targetPower(sw.id) === true;
         /* Alexa switches have their own style (Settings → Layout); icons only uses the focus label. */
-        html += utilBtn('util', i, 'util.' + u, icon(lit ? 'lampOn' : 'lamp', '', true) + '<span class="u-label">' + esc(targetName(sw)) + '</span><span class="sw-track" aria-hidden="true"></span>', ' u-lamp sw-' + S.c.switchStyle + (lit ? ' is-lit' : '') + (S.c.switchStyle === 'icons' ? ' u-compact' : ''), switchLabel(sw));
+        html += utilBtn('util', i, 'util.' + u, icon(switchIcon(sw.id) === 'light' ? (lit ? 'lampOn' : 'lamp') : switchIcon(sw.id), '', true) + '<span class="u-label">' + esc(targetName(sw)) + '</span><span class="sw-track" aria-hidden="true"></span>', ' u-lamp sw-' + S.c.switchStyle + (lit ? ' is-lit' : '') + (S.c.switchStyle === 'icons' ? ' u-compact' : ''), switchLabel(sw));
         return;
       }
       html += utilBtn('util', i, 'util.' + u, icon(UTIL[u][1], '', true) + '<span class="u-label">' + esc(T(UTIL[u][0])) + '</span>', '', T(UTIL[u][0]));
@@ -2669,7 +2703,8 @@
       b.className = b.className.replace(/\s+is-focus/g, '') + (focus ? ' is-focus' : '');
       if (focus) focused = b;
     });
-    renderUtilFocusLabel(focused && (/ u-compact/.test(focused.className) || iconsOnly && !/ u-lamp/.test(focused.className)) ? focused : null);
+    /* Icons only: no name under the focused icon while moving (only a save error is spelled out). */
+    renderUtilFocusLabel(focused && S.err && (/ u-compact/.test(focused.className) || iconsOnly && !/ u-lamp/.test(focused.className)) ? focused : null);
   }
   function renderUtilFocusLabel(button) {
     var text, key, r, sr, scale, width, x;
@@ -2684,7 +2719,7 @@
     r = button.getBoundingClientRect(); sr = sceneEl.getBoundingClientRect(); scale = sr.width / 1920 || 1;
     width = Math.ceil(textWidth(text, 28, 500, -.2) + 8); x = (r.left + r.width / 2 - sr.left) / scale - width / 2;
     utilFocusLabel.style.width = width + 'px'; utilFocusLabel.style.left = clamp(x, 112, 1808 - width) + 'px';
-    utilFocusLabel.style.top = ((S.c.topStyle === 'bar' ? 160 : 116) + fontShift('ui', 28)) + 'px';
+    utilFocusLabel.style.top = ((S.c.topStyle === 'bar' ? 124 : 116) + fontShift('ui', 28)) + 'px';
     utilFocusLabel.className = 'util-focus-label is-on';
   }
   var dockTopY = 776;
@@ -3131,6 +3166,7 @@
         html += '<button type="button" tabindex="-1" class="alexa-row' + (i === t.f.i ? ' is-focus' : '') + (r.ticked ? ' is-applied' : '') + (r.disabled ? ' is-disabled' : '') + (r.info ? ' is-info' : '') + '" data-z="pick" data-i="' + i + '" data-action="alexa.row.' + i + '"'
           + (r.ticked !== undefined ? ' role="checkbox" aria-checked="' + !!r.ticked + '"' : '') + '>'
           + '<span class="alexa-tick" aria-hidden="true">' + (r.colour ? keyBadge(r.colour) : r.add ? icon('plus') : r.ticked ? icon('check') : '') + '</span>'
+          + (r.icon ? '<span class="alexa-icon" aria-hidden="true">' + icon(r.icon === 'light' ? 'lamp' : r.icon) + '</span>' : '')
           + '<span class="alexa-name">' + esc(r.label) + '</span><span class="alexa-value">' + esc(r.value || '') + '</span>' + (r.forward ? icon('right', 'alexa-forward') : '') + '</button>';
       }
       setHTML(el.list, html);
@@ -3417,7 +3453,10 @@
     render(); syncRotation();
   }
   /* Tizen relaunches a running app with an app control when it is started again (Home button). */
-  window.addEventListener('appcontrol', function () { if (!document.hidden) { goHome(); focusStage(); } });
+  function relaunched(ev) { if (ev && ev.__home) return; if (ev) ev.__home = true; if (!document.hidden) { goHome(); focusStage(); } }
+  window.addEventListener('appcontrol', relaunched);
+  document.addEventListener('appcontrol', relaunched);
+  window.addEventListener('tizenhwkey', function (ev) { if (/home/i.test(ev.keyName || '')) relaunched(); });
   window.addEventListener('resize', fit);
   if (wifiQrEl) wifiQrEl.addEventListener('click', function () {
     if (top().id !== 'wifiqr') return;

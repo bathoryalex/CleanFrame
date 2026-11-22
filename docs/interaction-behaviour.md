@@ -151,3 +151,15 @@ Settings → Layout → Top bar → **Style**. **Separate widgets** is the card 
 
 In Tiles each tile keeps only a short contact shadow, and the bottom darkening that the Dock's shelf needs is lighter, so no shadow band forms under the row.
 
+## Top Dock bar, refined (0.27)
+
+The Dock bar is 116 px tall. The song card and every tile are 88 px tall, 14 px from the top, and the song starts 14 px from the left edge while the last tile ends 14 px from the right edge. The Alexa switches form their own group, set off from Wi‑Fi QR, All apps and Settings by a gap and a thin divider. Tile names are at most 150 px wide and end with an ellipsis; group names are limited to 12 characters when typed. With Icons chosen for Wi‑Fi QR/All apps/Settings or for the Alexa switches, neither the tile nor a focus label shows a name while moving (a save error is still spelled out). Wi‑Fi is labelled **Wi‑Fi QR**, with a Wi‑Fi icon carrying a small QR mark (also on the Settings card).
+
+## Switch icons
+
+Settings → Connections → Alexa → **Switch icons** lists the current switches with their icon; OK on one opens Light bulb, Fan, Air conditioning, Heating, Plug, TV, Speaker and Switch. The choice is stored per light or group id (`alexaIcons`), so it stays when a switch is removed and added again. A light bulb keeps its lit and unlit drawings; other icons turn warm while on.
+
+## Home button signals
+
+Frame Home returns to the Home screen on a `visibilitychange` to visible, and on `appcontrol` events on `window` and `document` (a relaunch while it is open) and a `tizenhwkey` named home. Which of these the TV sends when Home is pressed while Frame Home is already open is not yet confirmed: the remote test (Settings → Connections → Remote buttons → Test the remote buttons) now lists `appcontrol` events with the requested operation, as well as focus, visibility and page events.
+
