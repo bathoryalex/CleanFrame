@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#11171a">
+<title>Frame Home · Alexa sign-in</title>
+<style>
+  /* Frame Home Alexa sign-in helper. The TV's channel and its PKCE challenge arrive in the URL
+     fragment, which browsers never send to a server. The authorization code this page forwards is
+     useless without the code verifier, which never leaves the TV. Your password only goes to Amazon. */
+  :root {
+    --bg: #f2efe8; --card: #ffffff; --ink: #1d1a16; --mute: rgba(29, 26, 22, .62); --line: rgba(29, 26, 22, .12);
+    --accent: #1d1a16; --accent-ink: #f2efe8; --ok: #2f8a4c; --warn: #a2560f; --track: rgba(29, 26, 22, .10);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #11171a; --card: #1b2327; --ink: #f4f4f1; --mute: rgba(244, 244, 241, .64); --line: rgba(244, 244, 241, .12);
+      --accent: #f3f3ef; --accent-ink: #141618; --ok: #7fd18b; --warn: #e9a35b; --track: rgba(244, 244, 241, .12); }
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { -webkit-text-size-adjust: 100%; }
+  body { min-height: 100vh; background: var(--bg); color: var(--ink); font: 17px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; -webkit-font-smoothing: antialiased; }
+  main { max-width: 520px; margin: 0 auto; padding: max(28px, env(safe-area-inset-top)) 20px max(32px, env(safe-area-inset-bottom)); display: flex; flex-direction: column; gap: 20px; }
+  h1 { font-size: 22px; line-height: 1.2; font-weight: 650; letter-spacing: -.3px; }
+  .sub { color: var(--mute); font-size: 15px; margin-top: 4px; }
+  .card { background: var(--card); border-radius: 22px; padding: 18px; box-shadow: 0 1px 0 var(--line), 0 10px 30px rgba(0, 0, 0, .06); display: flex; flex-direction: column; gap: 12px; }
+  h2 { font-size: 17px; font-weight: 650; }
+  .step { display: inline-grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; background: var(--accent); color: var(--accent-ink); font-size: 14px; margin-right: 8px; }
+  p { font-size: 15px; }
+  .note { color: var(--mute); font-size: 13px; }
+  .row { display: flex; gap: 10px; }
+  a.button, button { appearance: none; border: 0; font: inherit; font-weight: 600; border-radius: 16px; min-height: 52px; padding: 0 16px; display: flex; align-items: center; justify-content: center; width: 100%; cursor: pointer; text-decoration: none; -webkit-tap-highlight-color: transparent; }
+  a.button { background: var(--accent); color: var(--accent-ink); }
+  button.soft { background: var(--track); color: var(--ink); min-height: 44px; font-size: 15px; }
+  button.send { background: var(--accent); color: var(--accent-ink); }
+  button:disabled { opacity: .45; cursor: default; }
+  textarea { width: 100%; min-height: 96px; border-radius: 14px; border: 1px solid var(--line); background: transparent; color: var(--ink); font: 14px/1.4 ui-monospace, Menlo, monospace; padding: 12px; resize: vertical; }
+  .status { font-size: 15px; min-height: 22px; }
+  .status.ok { color: var(--ok); } .status.warn { color: var(--warn); }
+  .missing { display: none; }
+  body.no-channel .card { display: none; } body.no-channel .missing { display: block; }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1 data-t="title">Connect Alexa to Frame Home</h1>
+    <p class="sub" data-t="subtitle">Your password goes only to Amazon. The TV receives a one-time code that works only together with a secret kept on the TV.</p>
+  </header>
+
+  <section class="card">
+    <h2><span class="step">1</span><span data-t="s1">Sign in to Amazon</span></h2>
+    <p data-t="s1text">Use the Amazon account your Alexa app uses. Pick the Amazon site you signed up on.</p>
+    <div class="row">
+      <a class="button" id="de" target="_blank" rel="noopener">amazon.de</a>
+      <a class="button" id="com" target="_blank" rel="noopener">amazon.com</a>
+    </div>
+    <p class="note" data-t="s1note">After signing in, Amazon shows an empty or “page not found” page. That is expected.</p>
+    <button class="soft" id="copy" type="button" data-t="copy">Copy the sign-in link instead</button>
+  </section>
+
+  <section class="card">
+    <h2><span class="step">2</span><span data-t="s2">Paste the address of that page</span></h2>
+    <p data-t="s2text">Copy the whole address from the browser’s address bar on the empty page and paste it here.</p>
+    <textarea id="paste" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="https://www.amazon.com/ap/maplanding?…"></textarea>
+    <button class="send" id="send" type="button" disabled data-t="send">Send to TV</button>
+    <p class="status" id="status" aria-live="polite"></p>
+  </section>
+
+  <p class="missing" data-t="missing">Open this page by scanning the QR code on the TV.</p>
+</main>
+<script>
+(function () {
+  'use strict';
+  var EN = {
+    copied: 'Link copied. Paste it into the browser’s address bar.',
+    noCode: 'This address has no sign-in code. Copy the address of the page Amazon showed after signing in.',
+    sending: 'Sending…', sent: 'Sent. Look at the TV.', failed: 'Could not reach the relay. Try again.'
+  };
+  var TEXT = {
+    hu: {
+      title: 'Alexa összekapcsolása a Frame Home-mal',
+      subtitle: 'A jelszavad csak az Amazonhoz kerül. A TV egy egyszer használatos kódot kap, ami csak a TV-n tárolt titokkal együtt működik.',
+      s1: 'Jelentkezz be az Amazonba',
+      s1text: 'Azzal az Amazon-fiókkal, amit az Alexa app is használ. Válaszd azt az Amazon oldalt, ahol a fiókod készült.',
+      s1note: 'Belépés után az Amazon egy üres vagy „az oldal nem található” oldalt mutat. Ez így jó.',
+      copy: 'Inkább másold a belépési linket',
+      s2: 'Másold be annak az oldalnak a címét',
+      s2text: 'Az üres oldalon másold ki a teljes címet a böngésző címsorából, és illeszd be ide.',
+      send: 'Küldés a TV-re',
+      missing: 'Ezt az oldalt a TV-n lévő QR-kód beolvasásával nyisd meg.',
+      copied: 'Link kimásolva. Illeszd be a böngésző címsorába.',
+      noCode: 'Ebben a címben nincs belépési kód. Annak az oldalnak a címét másold ki, amit az Amazon belépés után mutatott.',
+      sending: 'Küldés…', sent: 'Elküldve. Nézd a TV-t.', failed: 'Nem értem el a továbbítót. Próbáld újra.'
+    }
+  };
+  var lang = /^hu\b/i.test(navigator.language || '') ? 'hu' : 'en';
+  function t(key) { return (TEXT[lang] && TEXT[lang][key]) || EN[key] || key; }
+  document.documentElement.lang = lang;
+  Array.prototype.forEach.call(document.querySelectorAll('[data-t]'), function (el) { var v = TEXT[lang] && TEXT[lang][el.getAttribute('data-t')]; if (v) el.textContent = v; });
+
+  var params = {};
+  location.hash.replace(/^#/, '').split('&').forEach(function (pair) { var i = pair.indexOf('='); if (i > 0) params[pair.slice(0, i)] = decodeURIComponent(pair.slice(i + 1)); });
+  var topic = params.t, challenge = params.c, client = params.i;
+  if (!/^[A-Za-z0-9_-]{16,64}$/.test(topic || '') || !/^[A-Za-z0-9_-]{43}$/.test(challenge || '') || !/^[0-9a-f]{40,200}$/.test(client || '')) {
+    document.body.className = 'no-channel'; return;
+  }
+
+  /* Same parameters the Alexa iOS app uses (see aioamazondevices). */
+  function signinUrl(domain) {
+    var q = {
+      'openid.return_to': 'https://www.amazon.com/ap/maplanding',
+      'openid.oa2.code_challenge_method': 'S256',
+      'openid.assoc_handle': 'amzn_dp_project_dee_ios',
+      'openid.identity': 'http://specs.openid.net/auth/2.0/identifier_select',
+      'pageId': 'amzn_dp_project_dee_ios',
+      'accountStatusPolicy': 'P1',
+      'openid.claimed_id': 'http://specs.openid.net/auth/2.0/identifier_select',
+      'openid.mode': 'checkid_setup',
+      'openid.ns.oa2': 'http://www.amazon.com/ap/ext/oauth/2',
+      'openid.oa2.client_id': 'device:' + client,
+      'language': 'en-US',
+      'openid.ns.pape': 'http://specs.openid.net/extensions/pape/1.0',
+      'openid.oa2.code_challenge': challenge,
+      'openid.oa2.scope': 'device_auth_access',
+      'openid.ns': 'http://specs.openid.net/auth/2.0',
+      'openid.pape.max_auth_age': '0',
+      'openid.oa2.response_type': 'code'
+    };
+    return 'https://www.amazon.' + domain + '/ap/signin?' + Object.keys(q).map(function (k) { return encodeURIComponent(k) + '=' + encodeURIComponent(q[k]); }).join('&');
+  }
+  var chosen = 'de';
+  try { if (localStorage.getItem('frameHomeAlexaSite') === 'com') chosen = 'com'; } catch (e) { /* private mode */ }
+  ['de', 'com'].forEach(function (d) {
+    var a = document.getElementById(d);
+    a.href = signinUrl(d);
+    a.addEventListener('click', function () { chosen = d; try { localStorage.setItem('frameHomeAlexaSite', d); } catch (e) { /* private mode */ } });
+  });
+  var statusEl = document.getElementById('status');
+  function say(text, kind) { statusEl.textContent = text; statusEl.className = 'status' + (kind ? ' ' + kind : ''); }
+
+  document.getElementById('copy').addEventListener('click', function () {
+    var link = signinUrl(chosen);
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(link).then(function () { say(t('copied'), 'ok'); }, function () { prompt('', link); });
+    else prompt('', link);
+  });
+
+  var paste = document.getElementById('paste'), send = document.getElementById('send');
+  function code() {
+    var m = /openid\.oa2\.authorization_code=([^&#\s]+)/.exec(paste.value);
+    if (m) return decodeURIComponent(m[1]);
+    var v = paste.value.trim();
+    return /^[A-Za-z0-9_-]{10,200}$/.test(v) ? v : '';
+  }
+  paste.addEventListener('input', function () { send.disabled = !paste.value.trim(); say(''); });
+  send.addEventListener('click', function () {
+    var c = code();
+    if (!c) { say(t('noCode'), 'warn'); return; }
+    send.disabled = true; say(t('sending'));
+    var x = new XMLHttpRequest();
+    x.open('POST', 'https://ntfy.sh/' + topic, true);
+    x.setRequestHeader('Tags', 'frame-home-alexa');
+    x.onload = function () { if (x.status >= 200 && x.status < 300) say(t('sent'), 'ok'); else { send.disabled = false; say(t('failed'), 'warn'); } };
+    x.onerror = function () { send.disabled = false; say(t('failed'), 'warn'); };
+    x.send(JSON.stringify({ code: c, domain: chosen }));
+  });
+}());
+</script>
+</body>
+</html>

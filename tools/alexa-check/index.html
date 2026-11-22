@@ -4,28 +4,43 @@
 <meta charset="utf-8">
 <title>Alexa Check</title>
 <style>
-  html, body { margin: 0; background: #101418; color: #e8edf2; font: 26px/1.35 system-ui, sans-serif; }
-  main { padding: 56px 96px; }
-  h1 { font-size: 44px; margin: 0 0 8px; }
-  p.lead { margin: 0 0 32px; color: #9fb0c0; }
+  html, body { margin: 0; background: #101418; color: #e8edf2; font: 22px/1.35 system-ui, sans-serif; overflow: hidden; }
+  main { padding: 30px 80px; display: grid; grid-template-columns: 1fr 560px; gap: 56px; height: 1080px; box-sizing: border-box; }
+  h1 { font-size: 40px; margin: 0 0 6px; }
+  p.lead { margin: 0 0 14px; color: #9fb0c0; }
   ol { list-style: none; margin: 0; padding: 0; }
-  li { display: grid; grid-template-columns: 120px 1fr; gap: 4px 24px; padding: 14px 0; border-top: 1px solid #26303a; }
+  li { display: grid; grid-template-columns: 90px 1fr; gap: 0 18px; padding: 5px 0; border-top: 1px solid #26303a; }
   .tag { font-weight: 700; }
   .wait { color: #9fb0c0; } .yes { color: #6ee7a0; } .no { color: #ff8a80; }
   .name { font-weight: 600; }
-  .detail { grid-column: 2; color: #9fb0c0; font-size: 21px; word-break: break-all; }
-  #verdict { margin-top: 28px; font-size: 30px; font-weight: 700; }
-  #agent { margin-top: 16px; color: #6b7a88; font-size: 18px; word-break: break-all; }
+  .detail { grid-column: 2; color: #9fb0c0; font-size: 16px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  #verdict { margin-top: 12px; font-size: 26px; font-weight: 700; }
+  #foot { margin-top: 12px; color: #6b7a88; font-size: 16px; }
+  aside h2 { font-size: 28px; margin: 0 0 14px; }
+  #qr { width: 440px; height: 440px; border-radius: 18px; display: none; }
+  #pairText { color: #9fb0c0; margin-top: 14px; }
+  #devices { list-style: none; padding: 0; margin: 0; }
+  #devices li { grid-template-columns: 1fr auto; font-size: 24px; }
+  #devices .val { font-weight: 700; color: #e8edf2; }
 </style>
 </head>
 <body>
 <main>
-  <h1>Alexa Check</h1>
-  <p class="lead">Tests whether this TV can talk to Amazon directly. No sign-in, nothing is sent to your account. Press Back to close.</p>
-  <ol id="list"></ol>
-  <div id="verdict" class="wait">Running…</div>
-  <div id="agent"></div>
+  <section>
+    <h1>Alexa Check 0.2</h1>
+    <p class="lead">Signs in to Alexa once (from your phone) and tests which way this TV can read your devices.</p>
+    <ol id="list"></ol>
+    <div id="verdict" class="wait"></div>
+    <div id="foot">Back: close · Red: forget the saved sign-in and start again</div>
+  </section>
+  <aside>
+    <h2 id="sideTitle"></h2>
+    <canvas id="qr" width="440" height="440"></canvas>
+    <div id="pairText"></div>
+    <ol id="devices"></ol>
+  </aside>
 </main>
+<script src="qrcode.js"></script><!-- packaged from app/assets/qrcode.js -->
 <script src="check.js"></script>
 </body>
 </html>

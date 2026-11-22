@@ -1,16 +1,29 @@
 # Alexa Check
 
-A one-off diagnostic app for the TV, separate from Frame Home (own package `AlexAlxChk`).
-It finds out whether the Tizen web runtime on this TV can talk to Amazon's Alexa servers
-directly, which decides whether Frame Home can show Alexa smart-home values
-(for example a Matter temperature sensor) without any extra hardware or a computer running.
+A diagnostic app for the TV, separate from Frame Home (own package `AlexAlxChk`).
+It finds out whether the Tizen web runtime on this TV can read Alexa smart-home devices
+(for example a Matter temperature sensor paired to an Echo) directly, without extra hardware
+and without a computer.
 
-It signs in to nothing and sends no account data. It only checks:
+## 0.1 (no sign-in)
 
-1. Can the app read answers from `alexa.amazon.de` / `alexa.amazon.com` / `api.amazon.com`,
-   which send no CORS headers?
-2. Can the app set `Cookie`, `csrf` and `User-Agent` request headers (echoed by httpbin.org or postman-echo.com)?
-3. Does the runtime keep third-party cookies between requests?
+Checked whether the runtime reads answers from Amazon hosts without CORS headers, whether it lets
+the app set `Cookie` / `csrf` / `User-Agent` headers, and whether it keeps third-party cookies.
+Result on a 2025 Samsung TV (Tizen 9.0): answers readable, `Cookie` and `User-Agent` refused,
+custom headers sent, third-party cookies kept.
 
-Build the unsigned package with `python3 scripts/package-alexa-check.py`, sign it like Frame Home,
-install, open it once and read the result line. Uninstall it afterwards.
+## 0.2 (sign-in from the phone)
+
+1. The TV makes a PKCE pair and shows a QR code to `docs/alexa/` (GitHub Pages) with the channel
+   name, the challenge and the client id in the URL fragment.
+2. On the phone you sign in on Amazon's own page, then paste the address of the empty page Amazon
+   lands on. The page forwards only the one-time authorization code through ntfy.sh.
+3. The TV registers itself (`api.amazon.com/auth/register`, same flow as the Alexa iOS app, after
+   aioamazondevices) and keeps the refresh token in its local storage.
+4. It then tries Bearer, `x-amz-access-token` and cookie-jar access to `alexa.amazon.<site>` and,
+   with the first that works, lists devices with a temperature or an on/off state.
+
+The registration shows up in the Amazon account as a device named "<first name>'s Frame Home" and can
+be removed there. Uninstalling the app deletes the saved sign-in. Red button: forget it and start again.
+
+Build the unsigned package with `python3 scripts/package-alexa-check.py` and sign it like Frame Home.

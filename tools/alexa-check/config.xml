@@ -1,15 +1,18 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<widget xmlns="http://www.w3.org/ns/widgets" xmlns:tizen="http://tizen.org/ns/widgets" id="https://local.frame-home/alexa-check" version="0.1.0" viewmodes="maximized">
+<widget xmlns="http://www.w3.org/ns/widgets" xmlns:tizen="http://tizen.org/ns/widgets" id="https://local.frame-home/alexa-check" version="0.2.0" viewmodes="maximized">
   <tizen:application id="AlexAlxChk.AlexaCheck" package="AlexAlxChk" required_version="6.5"/>
   <content src="index.html"/>
   <access origin="https://alexa.amazon.de" subdomains="true"/>
   <access origin="https://alexa.amazon.com" subdomains="true"/>
+  <access origin="https://www.amazon.de" subdomains="true"/>
+  <access origin="https://www.amazon.com" subdomains="true"/>
   <access origin="https://api.amazon.com" subdomains="true"/>
-  <access origin="https://httpbin.org" subdomains="true"/>
-  <access origin="https://postman-echo.com" subdomains="true"/>
+  <access origin="https://api.amazon.de" subdomains="true"/>
+  <access origin="https://ntfy.sh" subdomains="true"/>
   <name>Alexa Check</name>
   <icon src="icon.png"/>
   <tizen:profile name="tv-samsung"/>
   <tizen:privilege name="http://tizen.org/privilege/internet"/>
+  <tizen:privilege name="http://tizen.org/privilege/tv.inputdevice"/>
   <tizen:setting screen-orientation="landscape" context-menu="disable" background-support="disable" encryption="disable" install-location="auto" hwkey-event="enable"/>
 </widget>
