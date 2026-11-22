@@ -221,6 +221,11 @@ window.CleanFrameI18n = {
     'Alpine glow': 'Alpesi fény',
     'Bliss': 'Bliss',
     /* Alexa */
+    'Test the remote buttons': 'Távirányító gombjainak tesztje',
+    'Remote test': 'Távirányító-teszt',
+    'Press the colour button and the other buttons. Everything the TV tells Frame Home appears here. Press Back twice to leave.': 'Nyomd meg a színes gombot és a többi gombot is. Minden, amit a TV a Frame Home-nak jelez, itt jelenik meg. Kilépés: kétszer Vissza.',
+    '{0} keys supported, {1} registered for this test.': '{0} támogatott gomb, ebből {1} regisztrálva a teszthez.',
+    'Nothing yet.': 'Még semmi.',
     'Lyrics': 'Dalszöveg',
     'Loading lyrics…': 'Dalszöveg betöltése…',
     'No lyrics found for this song.': 'Ehhez a dalhoz nem találtam dalszöveget.',

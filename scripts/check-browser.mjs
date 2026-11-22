@@ -642,6 +642,20 @@ try {
       check('A code for another channel is not sent', posts.length === 1 && /not from Frame Home|nem a Frame Home/.test(await phone.textContent('#status')));
     } finally { await phone.close(); }
   });
+  await run('Remote test lists what the TV sends', async () => {
+    await page({ seed: baseline({ alexaKeys: { red: { id: 'spotify:next', name: '' } } }) });
+    await current.evaluate(() => localStorage.setItem('cleanframe.spotify.v1', JSON.stringify({ refresh: 'AQtest', access: 'BQtest', until: Date.now() + 3600000 })));
+    await current.reload(); await ready();
+    await group('connections'); await act('conn.spotify'); await act('alexa.list.keys');
+    const rows = await current.evaluate(() => [...document.querySelectorAll('.alexa-row')].map(e => e.textContent));
+    await act('alexa.row.' + rows.findIndex(t => /Test the remote|tesztje/.test(t)));
+    check('The remote test opens', (await state()).view === 'remotetest');
+    await current.evaluate(() => { document.dispatchEvent(new KeyboardEvent('keydown', { keyCode: 404, bubbles: true })); window.dispatchEvent(new Event('blur')); });
+    const log = await current.evaluate(() => document.querySelector('.rt-log').textContent);
+    check('Keys and focus changes are listed, and keys do nothing else', /keydown\s+404/.test(log) && /window blur/.test(log) && !(await current.evaluate(() => document.getElementById('alexaToast').textContent)), log);
+    await current.evaluate(() => { for (let i = 0; i < 2; i++) { document.dispatchEvent(new KeyboardEvent('keydown', { keyCode: 27, bubbles: true })); document.dispatchEvent(new KeyboardEvent('keyup', { keyCode: 27, bubbles: true })); } });
+    check('Back twice leaves the test', (await state()).view === 'alexalist');
+  });
   await run('Alexa: 0.13 choices carry over', async () => {
     await page({ seed: baseline({ alexaTemp: 'amzn1.alexa.endpoint.temp-1', alexaTempName: 'TIMMERFLOTTE', alexaLamp: 'amzn1.alexa.endpoint.lamp-1', alexaLampName: 'Left lamp' }) });
     await current.evaluate(() => localStorage.setItem('cleanframe.alexa.v1', JSON.stringify({ serial: 'X', domain: 'com', site: 'com', refresh: 'Atzr|test', access: 'Atza|test', at: Date.now() })));

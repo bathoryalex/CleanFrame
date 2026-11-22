@@ -872,4 +872,8 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000}
 .stage.l-dock.a-icons .dock .tile.is-focus .label.icon-name,.stage.l-dock.a-icons .dock .tile.is-lifted .label.icon-name{opacity:1;transform:none}
 .stage.l-dock.a-icons .dock .tile:not(.is-focus):not(.is-lifted) .label.icon-name{opacity:0}
 @media(prefers-reduced-motion:reduce){.stage.l-dock.a-icons .dock .tile .label.icon-name{transform:none;transition-duration:120ms}}
+.rt-meta{position:absolute;left:140px;top:224px;margin:0;font-size:26px;color:var(--mute)}
+.rt-log{position:absolute;left:140px;top:284px;right:140px;margin:0;padding:0;list-style:none;font:500 30px/46px ui-monospace,Menlo,Consolas,monospace;letter-spacing:0}
+.rt-log li:first-child{color:var(--ink)}
+.rt-log li{color:var(--mute)}
 

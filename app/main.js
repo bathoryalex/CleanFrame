@@ -4,7 +4,7 @@
 
   /* ---------- Bundled data ---------- */
   var ASSETS = 'assets/', ICONS = ASSETS + 'icons/', WP = ASSETS + 'wallpapers/';
-  var APP_VERSION = '0.18.0';
+  var APP_VERSION = '0.18.1';
   var CAP = 9, SCRIM_Y = 560, DOCK_BOTTOM = 1032; // the Dock sits 48 px above the bottom edge; names and actions go above it
   var DOCK_MODES = { both: { tw: 288, th: 200, pitch: 296 }, text: { tw: 288, th: 104, pitch: 296 }, icons: { tw: 180, th: 196, pitch: 188 } }; // icons-only tiles leave room under the icon for the focused app's name
   var GRID_ROW = 240, GRID_COL = 344, COLS = 5;
@@ -1664,7 +1664,8 @@
         });
       });
     } else if (t.mode === 'switches') rows = switchRows(function (id) { return S.c.alexaSwitches.some(function (x) { return x.id === id; }); });
-    else if (t.mode === 'keys') rows = [{ id: 'hints', label: T('Show the buttons on Home'), value: T(S.c.keyHints === 'off' ? 'Off' : 'On') }].concat(COLOURS.map(function (c) { var tg = S.c.alexaKeys[c]; return { id: c, colour: c, label: T(COLOUR_NAMES[c]), value: tg && targetName(tg) || T('Not set') }; }));
+    else if (t.mode === 'keys') rows = [{ id: 'hints', label: T('Show the buttons on Home'), value: T(S.c.keyHints === 'off' ? 'Off' : 'On') }].concat(COLOURS.map(function (c) { var tg = S.c.alexaKeys[c]; return { id: c, colour: c, label: T(COLOUR_NAMES[c]), value: tg && targetName(tg) || T('Not set') }; }))
+      .concat([{ id: 'test', label: T('Test the remote buttons'), value: '', forward: true }]);
     else if (t.mode === 'keytarget') {
       rows = [{ id: '', label: T('Nothing'), ticked: !S.c.alexaKeys[t.colour] }].concat(spotifyOn() ? Object.keys(SPOTIFY_ACTIONS).map(function (id) {
         return { id: id, label: T(SPOTIFY_ACTIONS[id]), ticked: !!S.c.alexaKeys[t.colour] && S.c.alexaKeys[t.colour].id === id, spotify: true };
@@ -1723,7 +1724,7 @@
       next = toggleIn(S.c.alexaSwitches, { id: row.id, name: row.group ? '' : row.label.slice(0, 80) }, function (x) { return x.id === row.id; }, MAX_SWITCHES);
       if (!next) { showToast(T('Up to {0}. Remove one first.', MAX_SWITCHES)); return; }
       saveAlexa({ alexaSwitches: next }, 'Alexa switches');
-    } else if (t.mode === 'keys') { if (row.id === 'hints') savePrefs({ keyHints: S.c.keyHints === 'off' ? 'on' : 'off' }, 'Colour button hints'); else openAlexaList('keytarget', { colour: row.colour }); }
+    } else if (t.mode === 'keys') { if (row.id === 'test') openRemoteTest(); else if (row.id === 'hints') savePrefs({ keyHints: S.c.keyHints === 'off' ? 'on' : 'off' }, 'Colour button hints'); else openAlexaList('keytarget', { colour: row.colour }); }
     else if (t.mode === 'keytarget') {
       next = {}; COLOURS.forEach(function (c) { next[c] = S.c.alexaKeys[c]; });
       next[t.colour] = row.id ? { id: row.id, name: row.group || row.spotify ? '' : row.label.slice(0, 80) } : null;
@@ -1786,6 +1787,53 @@
     var keys = {}; COLOURS.forEach(function (c) { keys[c] = S.c.alexaKeys[c] && isSpotify(S.c.alexaKeys[c].id) ? S.c.alexaKeys[c] : null; });
     savePrefs({ alexaReadings: [], alexaSwitches: [], alexaKeys: keys }, 'Alexa sign-out');
   }
+  /* ---------- Remote test: shows every signal the TV gives the app ---------- */
+  /* Diagnostic for the colour picker: while open, every key the TV supports is registered and every
+     key, focus, visibility and size event is listed. Back twice within two seconds leaves. */
+  var rt = { log: [], names: {}, registered: [], started: 0, lastBack: 0, supported: 0 };
+  var KEEP_KEYS = ['Back', 'XF86Back', 'ColorF0Red', 'ColorF1Green', 'ColorF2Yellow', 'ColorF3Blue', 'MediaPlayPause', 'MediaPlay', 'MediaPause', 'MediaFastForward', 'MediaRewind', 'MediaTrackNext', 'MediaTrackPrevious'];
+  function rtLog(text) {
+    if (top().id !== 'remotetest') return;
+    rt.log.unshift('+' + ((Date.now() - rt.started) / 1000).toFixed(1) + ' s  ' + text);
+    rt.log = rt.log.slice(0, 14);
+    render();
+  }
+  function openRemoteTest() {
+    var keys = [];
+    rt.log = []; rt.started = Date.now(); rt.registered = []; rt.names = {}; rt.supported = 0;
+    try { keys = tizen.tvinputdevice.getSupportedKeys() || []; } catch (e) { keys = []; }
+    rt.supported = keys.length;
+    keys.forEach(function (k) {
+      rt.names[k.code] = k.name;
+      if (KEEP_KEYS.indexOf(k.name) >= 0) return;
+      try { tizen.tvinputdevice.registerKey(k.name); rt.registered.push(k.name); } catch (e) { /* not registrable */ }
+    });
+    push({ id: 'remotetest', f: {} });
+  }
+  function closeRemoteTest() {
+    rt.registered.forEach(function (name) { try { tizen.tvinputdevice.unregisterKey(name); } catch (e) { /* already gone */ } });
+    rt.registered = [];
+    pop();
+  }
+  V.remotetest = { sheet: true, key: function () { /* handled in the keydown listener */ } };
+  ['keydown', 'keyup'].forEach(function (type) {
+    document.addEventListener(type, function (ev) {
+      if (top().id !== 'remotetest') return;
+      rtLog(type + '  ' + ev.keyCode + '  ' + (rt.names[ev.keyCode] || ev.key || ''));
+      ev.preventDefault(); ev.stopImmediatePropagation();
+      if (type === 'keydown' && (ev.keyCode === 10009 || ev.keyCode === 27 || ev.keyCode === 8)) {
+        if (Date.now() - rt.lastBack < 2000) closeRemoteTest(); else rt.lastBack = Date.now();
+        render();
+      }
+    }, true);
+  });
+  window.addEventListener('blur', function () { rtLog('window blur'); }, true);
+  window.addEventListener('focus', function () { rtLog('window focus'); }, true);
+  window.addEventListener('resize', function () { rtLog('resize ' + window.innerWidth + ' x ' + window.innerHeight); });
+  document.addEventListener('visibilitychange', function () { rtLog('visibility ' + (document.hidden ? 'hidden' : 'visible')); });
+  window.addEventListener('pagehide', function () { rtLog('pagehide'); });
+  window.addEventListener('pageshow', function () { rtLog('pageshow'); });
+  window.addEventListener('tizenhwkey', function (ev) { rtLog('tizenhwkey ' + (ev.keyName || '')); });
   /* ---------- Your picture: receive a photo from a phone ---------- */
   function relaySince() { return S.c.relaySince || String(S.c.relayAt || Math.floor(Date.now() / 1000) - 600); }
   function savePrefs(patch, label) {
@@ -2695,6 +2743,10 @@
         + '<p class="phone-status" data-slot="status" aria-live="polite"></p><p class="phone-note">' + T(p.note) + '</p>'
         + '<div class="phone-acts" data-slot="acts"></div></div></div></div>';
     },
+    remotetest: function () {
+      return '<div class="rt"><h2 class="s-title">' + T('Remote test') + '</h2><p class="s-sub">' + T('Press the colour button and the other buttons. Everything the TV tells Frame Home appears here. Press Back twice to leave.') + '</p>'
+        + '<p class="rt-meta" data-slot="meta"></p><ol class="rt-log" data-slot="log"></ol></div>';
+    },
     nowplaying: function () {
       return '<div class="np" data-slot="np"><div class="np-art-wrap" data-slot="artwrap"><img class="np-art" data-slot="art" alt=""></div>'
         + '<div class="np-copy"><p class="np-device" data-slot="device"></p><h2 class="np-title" data-slot="title"></h2><p class="np-artist" data-slot="artist"></p><p class="np-album" data-slot="album"></p>'
@@ -2836,6 +2888,10 @@
       setHTML(el.url, esc(p.page.replace(/^https:\/\//, '').replace(/\/$/, '')));
       setHTML(el.status, '<span class="phone-dot is-' + dot + '"></span>' + esc(text));
       setHTML(el.acts, '<button type="button" tabindex="-1" class="btn is-focus" data-z="act" data-i="0" data-action="pair.ok"><span>' + T(st.phase === 'done' ? 'Done' : st.phase === 'failed' ? 'Try again' : 'Close') + '</span></button>');
+    },
+    remotetest: function (t, el) {
+      setHTML(el.meta, esc(T('{0} keys supported, {1} registered for this test.', rt.supported, rt.registered.length)));
+      setHTML(el.log, rt.log.length ? rt.log.map(function (l) { return '<li>' + esc(l) + '</li>'; }).join('') : '<li class="rt-empty">' + esc(T('Nothing yet.')) + '</li>');
     },
     nowplaying: function (t, el) {
       var n = spot.now, art = n && (n.artBig || n.art) || '', lyricsNow, bare;
