@@ -408,6 +408,278 @@
   function reducedDockLabel(id) { return S.c.apps !== 'icons' && dockLabelSize(id) === (S.c.apps === 'text' ? 34 : 32); }
   function actionWidth(text) { return clamp(Math.ceil(textWidth(text, 30, 500, -.3) + 40), 288, 400); }
 
+  /* Keyed children: elements persist by key so transforms animate instead of re-creating.
+     Children are absolutely positioned, so DOM order never needs to change. */
+  function keyed(parent, items, update) {
+    var map = parent._k || (parent._k = {}), seen = {}, i, it, el, isNew, k;
+    for (i = 0; i < items.length; i++) {
+      it = items[i]; el = map[it.key]; isNew = !el;
+      if (isNew) { el = document.createElement('div'); map[it.key] = el; }
+      update(el, it, i);
+      if (isNew) parent.appendChild(el);
+      seen[it.key] = 1;
+    }
+    for (k in map) if (map.hasOwnProperty(k) && !seen[k]) { if (map[k].parentNode === parent) parent.removeChild(map[k]); delete map[k]; }
+  }
+  function setContent(el, sig, html) {
+    sig += '|' + catalog.revision + '|' + S.c.lang;
+    if (el._sig === sig) return;
+    el._sig = sig; el.innerHTML = html;
+    Array.prototype.forEach.call(el.querySelectorAll('[data-native-icon]'), function (img) {
+      function ready() { img.parentNode.classList.add('has-native-icon'); }
+      function failed() { img.style.display = 'none'; img.parentNode.classList.remove('has-native-icon'); }
+      img.onload = ready; img.onerror = failed;
+      if (img.complete) { if (img.naturalWidth) ready(); else failed(); }
+    });
+  }
+  function setHTML(el, html) { if (el._html !== html) { el._html = html; el.innerHTML = html; } }
+  function attrs(el, z, i, action) { el.setAttribute('data-z', z); el.setAttribute('data-i', String(i)); el.setAttribute('data-action', action); }
+
+  /* ---------- Saved preferences ---------- */
+  function safeId(id) { return typeof id === 'string' && /^[A-Za-z0-9][A-Za-z0-9._-]{0,160}$/.test(id) && ['constructor', 'prototype', '__proto__'].indexOf(id) < 0; }
+  function endpointId(id) { return typeof id === 'string' && /^[A-Za-z0-9][A-Za-z0-9._:#@-]{0,200}$/.test(id); }
+  function prefText(v, n) { return typeof v === 'string' ? v.slice(0, n) : ''; }
+  function prefTarget(t) { return t && typeof t === 'object' && (endpointId(t.id) || /^group:g[a-z0-9]{1,16}$/.test(t.id) || /^spotify:(toggle|next|prev)$/.test(t.id) || /^app:[A-Za-z0-9][A-Za-z0-9._-]{0,160}$/.test(t.id)) ? { id: t.id, name: prefText(t.name, 80) } : null; }
+  /* 0.13 kept one sensor and one light; they become the first reading and switch. */
+  function cleanReadings(s) {
+    var list = Array.isArray(s.alexaReadings) ? s.alexaReadings : endpointId(s.alexaTemp) ? [{ id: s.alexaTemp, key: 'temp', name: s.alexaTempName, label: 'Temperature' }] : [];
+    return list.filter(function (r) { return r && endpointId(r.id) && typeof r.key === 'string' && r.key.length < 120; }).slice(0, 3)
+      .map(function (r) { return { id: r.id, key: r.key, name: prefText(r.name, 80), label: prefText(r.label, 40) || 'Value' }; });
+  }
+  function cleanSwitches(s) {
+    var list = Array.isArray(s.alexaSwitches) ? s.alexaSwitches : endpointId(s.alexaLamp) ? [{ id: s.alexaLamp, name: s.alexaLampName }] : [];
+    return list.map(prefTarget).filter(function (t) { return t && !/^(spotify|app):/.test(t.id); }).slice(0, 4);
+  }
+  function cleanGroups(list) {
+    return (Array.isArray(list) ? list : []).filter(function (g) { return g && /^g[a-z0-9]{1,16}$/.test(g.id) && typeof g.name === 'string' && g.name.trim(); }).slice(0, 12)
+      .map(function (g) { return { id: g.id, name: g.name.slice(0, 24), members: (Array.isArray(g.members) ? g.members : []).map(prefTarget).filter(function (m) { return m && endpointId(m.id); }).slice(0, 20) }; });
+  }
+  function cleanKeys(k) { var out = {}; ['red', 'green', 'yellow', 'blue', 'chup', 'chdown', 'guide'].forEach(function (c) { out[c] = k && typeof k === 'object' ? prefTarget(k[c]) : null; }); return out; }
+  function safeIcon(path) { return typeof path === 'string' && path.length < 2048 && /^(?:\/[^\/]|file:\/\/\/|wgt-package:\/\/\/)/.test(path) ? path : ''; }
+  function load() {
+    var keys = [KEY, 'cleanframe.shore.v1'], raw, saved, i;
+    for (i = 0; i < keys.length; i++) {
+      try {
+        raw = localStorage.getItem(keys[i]);
+        if (!raw) continue;
+        saved = JSON.parse(raw);
+        if (saved && typeof saved === 'object' && !Array.isArray(saved)) return saved;
+      } catch (e) { storageOk = false; }
+    }
+    return null;
+  }
+  function clean(saved) {
+    var s = saved && typeof saved === 'object' ? saved : {}, modern = s.look && typeof s.look === 'object' ? s.look : s;
+    var h = [], recent = [], records = Array.isArray(s.appRecords) ? s.appRecords : [];
+    records.slice(0, 256).forEach(function (a) {
+      if (!a || !safeId(a.id) || !safeId(a.appId) || typeof a.name !== 'string' || !a.name.trim() || app(a.id)) return;
+      APPS.push({ id: a.id, appId: a.appId, name: a.name.slice(0, 160), brand: MARK_BRANDS.indexOf(a.brand) >= 0 ? a.brand : '', mark: MARK_BRANDS.indexOf(a.brand) >= 0, icon: safeIcon(a.icon) });
+    });
+    (Array.isArray(s.home) ? s.home : Array.isArray(s.dock) ? s.dock : []).forEach(function (id) {
+      if (!safeId(id) || h.indexOf(id) >= 0 || h.length >= CAP) return;
+      if (!app(id) && id.indexOf('.') > 0) APPS.push({ id: id, appId: id, name: id.split('.').pop(), mark: false });
+      if (app(id)) h.push(id);
+    });
+    if (!h.length) h = PRIMARY.slice();
+    (Array.isArray(s.recent) ? s.recent : []).forEach(function (id) { if (safeId(id) && app(id) && h.indexOf(id) < 0 && recent.indexOf(id) < 0 && recent.length < 5) recent.push(id); });
+    return {
+      bg: pick(modern.bg, LOOK_VALUES.bg, 'photo'), layout: 'dock',
+      apps: pick(modern.apps, LOOK_VALUES.apps, 'both'), iconStyle: pick(modern.iconStyle, LOOK_VALUES.iconStyle, 'color'), controls: pick(modern.controls, LOOK_VALUES.controls, 'both'),
+      focus: pick(modern.focus, LOOK_VALUES.focus, 'glass'), material: pick(modern.material, LOOK_VALUES.material, 'soft'),
+      font: pick(modern.font, LOOK_VALUES.font, 'manrope'), wall: wall(modern.wall || s.wallpaper) ? modern.wall || s.wallpaper : WALLS[0].id,
+      home: h, recent: recent, lastApp: h.indexOf(s.lastApp) >= 0 ? s.lastApp : h[0],
+      mode: pick(s.mode, MODES.map(function (m) { return m.id; }), 'fixed'),
+      wifiSsid: typeof s.wifiSsid === 'string' ? s.wifiSsid.slice(0, 32) : '',
+      wifiPass: typeof s.wifiPass === 'string' ? s.wifiPass.slice(0, 63) : '',
+      wifiSec: s.wifiSec === 'nopass' ? 'nopass' : 'WPA',
+      lang: pick(s.lang, PREF_VALUES.lang, 'en'), clock: pick(s.clock, PREF_VALUES.clock, '24'), clockPos: pick(s.clockPos, PREF_VALUES.clockPos, 'corner'), date: pick(s.date, PREF_VALUES.date, 'off'), weather: pick(s.weather, PREF_VALUES.weather, 'day'),
+      customAt: typeof s.customAt === 'number' && wall(CUSTOM) ? s.customAt : 0, customTone: s.customTone === 'light' ? 'light' : 'dark',
+      relayTopic: safeId(s.relayTopic) ? s.relayTopic : '', relayAt: typeof s.relayAt === 'number' ? s.relayAt : 0, relaySince: safeId(s.relaySince) ? s.relaySince : '',
+      alexaReadings: cleanReadings(s), alexaSwitches: cleanSwitches(s), alexaGroups: cleanGroups(s.alexaGroups), alexaKeys: cleanKeys(s.alexaKeys),
+      spotifyShow: pick(s.spotifyShow, PREF_VALUES.spotifyShow, 'on'), keyHints: pick(s.keyHints === 'on' || s.keyHints === 'top' ? 'auto' : s.keyHints, PREF_VALUES.keyHints, 'auto'), switchStyle: pick(s.switchStyle, PREF_VALUES.switchStyle, 'both'),
+      clockStyle: pick(s.clockStyle, PREF_VALUES.clockStyle, 'classic'), seconds: pick(s.seconds, PREF_VALUES.seconds, 'off'), dockStyle: s.dockStyle === 'tiles' ? 'tiles' : 'shelf',
+      holidays: pick(s.holidays, PREF_VALUES.holidays, 'off'), namedays: pick(s.namedays, PREF_VALUES.namedays, 'off'), calShow: pick(s.calShow, PREF_VALUES.calShow, 'on')
+    };
+  }
+  function serialise(c) {
+    var out = {}, id;
+    Object.keys(c).forEach(function (key) { out[key] = c[key]; });
+    out.version = 2; out.look = lookOf(c); out.dock = c.home.slice(); out.wallpaper = c.wall;
+    out.theme = 'shore';
+    out.appRecords = [];
+    c.home.concat(c.recent).forEach(function (key) {
+      var a = app(key);
+      if (a && PRIMARY.indexOf(key) < 0 && !out.appRecords.some(function (r) { return r.id === key; })) out.appRecords.push({ id: a.id, appId: a.appId, name: a.name, brand: a.brand || '', icon: a.icon || '' });
+    });
+    return out;
+  }
+  function initialise() {
+    var saved = load(), initial; S.c = clean(saved); initial = next(S.c.home.slice(), S.c.recent.slice());
+    S.stack = [{ id: 'home', f: { zone: 'apps', u: 0 } }];
+    S.sel = S.c.lastApp; S.selIdx = S.c.home.indexOf(S.sel);
+    if (saved && initial.mode === 'open') initial.wall = WALLS[(wallIndex(initial.wall) + 1) % WALLS.length].id;
+    // Keep the old schema keys alongside the builder values for in-place updates.
+    try { localStorage.setItem(KEY, JSON.stringify(serialise(initial))); S.c = initial; storageOk = true; } catch (e) { storageOk = false; }
+    registerTvKeys(); syncSlotKeys();
+    loadWeatherCache();
+  }
+  function registerTvKeys() {
+    if (!window.tizen || !tizen.tvinputdevice) return;
+    try {
+      if (tizen.tvinputdevice.registerKeyBatch) tizen.tvinputdevice.registerKeyBatch(['Back', 'XF86Back']);
+      else { tizen.tvinputdevice.registerKey('Back'); tizen.tvinputdevice.registerKey('XF86Back'); }
+    } catch (e) { /* optional on preview */ }
+    /* Colour buttons switch Alexa lights; registered one by one so a missing key cannot block the rest. */
+    if (FS) ['MediaPlayPause', 'MediaPlay', 'MediaPause', 'MediaFastForward', 'MediaRewind', 'MediaTrackNext', 'MediaTrackPrevious'].forEach(function (name) { try { tizen.tvinputdevice.registerKey(name); } catch (e) { /* not on this remote */ } });
+    if (FA || FS) ['ColorF0Red', 'ColorF1Green', 'ColorF2Yellow', 'ColorF3Blue'].forEach(function (name) { try { tizen.tvinputdevice.registerKey(name); } catch (e) { /* not on this remote */ } });
+  }
+  function clearSession() { S.undo = []; S.removedAt = {}; S.note = null; S.err = null; }
+  function begin() { S.note = null; }
+  function next(home, recent) {
+    var c = lookOf(S.c);
+    c.home = home; c.recent = recent; c.lastApp = S.c.lastApp; c.mode = S.c.mode;
+    c.wifiSsid = S.c.wifiSsid; c.wifiPass = S.c.wifiPass; c.wifiSec = S.c.wifiSec;
+    c.lang = S.c.lang; c.clock = S.c.clock; c.clockPos = S.c.clockPos; c.date = S.c.date; c.weather = S.c.weather;
+    c.customAt = S.c.customAt; c.customTone = S.c.customTone; c.relayTopic = S.c.relayTopic; c.relayAt = S.c.relayAt; c.relaySince = S.c.relaySince;
+    c.alexaReadings = S.c.alexaReadings; c.alexaSwitches = S.c.alexaSwitches; c.alexaGroups = S.c.alexaGroups; c.alexaKeys = S.c.alexaKeys; c.spotifyShow = S.c.spotifyShow; c.keyHints = S.c.keyHints; c.switchStyle = S.c.switchStyle; c.clockStyle = S.c.clockStyle; c.seconds = S.c.seconds; c.dockStyle = S.c.dockStyle; c.holidays = S.c.holidays; c.namedays = S.c.namedays; c.calShow = S.c.calShow;
+    return c;
+  }
+  function snap() { return { home: S.c.home.slice(), recent: S.c.recent.slice() }; }
+  function pushRecent(list, id) { return [id].concat(without(list, id)).slice(0, 5); }
+  function write(c, label) {
+    try { localStorage.setItem(KEY, JSON.stringify(serialise(c))); }
+    catch (e) { storageOk = false; S.failed++; S.err = label; log('Not saved: ' + label); return false; }
+    if (c.wall !== S.c.wall || c.mode !== S.c.mode) resetRotation();
+    storageOk = true; S.c = c; S.writes++; S.err = null; log('Saved: ' + label);
+    return true;
+  }
+  function statusHtml(def) {
+    if (S.err) return '<span class="warn error-chip">' + esc(T('Couldn’t save. Nothing changed.')) + '</span>';
+    return esc(T(S.note || def));
+  }
+
+  function ensureSel() {
+    var h = S.c.home, i;
+    if (!h.length) { S.sel = null; return -1; }
+    i = h.indexOf(S.sel);
+    if (i < 0) { i = clamp(S.selIdx, 0, h.length - 1); S.sel = h[i]; }
+    S.selIdx = i;
+    return i;
+  }
+  function setSel(id) { S.sel = id; S.selIdx = S.c.home.indexOf(id); }
+
+  /* Membership and order operations shared by B and C. A works on slots (below). */
+  function homeRemove(id) {
+    var a = app(id), i = S.c.home.indexOf(id), before = snap(), h;
+    if (i < 0) return false;
+    if (S.c.home.length <= 1) { S.note = LAST; return false; }
+    h = S.c.home.slice(); h.splice(i, 1);
+    if (!write(next(h, pushRecent(S.c.recent, id)), 'Remove ' + a.name + ' from Home')) return false;
+    S.removedAt[id] = i;
+    S.undo.push({ label: 'Remove ' + a.name, text: T('Remove {0}', a.name), snap: before });
+    return true;
+  }
+  function homeAdd(id) {
+    var a = app(id), before = snap(), h = S.c.home.slice(), at;
+    if (h.length >= CAP) { S.note = FULL; return false; }
+    at = S.removedAt.hasOwnProperty(id) ? Math.min(S.removedAt[id], h.length) : h.length;
+    h.splice(at, 0, id);
+    if (!write(next(h, without(S.c.recent, id)), 'Add ' + a.name + ' to Home')) return false;
+    S.undo.push({ label: 'Add ' + a.name, text: T('Add {0}', a.name), snap: before });
+    return true;
+  }
+  function homeMove(order, id, before) {
+    var a = app(id);
+    if (!write(next(order, S.c.recent.slice()), 'Move ' + a.name)) return false;
+    S.undo.push({ label: 'Move ' + a.name, text: T('Move {0}', a.name), snap: before });
+    return true;
+  }
+  function undoLast(arr) {
+    var u = S.undo[S.undo.length - 1];
+    if (!u) { S.note = 'Nothing to undo'; return false; }
+    if (!write(next(u.snap.home.slice(), u.snap.recent.slice()), 'Undo ' + u.label)) return false;
+    S.undo.pop();
+    S.note = T('Undone: {0}.', u.text);
+    return true;
+  }
+  function undoCaption() {
+    var u = S.undo[S.undo.length - 1];
+    if (!u) return T('Nothing to undo');
+    return T('Undo {0}', S.c.lang === 'en' ? u.text.charAt(0).toLowerCase() + u.text.slice(1) : u.text);
+  }
+  function editStatus(hint, move) {
+    if (S.err) return statusHtml('');
+    if (S.note === FULL || S.note === LAST) return '<span class="warn">' + esc(T(S.note)) + '</span>';
+    if (hint === FULL || hint === LAST) return '<span class="warn">' + esc(T(hint)) + '</span>';
+    return esc(move || hint || T(S.note || ''));
+  }
+
+  var busy = false, busyTimer = 0;
+  function release() { busy = false; clearTimeout(busyTimer); S.press = null; }
+  function message(title, line, note) {
+    push({ id: 'message', msg: 'error', content: { title: title, line: T(line), note: T(note || ''), actions: [['back', 'Back']] }, f: { b: 0 } });
+  }
+  function perform(title, run) {
+    if (busy) return;
+    busy = true; busyTimer = setTimeout(release, 10000);
+    run(function (err, meta) {
+      release();
+      if (!err && meta && meta.mode === 'inapp') S.hdmiInApp = true;
+      if (err) message(T(title), err.message || 'The TV could not open this screen.', err.detail || '');
+      render(); syncRotation();
+    });
+  }
+  function exitHdmiInApp() {
+    if (!S.hdmiInApp) return;
+    S.hdmiInApp = false;
+    if (FrameDevice.hideHdmiView) FrameDevice.hideHdmiView(function () { render(); syncRotation(); });
+    else { render(); syncRotation(); }
+  }
+  function hdmiBack(k) {
+    if (!S.hdmiInApp || k !== 'back') return false;
+    exitHdmiInApp();
+    return true;
+  }
+  function launch(id) {
+    var a = app(id), c;
+    if (!a || busy) return;
+    if (S.c.home.indexOf(id) >= 0) { c = next(S.c.home.slice(), S.c.recent.slice()); c.lastApp = id; write(c, 'Last app'); }
+    S.press = id; S.lastLaunch = a.name;
+    perform(a.name, function (done) { FrameDevice.launchApp(a.appId, done); });
+  }
+  function refreshCatalog() {
+    var request, oldFocus;
+    if (catalog.loading) return;
+    request = ++catalog.request; catalog.loading = true; catalog.error = null;
+    FrameDevice.apps(function (err, entries) {
+      if (request !== catalog.request) return;
+      catalog.loading = false;
+      if (err) { catalog.error = err.message || T('Could not read installed apps.'); if (!catalog.loaded) ALPHA = []; render(); return; }
+      oldFocus = top().id === 'apps' ? ALPHA[top().f.i] : null;
+      ALPHA = [];
+      entries.forEach(function (entry) {
+        var id = PRIMARY.indexOf(entry.brand) >= 0 ? entry.brand : entry.appId, a;
+        if (!safeId(id) || !safeId(entry.appId) || ALPHA.indexOf(id) >= 0) return;
+        a = app(id);
+        if (!a) { a = { id: id }; APPS.push(a); }
+        if (PRIMARY.indexOf(id) >= 0) {
+          var meta = PRIMARY_APPS[PRIMARY.indexOf(id)];
+          a.appId = meta.appId || entry.appId; a.brand = meta.brand || entry.brand || ''; a.mark = meta.mark;
+          a.name = meta.name;
+        } else {
+          a.appId = entry.appId; a.brand = entry.brand || ''; a.mark = !!entry.brand;
+          a.name = String(entry.name).slice(0, 160);
+        }
+        a.nativeIcon = safeIcon(entry.icon);
+        a.icon = a.nativeIcon;
+        ALPHA.push(id);
+      });
+      ALPHA.sort(function (a, b) { return app(a).name.toLowerCase().localeCompare(app(b).name.toLowerCase()); });
+      catalog.loaded = true; catalog.error = null; catalog.revision++;
+      if (top().id === 'apps' && oldFocus && ALPHA.indexOf(oldFocus) >= 0) top().f.i = ALPHA.indexOf(oldFocus);
+      norm(); render();
+    });
+  }
 
   /* ---------- Navigation targets ---------- */
   function utils() { return (alexaOn() ? liveTargets().map(function (t, i) { return 'sw' + i; }) : []).concat(['wifi', 'apps', 'settings']); }

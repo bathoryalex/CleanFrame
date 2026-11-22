@@ -296,13 +296,13 @@ try {
     }
     await page({ seed: undefined, legacy: baseline({ theme: 'list', dock: ['youtube'], lastApp: 'youtube' }) });
     check('Old shore key is read', (await state()).dock.length === 1 && (await state()).look.layout === 'dock');
-    await closePage();
-    await page({ seed: baseline({ look: { layout: 'list', bg: 'photo', apps: 'text', controls: 'both', focus: 'glass', material: 'soft', font: 'manrope', wall: walls[0].id } }) });
-    check('A saved List layout opens as the Dock', (await state()).look.layout === 'dock' && await current.evaluate(() => /\bl-dock\b/.test(document.getElementById('stage').className)));
     await look({ controls: 'text' });
     check('Next completed edit writes stable home key', (await stored()).dock[0] === 'youtube');
     await current.reload(); await ready();
     check('Migrated preferences survive reload', (await state()).look.controls === 'text' && (await state()).dock[0] === 'youtube');
+    await closePage();
+    await page({ seed: baseline({ look: { layout: 'list', bg: 'photo', apps: 'text', controls: 'both', focus: 'glass', material: 'soft', font: 'manrope', wall: walls[0].id } }) });
+    check('A saved List layout opens as the Dock', (await state()).look.layout === 'dock' && await current.evaluate(() => /\bl-dock\b/.test(document.getElementById('stage').className)));
   });
   await run('Invalid preferences and saved native pins', async () => {
     await page({ seed: '{broken', legacy: baseline({ dock: ['youtube'], lastApp: 'youtube' }) });
