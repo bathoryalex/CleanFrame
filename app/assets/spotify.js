@@ -75,6 +75,7 @@
       done(null, {
         id: item.id || item.uri || '', playing: !!j.is_playing, title: item.name || '',
         artist: (item.artists || []).map(function (a) { return a.name; }).join(', ') || item.show && item.show.name || '',
+        mainArtist: item.artists && item.artists[0] ? item.artists[0].name : '', episode: !item.artists,
         art: artUrl(item.album ? item.album.images : item.images, 64), artBig: artUrl(item.album ? item.album.images : item.images, 600),
         album: item.album && item.album.name || '', device: j.device && j.device.name || '',
         progress: typeof j.progress_ms === 'number' ? j.progress_ms : 0, duration: item.duration_ms || 0, at: Date.now()
@@ -84,9 +85,46 @@
   var CONTROL = { play: ['PUT', '/me/player/play'], pause: ['PUT', '/me/player/pause'], next: ['POST', '/me/player/next'], prev: ['POST', '/me/player/previous'] };
   function control(action, done) { var c = CONTROL[action]; if (!c) { done('unknown'); return; } api(c[0], c[1], function (err) { done(err); }); }
 
+  /* Lyrics from LRCLIB (lrclib.net), an open community database: Spotify's own API has no lyrics.
+     done(err, { synced: [{ t: ms, text }], plain: '' }); err 'none' when the song is not there. */
+  var LRCLIB = 'https://lrclib.net/api', lyricCache = {};
+  function parseLrc(lrc) {
+    var out = [];
+    String(lrc || '').split(/\r?\n/).forEach(function (line) {
+      var times = [], m, re = /\[(\d+):(\d+(?:[.:]\d+)?)\]/g, text;
+      while ((m = re.exec(line))) times.push((+m[1] * 60 + parseFloat(m[2].replace(':', '.'))) * 1000);
+      text = line.replace(/\[[^\]]*\]/g, '').trim();
+      times.forEach(function (t) { out.push({ t: Math.round(t), text: text }); });
+    });
+    return out.sort(function (a, b) { return a.t - b.t; });
+  }
+  function lyricResult(j) { return j && (j.syncedLyrics || j.plainLyrics) ? { synced: parseLrc(j.syncedLyrics), plain: j.plainLyrics || '', instrumental: !!j.instrumental } : null; }
+  function lyrics(now, done) {
+    var key = now.id || now.title + '|' + now.mainArtist, q;
+    if (lyricCache[key]) { done(null, lyricCache[key]); return; }
+    if (now.episode || !now.mainArtist) { done('none'); return; }
+    q = 'track_name=' + encodeURIComponent(now.title) + '&artist_name=' + encodeURIComponent(now.mainArtist);
+    P.request({ url: LRCLIB + '/get?' + q + (now.album ? '&album_name=' + encodeURIComponent(now.album) : '') + (now.duration ? '&duration=' + Math.round(now.duration / 1000) : '') }, function (r) {
+      var found = r.status === 200 && lyricResult(r.json);
+      if (found) { lyricCache[key] = found; done(null, found); return; }
+      if (r.status && r.status !== 404) { done(P.why(r)); return; }
+      /* Not an exact match: search by title and artist and take the closest length. */
+      P.request({ url: LRCLIB + '/search?' + q }, function (r2) {
+        var best = null, list = r2.status === 200 && Array.isArray(r2.json) ? r2.json : [];
+        list.forEach(function (j) {
+          if (!lyricResult(j)) return;
+          var diff = Math.abs((j.duration || 0) * 1000 - (now.duration || 0));
+          if (!best || (j.syncedLyrics && !best.j.syncedLyrics) || (!!j.syncedLyrics === !!best.j.syncedLyrics && diff < best.diff)) best = { j: j, diff: diff };
+        });
+        if (!best) { done(r2.status && r2.status !== 200 ? P.why(r2) : 'none'); return; }
+        lyricCache[key] = lyricResult(best.j); done(null, lyricCache[key]);
+      });
+    });
+  }
+
   window.FrameSpotify = {
     configured: !!(cfg.clientId && /^[0-9a-f]{32}$/.test(cfg.clientId) && cfg.page),
     connected: function () { return !!state; },
-    pair: pair, forget: forget, nowPlaying: nowPlaying, control: control
+    pair: pair, forget: forget, nowPlaying: nowPlaying, control: control, lyrics: lyrics
   };
 }());

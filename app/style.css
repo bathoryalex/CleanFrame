@@ -765,8 +765,13 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000}
 /* Spotify: what is playing, under the clock (or alone top left when the clock is centred).
    It is focusable: Left from the first Home control, OK opens Now playing. */
 .cap-music{display:flex;align-items:center;gap:18px;margin:14px 0 0 -14px;padding:10px 20px 10px 14px;max-width:760px;border-radius:22px;text-shadow:0 1px 3px rgba(0,0,0,.22);transition:background-color 140ms linear,color 140ms linear,box-shadow 160ms linear;text-align:left;pointer-events:auto}
-.cap-music.is-focus{background:var(--solid);color:var(--solid-ink);text-shadow:none;box-shadow:0 14px 40px rgba(4,8,10,.32);opacity:1!important}
-.music-art{flex:none;width:72px;height:72px;border-radius:12px;object-fit:cover;box-shadow:0 6px 18px rgba(4,8,10,.3)}
+/* Focus looks like the Home controls: the glass lens behind it (Glass focus) or a slight lift (Type focus). */
+.cap-music.is-focus{opacity:1!important}
+.f-type .cap-music{transition:transform 160ms var(--ease)}
+.f-type .cap-music.is-focus{transform:scale(1.04)}
+.caption,.music{z-index:3}
+.ut-lens.is-tall{border-radius:24px;-webkit-clip-path:inset(0 round 24px);clip-path:inset(0 round 24px)}
+.music-art{flex:none;width:68px;height:68px;border-radius:12px;object-fit:cover;box-shadow:0 6px 18px rgba(4,8,10,.3)}
 .music-art-empty{display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.12)}
 .music-art-empty .ico{width:32px;height:32px;stroke-width:1.7}
 .music-text{display:flex;flex-direction:column;min-width:0;flex:1}
@@ -776,20 +781,20 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000}
 .music-progress{display:flex;align-items:center;gap:12px;margin-top:6px;font-size:18px;line-height:22px;font-variant-numeric:tabular-nums;opacity:.8}
 .music-bar{position:relative;flex:1;min-width:120px;height:4px;border-radius:2px;background:currentColor;background:rgba(255,255,255,.28);overflow:hidden}
 .music-bar i{position:absolute;left:0;top:0;bottom:0;border-radius:2px;background:currentColor}
-.cap-music.is-focus .music-bar{background:rgba(20,22,24,.16)}
+.cap-music.has-progress .music-art{width:96px;height:96px;border-radius:14px}
 .cap-music.is-paused:not(.is-focus){opacity:.72}
 .has-clock-ink .cap-music:not(.is-focus),.has-adaptive-ink .cap-music:not(.is-focus){color:var(--tl-clock-ink,var(--tl-ink,var(--clock-ink,var(--ink))))}
 .music{position:absolute;left:140px;top:44px}
 .music .cap-music{margin-top:0}
 .l-list .cap-music{margin:14px -14px 0 0}
 /* Colour-button legend, bottom left above the Dock, beside the remote's colour picker. */
-.key-legend{position:absolute;left:56px;bottom:296px;display:flex;flex-direction:column;gap:10px;pointer-events:none}
+.key-legend{position:absolute;left:56px;bottom:296px;display:flex;flex-direction:column;gap:10px;pointer-events:none;padding:14px 22px 14px 18px;border-radius:22px;background:rgba(14,18,20,.55);color:#f4f4f1;box-shadow:0 12px 36px rgba(4,8,10,.3)}
+.key-legend:empty{display:none}
 .legend-row{display:flex;align-items:center;gap:14px;font-size:24px;line-height:30px;font-weight:500;letter-spacing:-.2px;text-shadow:0 1px 3px rgba(0,0,0,.35);max-width:420px}
 .legend-row .key-dot{flex:none;width:18px;height:18px;border-radius:50%;box-shadow:0 0 0 2px rgba(255,255,255,.35)}
 .legend-name{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;opacity:.9}
 .legend-state{flex:none;width:8px;height:8px;border-radius:50%;border:2px solid currentColor;opacity:.6}
 .legend-state.is-on{background:currentColor;opacity:.95}
-.has-clock-ink .key-legend,.has-adaptive-ink .key-legend{color:var(--bl-ink,var(--tl-ink,var(--ink)))}
 /* Now playing: a large cover, the song and three big controls. */
 .np{position:absolute;left:160px;right:160px;top:0;bottom:0;display:flex;align-items:center;gap:96px}
 .np-art-wrap{flex:none;width:560px;height:560px;border-radius:28px;overflow:hidden;background:rgba(255,255,255,.08);box-shadow:0 30px 80px rgba(4,8,10,.45)}
@@ -809,4 +814,31 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000}
 .np-main .ico{width:52px;height:52px}
 .np-btn.is-focus{background:var(--solid);color:var(--solid-ink);transform:scale(1.08)}
 .bg-light .np-btn{background:rgba(29,26,22,.06)}
+/* Lyrics: the cover and controls move left, the lines take the right; the current line is bright. */
+.np-btn.np-lyrics-btn{width:auto;padding:0 30px 0 24px;border-radius:48px;gap:12px;font-size:28px;font-weight:500}
+.np-btn.np-lyrics-btn .ico{fill:none;width:34px;height:34px}
+.np-btn.np-lyrics-btn.is-active:not(.is-focus){background:rgba(255,255,255,.22)}
+.np-lyrics{display:none}
+.np.is-lyrics{display:grid;grid-template-columns:400px 1fr;grid-template-rows:auto auto;align-content:center;column-gap:96px;row-gap:28px}
+.np.is-lyrics .np-art-wrap{grid-column:1;grid-row:1;width:400px;height:400px}
+.np.is-lyrics .np-copy{grid-column:1;grid-row:2;width:400px}
+.np.is-lyrics .np-device,.np.is-lyrics .np-album{display:none}
+.np.is-lyrics .np-title{font-size:40px;line-height:48px;letter-spacing:-.8px;-webkit-line-clamp:1}
+.np.is-lyrics .np-artist{font-size:28px;line-height:36px;margin-top:6px}
+.np.is-lyrics .np-progress .music-progress{margin-top:20px;font-size:20px}
+.np.is-lyrics .np-controls{margin-top:24px;gap:14px}
+.np.is-lyrics .np-btn{width:72px;height:72px}
+.np.is-lyrics .np-main{width:88px;height:88px}
+.np.is-lyrics .np-btn .ico{width:30px;height:30px}
+.np.is-lyrics .np-btn.np-lyrics-btn{width:72px;padding:0}
+.np.is-lyrics .np-btn.np-lyrics-btn span{display:none}
+.np.is-lyrics .np-lyrics{display:block;position:relative;grid-column:2;grid-row:1 / span 2;height:860px;overflow:hidden;-webkit-mask-image:linear-gradient(to bottom,transparent,#000 18%,#000 82%,transparent);mask-image:linear-gradient(to bottom,transparent,#000 18%,#000 82%,transparent)}
+.lyrics-track{position:absolute;left:0;right:0;top:0;transition:transform 420ms var(--ease)}
+.lyric{margin:0;padding:10px 0;font-size:44px;line-height:56px;font-weight:600;letter-spacing:-.8px;opacity:.32;transition:opacity 260ms linear,transform 260ms var(--ease);transform-origin:left center}
+.lyric.is-past{opacity:.22}
+.lyric.is-now{opacity:1;transform:scale(1.04)}
+.lyrics-track.is-plain .lyric{font-size:36px;line-height:48px;padding:4px 0;opacity:.85}
+.lyrics-note{position:absolute;left:0;right:0;top:50%;margin:-24px 0 0;font-size:36px;line-height:48px;color:var(--mute)}
+.lyrics-source{position:absolute;left:0;bottom:0;margin:0;font-size:22px;color:var(--mute)}
+@media(prefers-reduced-motion:reduce){.lyrics-track,.lyric{transition:none}}
 

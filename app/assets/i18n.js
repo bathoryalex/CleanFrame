@@ -221,6 +221,12 @@ window.CleanFrameI18n = {
     'Alpine glow': 'Alpesi fény',
     'Bliss': 'Bliss',
     /* Alexa */
+    'Lyrics': 'Dalszöveg',
+    'Loading lyrics…': 'Dalszöveg betöltése…',
+    'No lyrics found for this song.': 'Ehhez a dalhoz nem találtam dalszöveget.',
+    'Couldn’t load lyrics ({0}).': 'Nem sikerült betölteni a dalszöveget ({0}).',
+    'Instrumental': 'Instrumentális',
+    'Not synced to the music': 'Nincs a zenéhez igazítva',
     'Show the buttons on Home': 'Gombok mutatása a Kezdőlapon',
     'Playing on {0}': 'Lejátszás itt: {0}',
     'Pause': 'Szünet',

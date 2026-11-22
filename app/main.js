@@ -4,7 +4,7 @@
 
   /* ---------- Bundled data ---------- */
   var ASSETS = 'assets/', ICONS = ASSETS + 'icons/', WP = ASSETS + 'wallpapers/';
-  var APP_VERSION = '0.16.0';
+  var APP_VERSION = '0.17.0';
   var CAP = 9, SCRIM_Y = 560, DOCK_BOTTOM = 1032; // the Dock sits 48 px above the bottom edge; names and actions go above it
   var DOCK_MODES = { both: { tw: 288, th: 200, pitch: 296 }, text: { tw: 288, th: 104, pitch: 296 }, icons: { tw: 176, th: 144, pitch: 184 } };
   var GRID_ROW = 240, GRID_COL = 344, COLS = 5;
@@ -91,6 +91,7 @@
     play: '<path d="M8 5.2v13.6L19 12Z"/>',
     prev: '<path d="M6.5 5.5v13"/><path d="M18 5.8 9 12l9 6.2Z"/>',
     next: '<path d="M17.5 5.5v13"/><path d="M6 5.8 15 12l-9 6.2Z"/>',
+    lyrics: '<path d="M4.5 6.5h11M4.5 11h8M4.5 15.5h6"/><path d="M17 18.2V9.5l3.5-1"/><circle cx="15.2" cy="18.3" r="1.9"/>',
     drop: '<path d="M12 3.6c-3.2 4-5.6 7.3-5.6 10.1a5.6 5.6 0 0 0 11.2 0c0-2.8-2.4-6.1-5.6-10.1Z"/>',
     plus: '<path d="M12 5v14M5 12h14"/>',
     indoor: '<path d="M4 11 12 4.5l8 6.5v8a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1Z"/><path d="M12 10.5v5.2"/><circle cx="12" cy="16.6" r="1.4"/>',
@@ -1364,6 +1365,7 @@
   }
   function colourKey(colour) {
     var t = S.c.alexaKeys[colour];
+    showLegend(4000);
     if (!alexaOn() && !spotifyOn()) return;
     if (t && isSpotify(t.id)) { if (spotifyOn()) spotifyKey(t.id.slice(8)); return; }
     if (!t || !alexaOn() || (isGroup(t.id) && !groupOf(t.id))) { showToast(T('{0} has nothing assigned. Settings → Connections → Colour buttons.', T(COLOUR_NAMES[colour]))); return; }
@@ -1461,7 +1463,7 @@
   function musicHtml(focus) {
     var n = spot.now;
     if (!musicVisible()) return '';
-    return '<span class="cap-music' + (n.playing ? ' is-playing' : ' is-paused') + (focus ? ' is-focus' : '') + '" data-z="music" data-i="0" data-action="home.music" role="button" aria-label="' + esc(T(n.playing ? 'Playing' : 'Paused') + ': ' + n.title + (n.artist ? ', ' + n.artist : '')) + '">'
+    return '<span class="cap-music' + (n.playing ? ' is-playing' : ' is-paused') + (n.duration ? ' has-progress' : '') + (focus ? ' is-focus' : '') + '" data-z="music" data-i="0" data-action="home.music" role="button" aria-label="' + esc(T(n.playing ? 'Playing' : 'Paused') + ': ' + n.title + (n.artist ? ', ' + n.artist : '')) + '">'
       + (n.art ? '<img class="music-art" src="' + esc(n.art) + '" alt="">' : '<span class="music-art music-art-empty">' + icon('note') + '</span>')
       + '<span class="music-text"><span class="music-title">' + (n.playing ? '' : icon('pause', 'music-paused')) + esc(n.title) + '</span>' + (n.artist ? '<span class="music-artist">' + esc(n.artist) + '</span>' : '') + progressHtml(n) + '</span></span>';
   }
@@ -1476,21 +1478,83 @@
     for (i = 0; i < els.length; i++) els[i].style.width = (pos / n.duration * 100).toFixed(2) + '%';
     if (pos >= n.duration && !n.ended) { n.ended = true; spotifyPoll(1500); }
   }, 1000);
-  function openNowPlaying() { push({ id: 'nowplaying', f: { b: 1 } }); spotifyPoll(true); }
+  function openNowPlaying() { push({ id: 'nowplaying', lyrics: false, f: { b: 1 } }); spotifyPoll(true); }
+  /* Lyrics: fetched once per song while the Lyrics view is open; synced lines follow the music. */
+  var lyr = { key: '', state: 'idle', data: null, err: '', line: -1 };
+  function lyricKey(n) { return n ? n.id || n.title + '|' + n.mainArtist : ''; }
+  function loadLyrics() {
+    var n = spot.now, key = lyricKey(n);
+    if (!n || key === lyr.key) return;
+    lyr.key = key; lyr.state = 'loading'; lyr.data = null; lyr.err = ''; lyr.line = -1;
+    FS.lyrics(n, function (err, data) {
+      if (lyr.key !== key) return;
+      lyr.state = err ? (err === 'none' ? 'none' : 'error') : 'ready'; lyr.err = err || ''; lyr.data = data || null;
+      render();
+    });
+  }
+  function lyricIndex(n) {
+    var lines = lyr.data && lyr.data.synced, pos = musicPos(n), i, at = -1;
+    if (!lines || !lines.length) return -1;
+    for (i = 0; i < lines.length; i++) { if (lines[i].t <= pos + 250) at = i; else break; }
+    return at;
+  }
+  function lyricsHtml(n) {
+    var lines, at;
+    if (!n) return '';
+    if (lyr.state === 'loading' || lyr.key !== lyricKey(n)) return '<p class="lyrics-note">' + esc(T('Loading lyrics…')) + '</p>';
+    if (lyr.state === 'none') return '<p class="lyrics-note">' + esc(T('No lyrics found for this song.')) + '</p>';
+    if (lyr.state === 'error') return '<p class="lyrics-note">' + esc(T('Couldn’t load lyrics ({0}).', lyr.err)) + '</p>';
+    if (lyr.data.instrumental) return '<p class="lyrics-note">' + esc(T('Instrumental')) + '</p>';
+    lines = lyr.data.synced;
+    if (lines.length) {
+      at = lyricIndex(n);
+      return '<div class="lyrics-track" data-lyrics-track>' + lines.map(function (l, i) {
+        return '<p class="lyric' + (i === at ? ' is-now' : i < at ? ' is-past' : '') + '" data-lyric="' + i + '">' + (esc(l.text) || '♪') + '</p>';
+      }).join('') + '</div>';
+    }
+    return '<div class="lyrics-track is-plain" data-lyrics-plain>' + lyr.data.plain.split(/\r?\n/).map(function (l) { return '<p class="lyric">' + (esc(l) || '&nbsp;') + '</p>'; }).join('') + '</div><p class="lyrics-source">' + esc(T('Not synced to the music')) + '</p>';
+  }
+  /* Keeps the current line in the middle of the panel; plain lyrics scroll with the song's progress. */
+  function placeLyrics() {
+    var panel = stage.querySelector('.np-lyrics'), track, n = spot.now, at, el, i, els, frac;
+    if (!panel || !n || !panel.firstChild) return;
+    track = panel.querySelector('[data-lyrics-track]');
+    if (track) {
+      at = lyricIndex(n);
+      if (at !== lyr.line) {
+        els = track.querySelectorAll('[data-lyric]');
+        for (i = 0; i < els.length; i++) els[i].className = 'lyric' + (i === at ? ' is-now' : i < at ? ' is-past' : '');
+        lyr.line = at;
+        el = at >= 0 ? els[at] : null;
+        track.style.transform = 'translate3d(0,' + Math.round(panel.clientHeight / 2 - (el ? el.offsetTop + el.offsetHeight / 2 : 0)) + 'px,0)';
+      }
+      return;
+    }
+    track = panel.querySelector('[data-lyrics-plain]');
+    if (track && n.duration) { frac = Math.min(1, musicPos(n) / n.duration); track.style.transform = 'translate3d(0,' + Math.round(-Math.max(0, track.offsetHeight - panel.clientHeight + 80) * frac) + 'px,0)'; }
+  }
+  setInterval(function () { if (!document.hidden && top().id === 'nowplaying' && top().lyrics) placeLyrics(); }, 250);
+
   V.nowplaying = {
     sheet: true,
     key: function (t, k) {
       if (k === 'back') pop();
       else if (k === 'left' && t.f.b > 0) t.f.b--;
-      else if (k === 'right' && t.f.b < 2) t.f.b++;
+      else if (k === 'right' && t.f.b < 3) t.f.b++;
+      else if (k === 'ok' && t.f.b === 3) { t.lyrics = !t.lyrics; if (t.lyrics) loadLyrics(); }
       else if (k === 'ok') spotifyKey(['prev', 'toggle', 'next'][t.f.b]);
     },
     point: function (t, z, i) { if (z === 'np') { t.f.b = i; this.key(t, 'ok'); } }
   };
   /* Colour-button legend: bottom left, beside where the remote's colour picker appears. */
+  /* The remote's on-screen colour picker takes focus from the app, so a blur on Home shows the legend
+     until focus returns; a colour key shows it for four seconds. */
+  var legend = { picker: false, until: 0, timer: null };
+  function showLegend(ms) { legend.until = Date.now() + ms; clearTimeout(legend.timer); legend.timer = setTimeout(render, ms + 50); render(); }
   function keyLegendHtml() {
     var rows;
     if (S.c.keyHints === 'off' || S.c.layout !== 'dock' || (!alexaOn() && !spotifyOn())) return '';
+    if (!legend.picker && Date.now() >= legend.until) return '';
     rows = COLOURS.filter(function (c) { var t = S.c.alexaKeys[c]; return t && (isSpotify(t.id) ? spotifyOn() : alexaOn() && targetName(t)); }).map(function (c) {
       var t = S.c.alexaKeys[c], p = isSpotify(t.id) ? null : targetPower(t.id);
       return '<span class="legend-row"><span class="key-dot key-' + c + '"></span><span class="legend-name">' + esc(targetName(t)) + '</span>' + (p === null ? '' : '<span class="legend-state' + (p ? ' is-on' : '') + '"></span>') + '</span>';
@@ -2189,7 +2253,7 @@
       if (focus) focused = b;
     });
     renderUtilFocusLabel(iconsOnly || focused && / u-compact/.test(focused.className) ? focused : null);
-    renderUtilityLens(focused, iconsOnly);
+    renderUtilityLens(focused || (hs.zone === 'music' ? stage.querySelector('.cap-music.is-focus') : null), iconsOnly && !!focused);
   }
   function renderUtilFocusLabel(button) {
     var text, key, r, sr, scale, width, x;
@@ -2216,8 +2280,10 @@
       return;
     }
     r = button.getBoundingClientRect(); sr = sceneEl.getBoundingClientRect(); scale = sr.width / 1920 || 1;
-    y = (r.top - sr.top) / scale + 2;
-    if (S.c.layout === 'list') {
+    var tall = / cap-music/.test(' ' + button.className), height = tall ? Math.round(r.height / scale) : 60;
+    y = (r.top - sr.top) / scale + (tall ? 0 : 2);
+    if (tall) { x = (r.left - sr.left) / scale; width = r.width / scale; }
+    else if (S.c.layout === 'list') {
       label = iconsOnly ? utilFocusLabel : button.querySelector('.u-label');
       x = (label.getBoundingClientRect().left - sr.left) / scale - 24;
       width = 1800 - x;
@@ -2225,18 +2291,18 @@
       // Dock icons keep a fixed lens; the separate caption cannot overlap its neighbours.
       x = (r.left - sr.left) / scale; width = r.width / scale;
     }
-    key = button.getAttribute('data-action') + '|' + x + '|' + y + '|' + width;
+    key = button.getAttribute('data-action') + '|' + x + '|' + y + '|' + width + '|' + height;
     if (key !== utPlateKey) {
       utPlates[utPlateIndex].className = 'ph-plate ut-lens is-outgoing';
       utPlateIndex = 1 - utPlateIndex; el = utPlates[utPlateIndex];
-      el.className = 'ph-plate ut-lens is-preparing';
-      el.style.width = width + 'px'; el.style.transform = 'translate3d(' + x + 'px,' + y + 'px,0)';
-      fieldTransform(utFields[utPlateIndex], x, y, width, 60);
+      el.className = 'ph-plate ut-lens is-preparing' + (tall ? ' is-tall' : '');
+      el.style.width = width + 'px'; el.style.height = height + 'px'; el.style.transform = 'translate3d(' + x + 'px,' + y + 'px,0)';
+      fieldTransform(utFields[utPlateIndex], x, y, width, height);
       el.offsetWidth;
       utPlateKey = key;
     }
-    fieldTransform(utFields[utPlateIndex], x, y, width, 60);
-    utPlates[utPlateIndex].className = 'ph-plate ut-lens is-current on-focus';
+    fieldTransform(utFields[utPlateIndex], x, y, width, height);
+    utPlates[utPlateIndex].className = 'ph-plate ut-lens is-current on-focus' + (tall ? ' is-tall' : '');
   }
   var dockTopY = 776;
   function renderAppFocusName(hs) {
@@ -2605,9 +2671,10 @@
         + '<div class="phone-acts" data-slot="acts"></div></div></div></div>';
     },
     nowplaying: function () {
-      return '<div class="np"><div class="np-art-wrap" data-slot="artwrap"><img class="np-art" data-slot="art" alt=""></div>'
+      return '<div class="np" data-slot="np"><div class="np-art-wrap" data-slot="artwrap"><img class="np-art" data-slot="art" alt=""></div>'
         + '<div class="np-copy"><p class="np-device" data-slot="device"></p><h2 class="np-title" data-slot="title"></h2><p class="np-artist" data-slot="artist"></p><p class="np-album" data-slot="album"></p>'
-        + '<div class="np-progress" data-slot="progress"></div><div class="np-controls" data-slot="controls"></div></div></div>';
+        + '<div class="np-progress" data-slot="progress"></div><div class="np-controls" data-slot="controls"></div></div>'
+        + '<div class="np-lyrics" data-slot="lyrics" aria-live="off"></div></div>';
     },
     alexalist: function () {
       return '<div class="alexa-pick"><h2 class="s-title" data-slot="title"></h2><p class="s-sub" data-slot="sub"></p><div class="alexa-list" data-slot="list"></div>'
@@ -2746,7 +2813,11 @@
       setHTML(el.acts, '<button type="button" tabindex="-1" class="btn is-focus" data-z="act" data-i="0" data-action="pair.ok"><span>' + T(st.phase === 'done' ? 'Done' : st.phase === 'failed' ? 'Try again' : 'Close') + '</span></button>');
     },
     nowplaying: function (t, el) {
-      var n = spot.now, art = n && (n.artBig || n.art) || '';
+      var n = spot.now, art = n && (n.artBig || n.art) || '', lyricsNow, bare;
+      if (t.lyrics) loadLyrics();
+      el.np.className = 'np' + (t.lyrics ? ' is-lyrics' : '');
+      lyricsNow = t.lyrics ? lyricsHtml(n) : ''; bare = lyricsNow.replace(/ is-(now|past)/g, '');
+      if (el.lyrics._html !== bare) { el.lyrics.innerHTML = lyricsNow; el.lyrics._html = bare; lyr.line = -2; }
       if (el.art.getAttribute('src') !== art) { if (art) el.art.setAttribute('src', art); else el.art.removeAttribute('src'); }
       el.artwrap.className = 'np-art-wrap' + (art ? '' : ' is-empty');
       setHTML(el.device, n && n.device ? esc(T('Playing on {0}', n.device)) : '');
@@ -2754,10 +2825,12 @@
       setHTML(el.artist, esc(n ? n.artist : ''));
       setHTML(el.album, esc(n ? n.album : ''));
       setHTML(el.progress, n ? progressHtml(n) : '');
-      setHTML(el.controls, ['prev', n && n.playing ? 'pause' : 'play', 'next'].map(function (name, i) {
-        var label = T(i === 0 ? 'Previous track' : i === 2 ? 'Next track' : name === 'pause' ? 'Pause' : 'Play');
-        return '<button type="button" tabindex="-1" class="np-btn' + (i === 1 ? ' np-main' : '') + (t.f.b === i ? ' is-focus' : '') + '" data-z="np" data-i="' + i + '" data-action="np.' + ['prev', 'toggle', 'next'][i] + '" aria-label="' + esc(label) + '">' + icon(name) + '</button>';
+      setHTML(el.controls, ['prev', n && n.playing ? 'pause' : 'play', 'next', 'lyrics'].map(function (name, i) {
+        var label = T(i === 0 ? 'Previous track' : i === 2 ? 'Next track' : i === 3 ? 'Lyrics' : name === 'pause' ? 'Pause' : 'Play');
+        return '<button type="button" tabindex="-1" class="np-btn' + (i === 1 ? ' np-main' : '') + (i === 3 ? ' np-lyrics-btn' + (t.lyrics ? ' is-active' : '') : '') + (t.f.b === i ? ' is-focus' : '') + '" data-z="np" data-i="' + i + '" data-action="np.' + ['prev', 'toggle', 'next', 'lyrics'][i] + '"'
+          + (i === 3 ? ' aria-pressed="' + !!t.lyrics + '"' : '') + ' aria-label="' + esc(label) + '">' + icon(name) + (i === 3 ? '<span>' + esc(label) + '</span>' : '') + '</button>';
       }).join(''));
+      placeLyrics();
     },
     alexalist: function (t, el) {
       var rows = alexaRows(t), words = alexaListText(t), html = '', i, r, sub;
@@ -3029,8 +3102,8 @@
     press(k);
   });
   document.addEventListener('keyup', function (ev) { delete heldKeys[ev.keyCode]; });
-  window.addEventListener('blur', function () { heldKeys = {}; });
-  window.addEventListener('focus', function () { release(); focusStage(); after(); updateClock(); });
+  window.addEventListener('blur', function () { heldKeys = {}; if (top().id === 'home' && !document.hidden) { legend.picker = true; render(); } });
+  window.addEventListener('focus', function () { if (legend.picker) { legend.picker = false; showLegend(1500); } release(); focusStage(); after(); updateClock(); });
   document.addEventListener('visibilitychange', function () {
     heldKeys = {};
     if (document.hidden) {
