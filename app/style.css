@@ -1023,3 +1023,4 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000}
 .bg-photo.l-dock .quiet-utils .u-group .u,.bg-photo.l-dock .quiet-utils .u.u-lamp,.bg-photo.l-dock .cap-music:not(.is-focus){color:#f6f1e7}
 .bg-dark.l-dock .quiet-utils .u-group .u{color:var(--ink)}
 .l-dock .caption .cap-music{margin-left:0}
+.l-dock .quiet-utils.is-icons{right:112px;gap:8px}
