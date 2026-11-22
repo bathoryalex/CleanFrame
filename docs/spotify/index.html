@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#11171a">
+<title>Frame Home · Spotify sign-in</title>
+<style>
+  /* Frame Home Spotify sign-in helper. The TV's channel, its PKCE challenge and the client id arrive
+     in the URL fragment, which browsers never send to a server. Spotify returns here with a one-time
+     code (and the channel as `state`); the page forwards only that code, which is useless without the
+     code verifier that never leaves the TV. Your password only goes to Spotify. */
+  :root {
+    --bg: #f2efe8; --card: #ffffff; --ink: #1d1a16; --mute: rgba(29, 26, 22, .62); --line: rgba(29, 26, 22, .12);
+    --accent: #1d1a16; --accent-ink: #f2efe8; --ok: #2f8a4c; --warn: #a2560f; --track: rgba(29, 26, 22, .10);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #11171a; --card: #1b2327; --ink: #f4f4f1; --mute: rgba(244, 244, 241, .64); --line: rgba(244, 244, 241, .12);
+      --accent: #f3f3ef; --accent-ink: #141618; --ok: #7fd18b; --warn: #e9a35b; --track: rgba(244, 244, 241, .12); }
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { -webkit-text-size-adjust: 100%; }
+  body { min-height: 100vh; background: var(--bg); color: var(--ink); font: 17px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; -webkit-font-smoothing: antialiased; }
+  main { max-width: 520px; margin: 0 auto; padding: max(28px, env(safe-area-inset-top)) 20px max(32px, env(safe-area-inset-bottom)); display: flex; flex-direction: column; gap: 20px; }
+  h1 { font-size: 22px; line-height: 1.2; font-weight: 650; letter-spacing: -.3px; }
+  .sub { color: var(--mute); font-size: 15px; margin-top: 4px; }
+  .card { background: var(--card); border-radius: 22px; padding: 18px; box-shadow: 0 1px 0 var(--line), 0 10px 30px rgba(0, 0, 0, .06); display: flex; flex-direction: column; gap: 12px; }
+  h2 { font-size: 17px; font-weight: 650; }
+  .step { display: inline-grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; background: var(--accent); color: var(--accent-ink); font-size: 14px; margin-right: 8px; }
+  p { font-size: 15px; }
+  .note { color: var(--mute); font-size: 13px; }
+  .row { display: flex; gap: 10px; }
+  a.button, button { appearance: none; border: 0; font: inherit; font-weight: 600; border-radius: 16px; min-height: 52px; padding: 0 16px; display: flex; align-items: center; justify-content: center; width: 100%; cursor: pointer; text-decoration: none; -webkit-tap-highlight-color: transparent; }
+  a.button { background: var(--accent); color: var(--accent-ink); }
+  button.soft { background: var(--track); color: var(--ink); min-height: 44px; font-size: 15px; }
+  button.send { background: var(--accent); color: var(--accent-ink); }
+  button:disabled { opacity: .45; cursor: default; }
+  textarea { width: 100%; min-height: 96px; border-radius: 14px; border: 1px solid var(--line); background: transparent; color: var(--ink); font: 14px/1.4 ui-monospace, Menlo, monospace; padding: 12px; resize: vertical; }
+  .status { font-size: 15px; min-height: 22px; }
+  .status.ok { color: var(--ok); } .status.warn { color: var(--warn); }
+  .missing { display: none; }
+  body.no-channel .card { display: none; } body.no-channel .missing { display: block; }
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1 data-t="title">Connect Spotify to Frame Home</h1>
+    <p class="sub" data-t="subtitle">Your password goes only to Spotify. The TV receives a one-time code that works only together with a secret kept on the TV.</p>
+  </header>
+
+  <section class="card" id="start">
+    <h2><span class="step">1</span><span data-t="s1">Sign in to Spotify</span></h2>
+    <p data-t="s1text">Spotify asks you to allow Frame Home to see what is playing and to control playback. After that you come back here automatically.</p>
+    <a class="button" id="go" data-t="go">Sign in with Spotify</a>
+  </section>
+
+  <section class="card" id="back" hidden>
+    <h2><span class="step">2</span><span data-t="s2">Sending to the TV</span></h2>
+    <p class="status" id="status" aria-live="polite"></p>
+  </section>
+
+  <p class="missing" data-t="missing">Open this page by scanning the QR code on the TV.</p>
+</main>
+<script>
+(function () {
+  'use strict';
+  var EN = {
+    sending: 'Sending…', sent: 'Done. Look at the TV.', failed: 'Could not reach the relay. Reload this page to try again.',
+    denied: 'Spotify sign-in was cancelled. Scan the QR code on the TV to start again.', bad: 'This address is not from Frame Home. Scan the QR code on the TV.'
+  };
+  var TEXT = {
+    hu: {
+      title: 'Spotify összekapcsolása a Frame Home-mal',
+      subtitle: 'A jelszavad csak a Spotifyhoz kerül. A TV egy egyszer használatos kódot kap, ami csak a TV-n tárolt titokkal együtt működik.',
+      s1: 'Jelentkezz be a Spotifyba',
+      s1text: 'A Spotify engedélyt kér, hogy a Frame Home lássa, mi szól, és vezérelhesse a lejátszást. Utána automatikusan visszajössz ide.',
+      go: 'Belépés Spotifyjal',
+      s2: 'Küldés a TV-re',
+      missing: 'Ezt az oldalt a TV-n lévő QR-kód beolvasásával nyisd meg.',
+      sending: 'Küldés…', sent: 'Kész. Nézd a TV-t.', failed: 'Nem értem el a továbbítót. Töltsd újra az oldalt.',
+      denied: 'A Spotify-belépés megszakadt. Kezdd újra a TV-n lévő QR-kóddal.', bad: 'Ez a cím nem a Frame Home-tól jön. Olvasd be a QR-kódot a TV-n.'
+    }
+  };
+  var lang = /^hu\b/i.test(navigator.language || '') ? 'hu' : 'en';
+  function t(key) { return (TEXT[lang] && TEXT[lang][key]) || EN[key] || key; }
+  document.documentElement.lang = lang;
+  Array.prototype.forEach.call(document.querySelectorAll('[data-t]'), function (el) { var v = TEXT[lang] && TEXT[lang][el.getAttribute('data-t')]; if (v) el.textContent = v; });
+  function read(str) { var out = {}; str.replace(/^[#?]/, '').split('&').forEach(function (pair) { var i = pair.indexOf('='); if (i > 0) out[pair.slice(0, i)] = decodeURIComponent(pair.slice(i + 1).replace(/\+/g, ' ')); }); return out; }
+  var redirect = location.origin + location.pathname.replace(/index\.html$/, '');
+  var query = read(location.search), frag = read(location.hash), statusEl = document.getElementById('status');
+  function say(text, kind) { statusEl.textContent = text; statusEl.className = 'status' + (kind ? ' ' + kind : ''); }
+  var TOPIC = /^framehome-spotify-[A-Za-z0-9]{16,40}$/;
+
+  /* Back from Spotify: forward the code to the TV's channel (the channel travels as `state`). */
+  if (query.code || query.error) {
+    document.getElementById('start').hidden = true; document.getElementById('back').hidden = false;
+    try { history.replaceState(null, '', redirect); } catch (e) { /* keep the address */ }
+    if (query.error) { say(t('denied'), 'warn'); return; }
+    if (!TOPIC.test(query.state || '') || !/^[A-Za-z0-9_.~-]{6,1000}$/.test(query.code)) { say(t('bad'), 'warn'); return; }
+    say(t('sending'));
+    var x = new XMLHttpRequest();
+    x.open('POST', 'https://ntfy.sh/' + query.state, true);
+    x.setRequestHeader('Tags', 'frame-home-spotify');
+    x.onload = function () { if (x.status >= 200 && x.status < 300) say(t('sent'), 'ok'); else say(t('failed'), 'warn'); };
+    x.onerror = function () { say(t('failed'), 'warn'); };
+    x.send(JSON.stringify({ code: query.code }));
+    return;
+  }
+
+  if (!TOPIC.test(frag.t || '') || !/^[A-Za-z0-9_-]{43}$/.test(frag.c || '') || !/^[0-9a-f]{32}$/.test(frag.i || '')) { document.body.className = 'no-channel'; return; }
+  var q = { response_type: 'code', client_id: frag.i, scope: frag.s || 'user-read-currently-playing user-read-playback-state user-modify-playback-state',
+    redirect_uri: redirect, code_challenge_method: 'S256', code_challenge: frag.c, state: frag.t };
+  document.getElementById('go').href = 'https://accounts.spotify.com/authorize?' + Object.keys(q).map(function (k) { return encodeURIComponent(k) + '=' + encodeURIComponent(q[k]); }).join('&');
+}());
+</script>
+</body>
+</html>
