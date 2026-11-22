@@ -200,3 +200,12 @@ Every settings page is a column of cards. A card has an optional uppercase headi
 
 The Light background is removed with its styles; Photo and Dark remain.
 
+## 0.31
+
+- **Settings overview** is grouped in framed sections on one screen: Personalization (Background, Layout, Typography, Focus) across the top; Home and clock (Apps on Home, Language and clock, Wi‑Fi QR) beside Connections and system (Connections, Samsung Home) below. Left/Right move along a row, across groups; Up/Down go to the nearest card above or below.
+- **Lists** open over the rows below (opaque, above everything else on the page) instead of pushing them down. The live preview's top edge lines up with the first card.
+- **List screens** (Readings, Switches, Remote buttons, Groups, Switch names and icons, device details) use the same card look: one framed list, uppercase section headings, 74 px rows.
+- **Switch names**: Alexa → Switch names and icons → a switch → **Name on Home** opens the on-screen keyboard (up to 12 characters); the name is stored per light or group (`alexaNames`) and shown on Home, in lists and messages; **Use the Alexa name** removes it. The page also lists the icons under an Icon heading.
+- **Moving a switch** (Right in Switches): the row turns warm (filled), lifts slightly and says "Up and Down move it · OK places it".
+- **Top bar names** keep room for descenders, so g, p and y are no longer cut off.
+

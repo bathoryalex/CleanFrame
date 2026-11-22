@@ -513,9 +513,10 @@ try {
   await run('Alexa: phone sign-in, readings, switches, groups and colour buttons', async () => {
     await page(); await scene('settings');
     const cards = await current.evaluate(() => [...document.querySelectorAll('.settings-card')].map(e => { return { id: e.getAttribute('data-id'), left: e.offsetLeft, top: e.offsetTop, bottom: e.offsetTop + e.offsetHeight + e.offsetParent.getBoundingClientRect().top }; }));
-    check('Settings shows nine cards in a 3 x 3 grid, Connections before Samsung Home', cards.length === 9 && cards[7].id === 'connections' && cards[8].id === 'samsung' && new Set(cards.map(c => c.left)).size === 3 && new Set(cards.map(c => c.top)).size === 3 && cards.every(c => c.bottom <= 1000), cards);
-    await nav('down', 'down', 'right', 'right');
-    check('Arrows move through the 3 x 3 grid', await current.evaluate(() => document.querySelector('.settings-card.is-focus').getAttribute('data-id')) === 'samsung');
+    const cardGroups = await current.evaluate(() => [...document.querySelectorAll('.settings-group')].map(g => [...g.querySelectorAll('.settings-card')].map(e => e.getAttribute('data-id'))));
+    check('Settings shows nine cards in three framed groups, Connections before Samsung Home', cards.length === 9 && cardGroups.length === 3 && cardGroups[0].join() === 'background,layout,typography,focus' && cardGroups[1].join() === 'editor,region,wifiqr' && cardGroups[2].join() === 'connections,samsung' && cards.every(c => c.bottom <= 1000), cardGroups);
+    await nav('down', 'down', 'right', 'right', 'right', 'right');
+    check('Arrows move along the grouped rows, across groups', await current.evaluate(() => document.querySelector('.settings-card.is-focus').getAttribute('data-id')) === 'samsung');
     await act('settings.group.connections'); await current.waitForFunction(() => ShoreQA.state().settingsGroup === 'connections');
     await act('conn.alexa'); await current.waitForFunction(() => ShoreQA.state().settingsGroup === 'alexa');
     await act('alexa.connect');
@@ -839,8 +840,8 @@ try {
     check('Switch icons lists the switches with their icon', /Left lamp/.test(await current.evaluate(() => document.querySelector('.alexa-list').textContent)));
     await act('alexa.row.0');
     const names = await current.evaluate(() => [...document.querySelectorAll('.alexa-row .alexa-name')].map(e => e.textContent));
-    check('Eight icons to choose from', names.length === 7 || names.length === 8, names);
-    await act('alexa.row.1');
+    check('Name on Home comes first, then the icons', /Name on Home/.test(names[0]) && names[1] === 'Light bulb' && names.length >= 5, names);
+    await act('alexa.row.3');
     check('The choice is saved for that light', (await stored()).alexaIcons['amzn1.alexa.endpoint.lamp-1'] === 'fan', (await stored()).alexaIcons);
     await scene('home');
     check('Home shows the fan icon on the switch', await current.evaluate(() => document.querySelector('[data-action="util.sw0"]').innerHTML.indexOf('rotate(120 12 12)') >= 0));
@@ -902,6 +903,21 @@ try {
     check('Icons only keeps the Tiles row at 80 % and shows the name of the focused app', Math.abs(ic.h - 156 * 0.8) <= 1 && ic.name === '1', ic);
     check('Its focused app has the same white ring as the top widgets', /255, 255, 255\) 0px 0px 0px 3px inset|inset 0px 0px 0px 3px rgb\(255, 255, 255\)/.test(m.ring), m.ring);
   });
+  await run('A Home switch can get its own short name', async () => {
+    await page({ seed: baseline({ alexaSwitches: [{ id: 'amzn1.alexa.endpoint.plug-1', name: 'Air conditioner' }] }) });
+    await current.evaluate(() => localStorage.setItem('cleanframe.alexa.v1', JSON.stringify({ serial: 'X', domain: 'com', site: 'com', refresh: 'Atzr|test', access: 'Atza|test', at: Date.now() })));
+    await current.reload(); await ready();
+    await group('connections'); await act('conn.alexa'); await act('alexa.list.icons'); await act('alexa.row.0'); await act('alexa.row.0');
+    check('Name on Home opens the keyboard with the current name', (await state()).view === 'wifitype' && /Air conditi/.test(await current.evaluate(() => document.querySelector('.wifi-field-value').textContent)));
+    await current.evaluate(() => { const t = ShoreQA.state(); });
+    for (let i = 0; i < 12; i++) await act('wifi.act.0');
+    await current.evaluate(() => {});
+    const typed = async ch => { const a = await current.evaluate(c => { const e = [...document.querySelectorAll('[data-action^="wifi.char."]')].find(x => x.textContent === c); return e && e.getAttribute('data-action'); }, ch); await act(a); };
+    await typed('A'); await typed('C'); await act('wifi.act.1');
+    check('The short name is saved apart from the Alexa name', (await stored()).alexaNames['amzn1.alexa.endpoint.plug-1'] === 'AC' && (await stored()).alexaSwitches[0].name === 'Air conditioner', (await stored()).alexaNames);
+    await scene('home');
+    check('Home shows the short name on the tile', await current.evaluate(() => document.querySelector('[data-action="util.sw0"] .u-label').textContent === 'AC'));
+  });
   await run('A remote button can open the Home screen', async () => {
     await page({ seed: baseline({ alexaKeys: { red: { id: 'frame:home', name: '' } } }) });
     await group('layout');
@@ -919,6 +935,9 @@ try {
     check('Left and Right do not change a setting', same(await settingsSnapshot(), before));
     await nav('ok');
     check('OK opens the list with the applied choice focused', await current.evaluate(() => !!document.querySelector('.set-select-wrap.is-open') && document.querySelector('.select-opt.is-focus').getAttribute('aria-checked') === 'true' && ShoreQA.where().focusCount === 1));
+    const over = await current.evaluate(() => { const next = document.querySelector('.set-row[data-action="select.iconStyle"]').getBoundingClientRect(), pop = document.querySelector('.set-select-wrap.is-open .select-pop').getBoundingClientRect(), card = document.querySelector('.set-card').getBoundingClientRect(), scene = document.getElementById('scene').getBoundingClientRect(); return { nextTop: Math.round(next.top), popTop: Math.round(pop.top), popBottom: Math.round(pop.bottom), card: Math.round(card.top), scene: Math.round(scene.top) }; });
+    check('The list opens over the rows below instead of pushing them down', over.nextTop < over.popBottom && over.nextTop > over.popTop - 120, over);
+    check('The preview lines up with the first card', Math.abs(over.card - over.scene) <= 6, over);
     await nav('up', 'back');
     check('Back closes the list without applying', same(await settingsSnapshot(), before) && await current.evaluate(() => !document.querySelector('.set-select-wrap.is-open')) && (await state()).view === 'appearance');
     await nav('ok', 'up', 'ok');
