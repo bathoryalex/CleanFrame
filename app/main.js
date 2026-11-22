@@ -4,14 +4,15 @@
 
   /* ---------- Bundled data ---------- */
   var ASSETS = 'assets/', ICONS = ASSETS + 'icons/', WP = ASSETS + 'wallpapers/';
-  var APP_VERSION = '0.14.0';
+  var APP_VERSION = '0.15.0';
   var CAP = 9, SCRIM_Y = 560;
   var DOCK_MODES = { both: { tw: 288, th: 200, pitch: 296 }, text: { tw: 288, th: 104, pitch: 296 }, icons: { tw: 176, th: 144, pitch: 184 } };
   var GRID_ROW = 240, GRID_COL = 344, COLS = 5;
   var ED_ROW = 80, ED_SEP = 56, ED_VIEW = 752, STRIP_PITCH = 188;
   var PH_TOP = 220, PH_PITCH = 128, PH_FULL = 5, PH_HEIGHT = 944, PH_COMPACT_TOP = 144, PH_COMPACT_PITCH = 88, PH_COMPACT_VISIBLE = 9;
   var WALL_VISIBLE = 6, WALL_ROW = 92, WALL_DELAY = 200;
-  var KEYS = { 37: 'left', 38: 'up', 39: 'right', 40: 'down', 13: 'ok', 27: 'back', 8: 'back', 10009: 'back', 461: 'back', 403: 'red', 404: 'green', 405: 'yellow', 406: 'blue' };
+  var KEYS = { 37: 'left', 38: 'up', 39: 'right', 40: 'down', 13: 'ok', 27: 'back', 8: 'back', 10009: 'back', 461: 'back', 403: 'red', 404: 'green', 405: 'yellow', 406: 'blue',
+    10252: 'playpause', 179: 'playpause', 415: 'play', 19: 'pause', 417: 'ffwd', 412: 'rew', 10233: 'tracknext', 176: 'tracknext', 10232: 'trackprev', 177: 'trackprev' };
   var FULL = 'Home holds nine apps. Remove one first.', LAST = 'Home needs one app';
 
   /* Default Home row: configured in fork.js. */
@@ -30,7 +31,7 @@
   }
   window.FrameText = T;
   /* Saved preferences outside the appearance bundle: they apply at once and load nothing. */
-  var PREF_VALUES = { lang: ['en', 'hu'], clock: ['24', '12'], date: ['off', 'on'], clockPos: ['corner', 'center', 'large'], weather: ['off', 'now', 'day'] };
+  var PREF_VALUES = { lang: ['en', 'hu'], clock: ['24', '12'], date: ['off', 'on'], clockPos: ['corner', 'center', 'large'], weather: ['off', 'now', 'day'], spotifyShow: ['on', 'off'] };
   var PREF_NAMES = { en: 'English', hu: 'Magyar', '24': '24-hour', '12': '12-hour', corner: 'Corner', center: 'Centre', large: 'Large', off: 'Off', on: 'On', now: 'Basic', day: 'Full' };
   WALLS.forEach(function (w) { w.ut = w.ut || { tr: 'light', br: 'light' }; w.frostVeil = w.frostVeil || .12; });
   var MODES = [
@@ -42,6 +43,7 @@
   /* Your picture: one wallpaper slot that a phone fills through an ntfy.sh topic (assets/custom-wallpaper.js). */
   var CUSTOM = 'custom', STILL_TAG = 'frame-home-still', PART_TAG = 'frame-home-part', SEND_PAGE = window.FrameFork && window.FrameFork.sendPage || '', FCW = window.FrameCustomWallpaper, RELAY = (window.FrameFork && window.FrameFork.relay) || 'https://ntfy.sh';
   var ALEXA_PAGE = window.FrameFork && window.FrameFork.alexaPage || '', FA = ALEXA_PAGE && window.FrameAlexa ? window.FrameAlexa : null;
+  var SPOTIFY_PAGE = window.FrameFork && window.FrameFork.spotify && window.FrameFork.spotify.page || '', FS = window.FrameSpotify && window.FrameSpotify.configured ? window.FrameSpotify : null;
   var custom = { urls: null, stamp: 0, phase: 'idle', name: '', busy: false, queued: null, seen: {}, sets: {}, lost: false, percent: 0, stillMsg: null, link: 'idle', detail: '', relay: null };
   function addCustomWall(tone) {
     var w = wall(CUSTOM);
@@ -71,6 +73,7 @@
     leave: { title: 'Leave Home?', line: 'Open Samsung Home?', note: '', actions: [['stay', 'Stay'], ['samsung', 'Samsung Home']] },
     wifiSetup: { title: 'Wi‑Fi QR not set up', line: 'Add your network name in Settings → Wifi QR code settings.', note: '', actions: [['settings', 'Open Settings'], ['stay', 'Close']] },
     groupDelete: { title: 'Delete this group?', line: 'The lights stay in Alexa; only the group is removed.', note: '', actions: [['stay', 'Cancel'], ['groupdel', 'Delete']] },
+    spotifyOut: { title: 'Sign out of Spotify?', line: 'Frame Home forgets your Spotify sign-in.', note: 'You can also remove its access in your Spotify account settings.', actions: [['stay', 'Cancel'], ['spotifyout', 'Sign out']] },
     alexaOut: { title: 'Sign out of Alexa?', line: 'Frame Home forgets your Alexa sign-in.', note: 'You can also remove “Frame Home” from the devices in your Amazon account.', actions: [['stay', 'Cancel'], ['alexaout', 'Sign out']] }
   };
   var SVG = {
@@ -83,6 +86,8 @@
     lamp: '<path d="M9 17.5h6M10 20.5h4"/><path d="M12 3.5a5.6 5.6 0 0 0-3.4 10.05c.6.46.9 1.1.9 1.85v.6h5v-.6c0-.75.3-1.39.9-1.85A5.6 5.6 0 0 0 12 3.5Z"/>',
     lampOn: '<path d="M9 17.5h6M10 20.5h4"/><path class="lamp-fill" d="M12 3.5a5.6 5.6 0 0 0-3.4 10.05c.6.46.9 1.1.9 1.85v.6h5v-.6c0-.75.3-1.39.9-1.85A5.6 5.6 0 0 0 12 3.5Z"/><path d="M12 .8v.9M3.6 4.3l.7.6M20.4 4.3l-.7.6M1.6 10h.9M21.5 10h.9"/>',
     alexa: '<path d="M3.5 11.2 12 4.5l8.5 6.7"/><path d="M5.8 9.6V19a1 1 0 0 0 1 1h10.4a1 1 0 0 0 1-1V9.6"/><path d="M9.4 14.6a3.7 3.7 0 0 1 5.2 0"/><path d="M7.6 12.6a6.2 6.2 0 0 1 8.8 0"/><circle cx="12" cy="16.9" r=".9"/>',
+    note: '<path d="M9 17.5V6l10-2v11.5"/><circle cx="6.5" cy="17.5" r="2.5"/><circle cx="16.5" cy="15.5" r="2.5"/>',
+    pause: '<path d="M8.5 5.5v13M15.5 5.5v13"/>',
     drop: '<path d="M12 3.6c-3.2 4-5.6 7.3-5.6 10.1a5.6 5.6 0 0 0 11.2 0c0-2.8-2.4-6.1-5.6-10.1Z"/>',
     plus: '<path d="M12 5v14M5 12h14"/>',
     indoor: '<path d="M4 11 12 4.5l8 6.5v8a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1Z"/><path d="M12 10.5v5.2"/><circle cx="12" cy="16.6" r="1.4"/>',
@@ -437,7 +442,7 @@
   function safeId(id) { return typeof id === 'string' && /^[A-Za-z0-9][A-Za-z0-9._-]{0,160}$/.test(id) && ['constructor', 'prototype', '__proto__'].indexOf(id) < 0; }
   function endpointId(id) { return typeof id === 'string' && /^[A-Za-z0-9][A-Za-z0-9._:#@-]{0,200}$/.test(id); }
   function prefText(v, n) { return typeof v === 'string' ? v.slice(0, n) : ''; }
-  function prefTarget(t) { return t && typeof t === 'object' && (endpointId(t.id) || /^group:g[a-z0-9]{1,16}$/.test(t.id)) ? { id: t.id, name: prefText(t.name, 80) } : null; }
+  function prefTarget(t) { return t && typeof t === 'object' && (endpointId(t.id) || /^group:g[a-z0-9]{1,16}$/.test(t.id) || /^spotify:(toggle|next|prev)$/.test(t.id)) ? { id: t.id, name: prefText(t.name, 80) } : null; }
   /* 0.13 kept one sensor and one light; they become the first reading and switch. */
   function cleanReadings(s) {
     var list = Array.isArray(s.alexaReadings) ? s.alexaReadings : endpointId(s.alexaTemp) ? [{ id: s.alexaTemp, key: 'temp', name: s.alexaTempName, label: 'Temperature' }] : [];
@@ -446,7 +451,7 @@
   }
   function cleanSwitches(s) {
     var list = Array.isArray(s.alexaSwitches) ? s.alexaSwitches : endpointId(s.alexaLamp) ? [{ id: s.alexaLamp, name: s.alexaLampName }] : [];
-    return list.map(prefTarget).filter(Boolean).slice(0, 4);
+    return list.map(prefTarget).filter(function (t) { return t && !/^spotify:/.test(t.id); }).slice(0, 4);
   }
   function cleanGroups(list) {
     return (Array.isArray(list) ? list : []).filter(function (g) { return g && /^g[a-z0-9]{1,16}$/.test(g.id) && typeof g.name === 'string' && g.name.trim(); }).slice(0, 12)
@@ -493,7 +498,8 @@
       lang: pick(s.lang, PREF_VALUES.lang, 'en'), clock: pick(s.clock, PREF_VALUES.clock, '24'), clockPos: pick(s.clockPos, PREF_VALUES.clockPos, 'corner'), date: pick(s.date, PREF_VALUES.date, 'off'), weather: pick(s.weather, PREF_VALUES.weather, 'day'),
       customAt: typeof s.customAt === 'number' && wall(CUSTOM) ? s.customAt : 0, customTone: s.customTone === 'light' ? 'light' : 'dark',
       relayTopic: safeId(s.relayTopic) ? s.relayTopic : '', relayAt: typeof s.relayAt === 'number' ? s.relayAt : 0, relaySince: safeId(s.relaySince) ? s.relaySince : '',
-      alexaReadings: cleanReadings(s), alexaSwitches: cleanSwitches(s), alexaGroups: cleanGroups(s.alexaGroups), alexaKeys: cleanKeys(s.alexaKeys)
+      alexaReadings: cleanReadings(s), alexaSwitches: cleanSwitches(s), alexaGroups: cleanGroups(s.alexaGroups), alexaKeys: cleanKeys(s.alexaKeys),
+      spotifyShow: pick(s.spotifyShow, PREF_VALUES.spotifyShow, 'on')
     };
   }
   function serialise(c) {
@@ -525,7 +531,8 @@
       else { tizen.tvinputdevice.registerKey('Back'); tizen.tvinputdevice.registerKey('XF86Back'); }
     } catch (e) { /* optional on preview */ }
     /* Colour buttons switch Alexa lights; registered one by one so a missing key cannot block the rest. */
-    if (FA) ['ColorF0Red', 'ColorF1Green', 'ColorF2Yellow', 'ColorF3Blue'].forEach(function (name) { try { tizen.tvinputdevice.registerKey(name); } catch (e) { /* not on this remote */ } });
+    if (FS) ['MediaPlayPause', 'MediaPlay', 'MediaPause', 'MediaFastForward', 'MediaRewind', 'MediaTrackNext', 'MediaTrackPrevious'].forEach(function (name) { try { tizen.tvinputdevice.registerKey(name); } catch (e) { /* not on this remote */ } });
+    if (FA || FS) ['ColorF0Red', 'ColorF1Green', 'ColorF2Yellow', 'ColorF3Blue'].forEach(function (name) { try { tizen.tvinputdevice.registerKey(name); } catch (e) { /* not on this remote */ } });
   }
   function clearSession() { S.undo = []; S.removedAt = {}; S.note = null; S.err = null; }
   function begin() { S.note = null; }
@@ -535,7 +542,7 @@
     c.wifiSsid = S.c.wifiSsid; c.wifiPass = S.c.wifiPass; c.wifiSec = S.c.wifiSec;
     c.lang = S.c.lang; c.clock = S.c.clock; c.clockPos = S.c.clockPos; c.date = S.c.date; c.weather = S.c.weather;
     c.customAt = S.c.customAt; c.customTone = S.c.customTone; c.relayTopic = S.c.relayTopic; c.relayAt = S.c.relayAt; c.relaySince = S.c.relaySince;
-    c.alexaReadings = S.c.alexaReadings; c.alexaSwitches = S.c.alexaSwitches; c.alexaGroups = S.c.alexaGroups; c.alexaKeys = S.c.alexaKeys;
+    c.alexaReadings = S.c.alexaReadings; c.alexaSwitches = S.c.alexaSwitches; c.alexaGroups = S.c.alexaGroups; c.alexaKeys = S.c.alexaKeys; c.spotifyShow = S.c.spotifyShow;
     return c;
   }
   function snap() { return { home: S.c.home.slice(), recent: S.c.recent.slice() }; }
@@ -703,7 +710,7 @@
   function openSettings() { push({ id: 'settings', f: { id: S.settingsFocus } }); }
   function openAppearance(group) {
     var axis = { background: 'bg', layout: 'layout', typography: 'font', focus: 'focus', region: 'lang' }[group];
-    var action = S.detailFocus[group] || (axis ? 'choice.' + axis + '.' + S.c[axis] : group === 'rotation' ? 'rotation.' + S.c.mode : group === 'alexa' ? (alexaOn() ? 'alexa.list.readings' : 'alexa.connect') : 'wifi.edit.ssid');
+    var action = S.detailFocus[group] || (axis ? 'choice.' + axis + '.' + S.c[axis] : group === 'rotation' ? 'rotation.' + S.c.mode : group === 'alexa' ? (alexaOn() ? 'alexa.list.readings' : 'alexa.connect') : group === 'spotify' ? (spotifyOn() ? 'choice.spotifyShow.' + S.c.spotifyShow : 'spotify.connect') : group === 'connections' ? (FA ? 'conn.alexa' : 'conn.spotify') : 'wifi.edit.ssid');
     push({ id: 'appearance', group: group, f: { action: action } });
   }
   function openWifiField(field) {
@@ -1037,7 +1044,7 @@
       { id: 'editor', icon: 'apps', label: T('Apps on Home'), value: T(n === 1 ? '{0} app' : '{0} apps', n) },
       { id: 'region', icon: 'clock', label: T('Language and clock'), value: PREF_NAMES[S.c.lang] + ', ' + T(PREF_NAMES[S.c.clock]) + (S.c.clockPos === 'corner' ? '' : ', ' + T(PREF_NAMES[S.c.clockPos])) },
       { id: 'wifiqr', icon: 'wifi', label: T('Wifi QR code'), value: wifiReady() ? S.c.wifiSsid : T('Not set') }
-    ].concat(FA ? [{ id: 'alexa', icon: 'alexa', label: 'Alexa', value: !alexaOn() ? T('Not connected') : summary(S.c.alexaReadings.map(function (r) { return r.name; }).concat(liveTargets().map(targetName)).filter(function (n, i, a) { return n && a.indexOf(n) === i; }), 'Connected') }] : []).concat([
+    ].concat(FA || FS ? [{ id: 'connections', icon: 'alexa', label: T('Connections'), value: connectionsSummary() }] : []).concat([
       { id: 'samsung', icon: 'home', label: T('Samsung Home'), value: T('Leave Frame Home'), direct: true }]);
   }
   function settingsIds() { return settingsRows().map(function (r) { return r.id; }); }
@@ -1064,7 +1071,9 @@
     else if (id === 'samsung') perform('Samsung Home', FrameDevice.home);
     else openAppearance(id);
   }
-  var DETAIL_NAMES = { background: 'Background', layout: 'Layout', typography: 'Typography', focus: 'Focus', rotation: 'Rotation', region: 'Language and clock', wifiqr: 'Wifi QR code settings', alexa: 'Alexa' };
+  var DETAIL_NAMES = { background: 'Background', layout: 'Layout', typography: 'Typography', focus: 'Focus', rotation: 'Rotation', region: 'Language and clock', wifiqr: 'Wifi QR code settings', alexa: 'Alexa', spotify: 'Spotify', connections: 'Connections' };
+  var PARENT = { rotation: 'background', alexa: 'connections', spotify: 'connections' };
+  function backLabel(t) { return T(PARENT[t.group] ? DETAIL_NAMES[PARENT[t.group]] : 'Settings'); }
   function choice(axis, value, disabled) {
     return { action: axis === 'mode' ? 'rotation.' + value : axis === 'wifiSec' ? 'wifi.sec.' + value : 'choice.' + axis + '.' + value, axis: axis, value: value, disabled: !!disabled,
       label: axis === 'font' ? FONTS[value].name : axis === 'mode' ? T(MODES.filter(function (m) { return m.id === value; })[0].name) : axis === 'wifiSec' ? (value === 'nopass' ? T('Open network') : 'WPA/WPA2') : PREF_VALUES[axis] ? T(PREF_NAMES[value]) : value === 'both' ? T('Both') : T(VALUE_NAMES[value]) };
@@ -1100,6 +1109,8 @@
       { id: 'weather', title: T('Weather') + ' · ' + WEATHER_PLACE.name, horizontal: true, items: options('weather', PREF_VALUES.weather) }
     ];
     if (t.group === 'alexa') return alexaSections();
+    if (t.group === 'spotify') return spotifySections();
+    if (t.group === 'connections') return connectionsSections();
     if (t.group === 'wifiqr') return [
       { id: 'ssid', title: T('Network name'), items: [{ action: 'wifi.edit.ssid', label: S.c.wifiSsid || T('Add network name'), description: T('SSID shown in the QR code') }] },
       { id: 'pass', title: T('Password'), items: [{ action: 'wifi.edit.pass', label: S.c.wifiPass ? T('Change password') : T('Add password'), description: S.c.wifiPass ? T('Saved (hidden)') : T('Optional for open networks') }] },
@@ -1108,7 +1119,7 @@
     return [];
   }
   function detailRows(t) {
-    var rows = [[{ action: 'settings.back', label: T(t.group === 'rotation' ? 'Background' : 'Settings') }]];
+    var rows = [[{ action: 'settings.back', label: backLabel(t) }]];
     detailSections(t).forEach(function (section) {
       var enabled = section.items.filter(function (item) { return !item.disabled; });
       if (section.horizontal && enabled.length) rows.push(enabled);
@@ -1144,6 +1155,7 @@
     if (!write(c, 'Preference ' + axis)) { S.lookError = { type: 'save', patch: patch, row: axis, transient: false }; return; }
     if (axis === 'lang') applyLanguage();
     if (axis === 'weather' && value !== 'off') refreshWeather(function () { render(); });
+    if (axis === 'spotifyShow') { if (value === 'off') spot.now = null; spotifyPoll(true); }
   }
   function applyLanguage() {
     document.documentElement.lang = S.c.lang === 'hu' ? 'hu' : 'en';
@@ -1167,7 +1179,11 @@
     else if (item.action === 'background.wallpaper') openWallpaper();
     else if (item.action === 'background.rotation') openAppearance('rotation');
     else if (item.action === 'background.custom') openPhone();
-    else if (item.action === 'alexa.connect') openAlexaPair();
+    else if (item.action === 'alexa.connect') openPair('alexa');
+    else if (item.action === 'spotify.connect') openPair('spotify');
+    else if (item.action === 'spotify.signout') openMessage('spotifyOut');
+    else if (item.action === 'conn.alexa') openAppearance('alexa');
+    else if (item.action === 'conn.spotify') openAppearance('spotify');
     else if (/^alexa\.list\./.test(item.action)) openAlexaList(item.action.slice(11));
     else if (item.action === 'alexa.signout') alexaSignOut();
     else if (item.action === 'wifi.edit.ssid') openWifiField('ssid');
@@ -1224,6 +1240,7 @@
         if (a === 'samsung') perform('Samsung Home', FrameDevice.home);
         else if (a === 'settings') { S.settingsFocus = 'wifiqr'; openSettings(); openAppearance('wifiqr'); }
         else if (a === 'alexaout') alexaForget();
+        else if (a === 'spotifyout') spotifyForget();
         else if (a === 'groupdel' && S.deleteGroup) { deleteGroup(S.deleteGroup); S.deleteGroup = null; }
       }
     },
@@ -1244,10 +1261,11 @@
   function isGroup(target) { return /^group:/.test(target); }
   function targetName(t) {
     if (!t) return '';
+    if (SPOTIFY_ACTIONS[t.id]) return T(SPOTIFY_ACTIONS[t.id]);
     if (isGroup(t.id)) { var g = groupOf(t.id); return g ? g.name : ''; }
     return t.name || '';
   }
-  function targetMembers(id) { var g; if (!isGroup(id)) return [id]; g = groupOf(id); return g ? g.members.map(function (m) { return m.id; }) : []; }
+  function targetMembers(id) { var g; if (/^spotify:/.test(id)) return []; if (!isGroup(id)) return [id]; g = groupOf(id); return g ? g.members.map(function (m) { return m.id; }) : []; }
   /* On when any member is on; null while nothing is known yet. */
   function targetPower(id) {
     var known = false, on = false;
@@ -1322,8 +1340,9 @@
   }
   function colourKey(colour) {
     var t = S.c.alexaKeys[colour];
-    if (!alexaOn()) return;
-    if (!t || (isGroup(t.id) && !groupOf(t.id))) { showToast(T('{0} has nothing assigned. Settings → Alexa → Colour buttons.', T(COLOUR_NAMES[colour]))); return; }
+    if (!alexaOn() && !spotifyOn()) return;
+    if (t && isSpotify(t.id)) { if (spotifyOn()) spotifyKey(t.id.slice(8)); return; }
+    if (!t || !alexaOn() || (isGroup(t.id) && !groupOf(t.id))) { showToast(T('{0} has nothing assigned. Settings → Connections → Colour buttons.', T(COLOUR_NAMES[colour]))); return; }
     toggleTarget(t);
   }
   function switchLabel(t) {
@@ -1359,22 +1378,114 @@
         reason: alexa.err ? alexaErrText(alexa.err) : '' }
     ];
   }
-  function openAlexaPair() {
-    if (!FA) return;
-    if (alexa.pair) alexa.pair();
-    alexa.phase = 'waiting'; alexa.url = ''; alexa.detail = '';
-    if (top().id !== 'alexapair') push({ id: 'alexapair', f: {} });
-    alexa.pair = FA.pair(ALEXA_PAGE, RELAY, function (url) { alexa.url = url; render(); }, function () { alexa.phase = 'registering'; render(); }, function (err) {
-      alexa.pair = null; alexa.phase = err ? 'failed' : 'done'; alexa.detail = err || ''; alexa.err = ''; alexa.list = null;
-      render();
+  /* ---------- Spotify: now playing and the remote's media keys ---------- */
+  var spot = { now: null, err: '', timer: null, busy: false, pair: null, phase: 'idle', url: '', detail: '' };
+  var SPOTIFY_ACTIONS = { 'spotify:toggle': 'Spotify: play or pause', 'spotify:next': 'Spotify: next track', 'spotify:prev': 'Spotify: previous track' };
+  var MEDIA = { playpause: 'toggle', play: 'play', pause: 'pause', ffwd: 'next', rew: 'prev', tracknext: 'next', trackprev: 'prev' };
+  function spotifyOn() { return !!(FS && FS.connected()); }
+  function isSpotify(id) { return /^spotify:/.test(id); }
+  function spotifyErrText(err) {
+    return err === 'premium' ? T('Spotify Premium is needed to control playback.') : err === 'no device' ? T('Nothing is playing on Spotify. Start it on a device first.')
+      : err === 'revoked' ? T('The Spotify sign-in no longer works. Connect again in Settings.') : T('Spotify didn’t answer ({0}).', err);
+  }
+  /* Every 10 seconds while music plays, every 30 while paused or idle; nothing while hidden. */
+  function spotifyPoll(when) {
+    clearTimeout(spot.timer); spot.timer = null;
+    if (!spotifyOn() || document.hidden || S.c.spotifyShow === 'off') return;
+    spot.timer = setTimeout(function () {
+      spot.timer = null;
+      FS.nowPlaying(function (err, now) {
+        if (err) spot.err = err; else { spot.err = ''; spot.now = now; }
+        render();
+        if (!spot.timer) spotifyPoll(err === 'revoked' ? 10 * 60 * 1000 : err ? 60000 : now && now.playing ? 10000 : 30000);
+      });
+    }, when === true ? 0 : typeof when === 'number' ? when : 30000);
+  }
+  function spotifyKey(action) {
+    var act;
+    if (!spotifyOn() || spot.busy) return;
+    if (action === 'toggle' && !spot.now) {
+      spot.busy = true;
+      FS.nowPlaying(function (err, now) {
+        spot.busy = false;
+        if (err) { showToast(spotifyErrText(err)); return; }
+        spot.now = now;
+        if (!now) { showToast(spotifyErrText('no device')); return; }
+        spotifyKey('toggle');
+      });
+      return;
+    }
+    act = action === 'toggle' ? (spot.now.playing ? 'pause' : 'play') : action;
+    spot.busy = true;
+    if (spot.now && (act === 'play' || act === 'pause')) { spot.now.playing = act === 'play'; render(); }
+    FS.control(act, function (err) {
+      spot.busy = false;
+      if (err) { if (spot.now && (act === 'play' || act === 'pause')) spot.now.playing = act !== 'play'; showToast(spotifyErrText(err)); }
+      else showToast(T({ play: 'Playing', pause: 'Paused', next: 'Next track', prev: 'Previous track' }[act]));
+      spotifyPoll(act === 'next' || act === 'prev' ? 800 : 1500);
     });
   }
-  function closeAlexaPair() { if (alexa.pair) { alexa.pair(); alexa.pair = null; } pop(); }
-  V.alexapair = {
+  function musicCaptionHtml() {
+    var n = spot.now;
+    if (!spotifyOn() || S.c.spotifyShow === 'off' || !n || !n.title) return '';
+    return '<span class="cap-music' + (n.playing ? ' is-playing' : ' is-paused') + '" aria-label="' + esc(T(n.playing ? 'Playing' : 'Paused') + ': ' + n.title + (n.artist ? ', ' + n.artist : '')) + '">'
+      + (n.art ? '<img class="music-art" src="' + esc(n.art) + '" alt="">' : '<span class="music-art music-art-empty">' + icon('note') + '</span>')
+      + '<span class="music-text"><span class="music-title">' + (n.playing ? '' : icon('pause', 'music-paused')) + esc(n.title) + '</span>' + (n.artist ? '<span class="music-artist">' + esc(n.artist) + '</span>' : '') + '</span></span>';
+  }
+  function spotifySections() {
+    if (!spotifyOn()) return [{ id: 'spotify-account', title: T('Account'), items: [{ action: 'spotify.connect', label: T('Connect Spotify'), description: T('Sign in on your phone') }],
+      reason: T('Shows what is playing on any of your Spotify devices. Play/Pause on the remote controls it (Spotify Premium).') }];
+    return [
+      { id: 'spotifyShow', title: T('Now playing on Home'), horizontal: true, items: [choice('spotifyShow', 'on'), choice('spotifyShow', 'off')] },
+      { id: 'spotify-remote', title: T('Remote'), items: [{ action: 'alexa.list.keys', label: T('Colour buttons'), description: T('Can also skip: Next or Previous track') }],
+        reason: T('Play/Pause plays or pauses. Fast-forward and Rewind skip tracks, where the remote has them.') },
+      { id: 'spotify-account', title: T('Account'), items: [{ action: 'spotify.signout', label: T('Sign out of Spotify'), description: T('Frame Home forgets the sign-in') }],
+        reason: spot.err && spot.err !== 'no device' ? spotifyErrText(spot.err) : '' }
+    ];
+  }
+  function connectionsSections() {
+    return [{ id: 'connections', title: '', items: [].concat(FA ? [{ action: 'conn.alexa', label: 'Alexa', description: !alexaOn() ? T('Not connected') : summary(S.c.alexaReadings.map(function (r) { return r.name; }).concat(liveTargets().map(targetName)).filter(function (n, i, a) { return n && a.indexOf(n) === i; }), 'Connected') }] : [])
+      .concat(FS ? [{ action: 'conn.spotify', label: 'Spotify', description: !spotifyOn() ? T('Not connected') : spot.now ? spot.now.title + (spot.now.artist ? ' · ' + spot.now.artist : '') : T('Connected') }] : []) }];
+  }
+  function connectionsSummary() { var on = []; if (alexaOn()) on.push('Alexa'); if (spotifyOn()) on.push('Spotify'); return on.length ? on.join(', ') : T('Not connected'); }
+  function spotifyForget() {
+    var keys = {};
+    FS.forget(); clearTimeout(spot.timer); spot.timer = null; spot.now = null; spot.err = '';
+    COLOURS.forEach(function (c) { keys[c] = S.c.alexaKeys[c] && isSpotify(S.c.alexaKeys[c].id) ? null : S.c.alexaKeys[c]; });
+    savePrefs({ alexaKeys: keys }, 'Spotify sign-out');
+  }
+
+  /* ---------- Phone sign-in screen, shared by Alexa and Spotify ---------- */
+  function pairInfo(svc) {
+    return svc === 'spotify' ? { st: spot, page: SPOTIFY_PAGE, title: 'Connect Spotify',
+      steps: ['Scan the code with your phone.', 'Sign in to Spotify on the page that opens and allow access.', 'Spotify returns to the page, which sends the sign-in to the TV by itself.'],
+      note: 'Your password goes only to Spotify. You can remove Frame Home’s access in your Spotify account settings.', done: 'Connected. What you play on Spotify now shows on Home.' }
+      : { st: alexa, page: ALEXA_PAGE, title: 'Connect Alexa',
+      steps: ['Scan the code with your phone.', 'Sign in to Amazon on the page that opens.', 'Paste the address of the empty page Amazon shows, then send it.'],
+      note: 'Your password goes only to Amazon. Frame Home appears among the devices in your Amazon account and can be removed there. Unofficial: it uses the same connection as the Alexa app.',
+      done: 'Connected. Choose readings and switches in Alexa settings.' };
+  }
+  function openPair(svc) {
+    var p = pairInfo(svc), st = p.st;
+    if (svc === 'spotify' ? !FS : !FA) return;
+    if (st.pair) st.pair();
+    st.phase = 'waiting'; st.url = ''; st.detail = '';
+    if (!(top().id === 'pair' && top().mode === svc)) push({ id: 'pair', mode: svc, f: {} });
+    function onUrl(url) { st.url = url; render(); }
+    function onCode() { st.phase = 'registering'; render(); }
+    function done(err) {
+      st.pair = null; st.phase = err ? 'failed' : 'done'; st.detail = err || ''; st.err = '';
+      if (svc === 'alexa') alexa.list = null; else if (!err) spotifyPoll(true);
+      render();
+    }
+    st.pair = svc === 'spotify' ? FS.pair(RELAY, onUrl, onCode, done) : FA.pair(ALEXA_PAGE, RELAY, onUrl, onCode, done);
+  }
+  function closePair(svc) { var st = pairInfo(svc).st; if (st.pair) { st.pair(); st.pair = null; } pop(); }
+  V.pair = {
     sheet: true,
     key: function (t, k) {
-      if (k === 'ok' && alexa.phase === 'failed') { openAlexaPair(); return; }
-      if (k === 'back' || k === 'ok') closeAlexaPair();
+      if (k === 'ok' && pairInfo(t.mode).st.phase === 'failed') { openPair(t.mode); return; }
+      if (k === 'back' || k === 'ok') closePair(t.mode);
     },
     point: function (t, z) { if (z === 'act') this.key(t, 'ok'); }
   };
@@ -1385,7 +1496,7 @@
     var e = { id: 'alexalist', mode: mode, top: 0, f: { i: 0 } }, k;
     for (k in extra || {}) if (extra.hasOwnProperty(k)) e[k] = extra[k];
     push(e);
-    if (LIST_NEEDS_DEVICES[mode]) loadAlexaList();
+    if (LIST_NEEDS_DEVICES[mode] && alexaOn()) loadAlexaList();
   }
   function loadAlexaList() {
     alexa.loading = true; alexa.listErr = '';
@@ -1416,7 +1527,9 @@
     } else if (t.mode === 'switches') rows = switchRows(function (id) { return S.c.alexaSwitches.some(function (x) { return x.id === id; }); });
     else if (t.mode === 'keys') rows = COLOURS.map(function (c) { var tg = S.c.alexaKeys[c]; return { id: c, colour: c, label: T(COLOUR_NAMES[c]), value: tg && targetName(tg) || T('Not set') }; });
     else if (t.mode === 'keytarget') {
-      rows = [{ id: '', label: T('Nothing'), ticked: !S.c.alexaKeys[t.colour] }].concat(switchRows(function (id) { return !!S.c.alexaKeys[t.colour] && S.c.alexaKeys[t.colour].id === id; }));
+      rows = [{ id: '', label: T('Nothing'), ticked: !S.c.alexaKeys[t.colour] }].concat(spotifyOn() ? Object.keys(SPOTIFY_ACTIONS).map(function (id) {
+        return { id: id, label: T(SPOTIFY_ACTIONS[id]), ticked: !!S.c.alexaKeys[t.colour] && S.c.alexaKeys[t.colour].id === id, spotify: true };
+      }) : []).concat(switchRows(function (id) { return !!S.c.alexaKeys[t.colour] && S.c.alexaKeys[t.colour].id === id; }));
     } else if (t.mode === 'groups') {
       rows = [{ id: 'new', label: T('New group'), add: true, disabled: S.c.alexaGroups.length >= MAX_GROUPS }].concat(S.c.alexaGroups.map(function (g) {
         return { id: g.id, label: g.name, value: T(g.members.length === 1 ? '{0} light' : '{0} lights', g.members.length), forward: true };
@@ -1474,7 +1587,7 @@
     } else if (t.mode === 'keys') openAlexaList('keytarget', { colour: row.colour });
     else if (t.mode === 'keytarget') {
       next = {}; COLOURS.forEach(function (c) { next[c] = S.c.alexaKeys[c]; });
-      next[t.colour] = row.id ? { id: row.id, name: row.group ? '' : row.label.slice(0, 80) } : null;
+      next[t.colour] = row.id ? { id: row.id, name: row.group || row.spotify ? '' : row.label.slice(0, 80) } : null;
       if (saveAlexa({ alexaKeys: next }, 'Alexa colour button')) pop();
     } else if (t.mode === 'groups') {
       if (row.add) openNameEntry('');
@@ -1531,7 +1644,8 @@
   function alexaForget() {
     FA.forget(); clearTimeout(alexa.timer); alexa.timer = null;
     alexa.vals = {}; alexa.err = ''; alexa.list = null; alexa.failed = {};
-    savePrefs({ alexaReadings: [], alexaSwitches: [], alexaKeys: { red: null, green: null, yellow: null, blue: null } }, 'Alexa sign-out');
+    var keys = {}; COLOURS.forEach(function (c) { keys[c] = S.c.alexaKeys[c] && isSpotify(S.c.alexaKeys[c].id) ? S.c.alexaKeys[c] : null; });
+    savePrefs({ alexaReadings: [], alexaSwitches: [], alexaKeys: keys }, 'Alexa sign-out');
   }
   /* ---------- Your picture: receive a photo from a phone ---------- */
   function relaySince() { return S.c.relaySince || String(S.c.relayAt || Math.floor(Date.now() / 1000) - 600); }
@@ -1978,6 +2092,7 @@
     // Centred: date and weather share one smaller line under the clock. Corner: the date is a quiet second line.
     if (S.c.clockPos !== 'corner' && S.c.layout === 'dock') html = '<span class="caption-head"><span class="clock">' + clockHtml() + '</span>' + (date || weatherHtml ? '<span class="caption-sub">' + date + weatherHtml + '</span>' : '') + '</span>';
     else html = '<span class="caption-head"><span class="clock">' + clockHtml() + '</span>' + weatherHtml + '</span>' + date;
+    html += musicCaptionHtml();
     caption.setAttribute('data-weather', S.c.weather === 'off' || weather.temp === null ? '' : String(weather.temp));
     if (S.c.apps !== 'icons' && !(S.c.clockPos !== 'corner' && S.c.layout === 'dock') && hs.items[hs.i] && (S.c.layout === 'list' ? photoLabel(hs.items[hs.i].id, false).size < 88 || photoLabel(hs.items[hs.i].id, false).ellipsis : hs.zone === 'apps' && reducedDockLabel(hs.items[hs.i].id))) html += '<span class="cap-line full-name">' + esc(app(hs.items[hs.i].id).name) + '</span>';
     setHTML(caption, html);
@@ -2280,7 +2395,7 @@
         + ' data-z="detail" data-i="0" data-id="' + item.action + '" data-action="' + item.action + '">' + inner
         + (item.axis ? '<span class="setting-tick" aria-hidden="true">' + (applied ? icon('check') : '') + '</span>' : '') + '</button>';
     }
-    setHTML(appearanceBack, command({ action: 'settings.back', label: T(t.group === 'rotation' ? 'Background' : 'Settings') }, icon('left') + '<span>' + T(t.group === 'rotation' ? 'Background' : 'Settings') + '</span>', 'setting-back'));
+    setHTML(appearanceBack, command({ action: 'settings.back', label: backLabel(t) }, icon('left') + '<span>' + backLabel(t) + '</span>', 'setting-back'));
     setHTML(appearanceRows, detailSections(t).map(function (section) {
       return '<section class="setting-section' + (section.horizontal ? ' is-horizontal' : '') + ' section-' + section.id + '">'
         + (section.title ? '<h3 class="setting-label" id="setting-' + section.id + '">' + section.title + '</h3>' : '')
@@ -2304,7 +2419,7 @@
         + command({ action: 'settings.retry', label: T('Try again') }, '<span>' + T('Try again') + '</span>', 'setting-retry');
     }
     setHTML(appearanceStatus, status);
-    hint = selected.disabled ? '' : selected.action === 'settings.back' ? T('Return to {0}', T(t.group === 'rotation' ? 'Background' : 'Settings')) : T(selected.action === 'settings.retry' ? 'Retry this change' : selected.axis ? 'Apply selected setting' : selected.action === 'background.wallpaper' ? 'Choose a wallpaper' : selected.action === 'background.rotation' ? 'Choose a rotation interval' : selected.action === 'background.custom' || selected.action === 'alexa.connect' ? 'Show the QR code' : /^alexa\.list\./.test(selected.action) ? 'Open' : selected.action === 'alexa.signout' ? 'Sign out of Alexa' : 'Open on the TV');
+    hint = selected.disabled ? '' : selected.action === 'settings.back' ? T('Return to {0}', backLabel(t)) : T(selected.action === 'settings.retry' ? 'Retry this change' : selected.axis ? 'Apply selected setting' : selected.action === 'background.wallpaper' ? 'Choose a wallpaper' : selected.action === 'background.rotation' ? 'Choose a rotation interval' : selected.action === 'background.custom' || selected.action === 'alexa.connect' || selected.action === 'spotify.connect' ? 'Show the QR code' : /^(alexa\.list|conn)\./.test(selected.action) ? 'Open' : selected.action === 'spotify.signout' ? 'Sign out of Spotify' : selected.action === 'alexa.signout' ? 'Sign out of Alexa' : 'Open on the TV');
     setHTML(appearanceDesc, hint ? '<span class="remote-key">OK</span><span>' + esc(hint) + '</span>' : '');
   }
   function renderWallpaper(t) {
@@ -2411,11 +2526,12 @@
         + '<p class="phone-status" data-slot="status" aria-live="polite"></p><p class="phone-note">' + T('The photo passes through ntfy.sh on a private channel and is deleted there after a few hours. The TV keeps its own copy.') + '</p>'
         + '<div class="phone-acts" data-slot="acts"></div></div></div></div>';
     },
-    alexapair: function () {
-      return '<div class="phone-panel alexa-pair"><h2 class="s-title">' + T('Connect Alexa') + '</h2>'
+    pair: function (t) {
+      var p = pairInfo(t.mode);
+      return '<div class="phone-panel alexa-pair"><h2 class="s-title">' + T(p.title) + '</h2>'
         + '<div class="phone-body"><div class="phone-qr-card"><canvas class="phone-qr" width="360" height="360" data-slot="qr"></canvas><p class="phone-url" data-slot="url"></p></div>'
-        + '<div class="phone-copy"><ol class="phone-steps"><li>' + T('Scan the code with your phone.') + '</li><li>' + T('Sign in to Amazon on the page that opens.') + '</li><li>' + T('Paste the address of the empty page Amazon shows, then send it.') + '</li></ol>'
-        + '<p class="phone-status" data-slot="status" aria-live="polite"></p><p class="phone-note">' + T('Your password goes only to Amazon. Frame Home appears among the devices in your Amazon account and can be removed there. Unofficial: it uses the same connection as the Alexa app.') + '</p>'
+        + '<div class="phone-copy"><ol class="phone-steps">' + p.steps.map(function (step) { return '<li>' + T(step) + '</li>'; }).join('') + '</ol>'
+        + '<p class="phone-status" data-slot="status" aria-live="polite"></p><p class="phone-note">' + T(p.note) + '</p>'
         + '<div class="phone-acts" data-slot="acts"></div></div></div></div>';
     },
     alexalist: function () {
@@ -2545,18 +2661,19 @@
       setHTML(el.status, '<span class="phone-dot is-' + phase + '"></span>' + esc(text));
       setHTML(el.acts, '<button type="button" tabindex="-1" class="btn is-focus" data-z="act" data-i="0" data-action="phone.done"><span>' + T(custom.phase === 'done' ? 'Done' : 'Close') + '</span></button>');
     },
-    alexapair: function (t, el) {
-      var text = { waiting: T('Waiting for the phone…'), registering: T('Signing in…'), done: T('Connected. Choose a sensor and a light in Alexa settings.'), failed: T('Sign-in didn’t work ({0}). OK tries again.', alexa.detail || '?') }[alexa.phase] || '';
-      var dot = { waiting: 'waiting', registering: 'processing', done: 'done', failed: 'offline' }[alexa.phase] || 'connecting';
-      if (alexa.url && el.qr._payload !== alexa.url && window.qrcode) { drawQr(el.qr, alexa.url); el.qr._payload = alexa.url; }
-      setHTML(el.url, esc(ALEXA_PAGE.replace(/^https:\/\//, '').replace(/\/$/, '')));
+    pair: function (t, el) {
+      var p = pairInfo(t.mode), st = p.st;
+      var text = { waiting: T('Waiting for the phone…'), registering: T('Signing in…'), done: T(p.done), failed: T('Sign-in didn’t work ({0}). OK tries again.', st.detail || '?') }[st.phase] || '';
+      var dot = { waiting: 'waiting', registering: 'processing', done: 'done', failed: 'offline' }[st.phase] || 'connecting';
+      if (st.url && el.qr._payload !== st.url && window.qrcode) { drawQr(el.qr, st.url); el.qr._payload = st.url; }
+      setHTML(el.url, esc(p.page.replace(/^https:\/\//, '').replace(/\/$/, '')));
       setHTML(el.status, '<span class="phone-dot is-' + dot + '"></span>' + esc(text));
-      setHTML(el.acts, '<button type="button" tabindex="-1" class="btn is-focus" data-z="act" data-i="0" data-action="alexa.pair.ok"><span>' + T(alexa.phase === 'done' ? 'Done' : alexa.phase === 'failed' ? 'Try again' : 'Close') + '</span></button>');
+      setHTML(el.acts, '<button type="button" tabindex="-1" class="btn is-focus" data-z="act" data-i="0" data-action="pair.ok"><span>' + T(st.phase === 'done' ? 'Done' : st.phase === 'failed' ? 'Try again' : 'Close') + '</span></button>');
     },
     alexalist: function (t, el) {
       var rows = alexaRows(t), words = alexaListText(t), html = '', i, r, sub;
       setHTML(el.title, esc(words[0]));
-      sub = LIST_NEEDS_DEVICES[t.mode] && alexa.loading && !alexa.list ? T('Loading your Alexa devices…') : alexa.listErr && LIST_NEEDS_DEVICES[t.mode] ? alexaErrText(alexa.listErr) : words[1];
+      sub = LIST_NEEDS_DEVICES[t.mode] && alexaOn() && alexa.loading && !alexa.list ? T('Loading your Alexa devices…') : alexa.listErr && LIST_NEEDS_DEVICES[t.mode] ? alexaErrText(alexa.listErr) : words[1];
       setHTML(el.sub, esc(sub));
       if (t.f.i < t.top) t.top = t.f.i;
       if (t.f.i > t.top + ALEXA_VISIBLE - 1) t.top = t.f.i - ALEXA_VISIBLE + 1;
@@ -2817,8 +2934,9 @@
     if (code === 9) { ev.preventDefault(); return; }
     if (!k || ev.metaKey || ev.ctrlKey || ev.altKey) return;
     ev.preventDefault();
-    if (k === 'ok' || k === 'back' || COLOURS.indexOf(k) >= 0) { if (ev.repeat || heldKeys[code]) return; heldKeys[code] = true; }
+    if (k === 'ok' || k === 'back' || COLOURS.indexOf(k) >= 0 || MEDIA[k]) { if (ev.repeat || heldKeys[code]) return; heldKeys[code] = true; }
     if (COLOURS.indexOf(k) >= 0) { if (top().id !== 'wifitype') colourKey(k); return; }
+    if (MEDIA[k]) { if (top().id !== 'wifitype') spotifyKey(MEDIA[k]); return; }
     press(k);
   });
   document.addEventListener('keyup', function (ev) { delete heldKeys[ev.keyCode]; });
@@ -2827,10 +2945,10 @@
   document.addEventListener('visibilitychange', function () {
     heldKeys = {};
     if (document.hidden) {
-      pauseRotation(); clearTimeout(clockTimer); stopRelay(); syncVideo(); clearTimeout(alexa.timer); alexa.timer = null;
+      pauseRotation(); clearTimeout(clockTimer); stopRelay(); syncVideo(); clearTimeout(alexa.timer); alexa.timer = null; clearTimeout(spot.timer); spot.timer = null;
       if (S.hdmiInApp) { S.hdmiInApp = false; if (FrameDevice.hideHdmiView) FrameDevice.hideHdmiView(); }
     }
-    else { release(); after(); updateClock(); focusStage(); startRelay(); alexaPoll(true); }
+    else { release(); after(); updateClock(); focusStage(); startRelay(); alexaPoll(true); spotifyPoll(true); }
   });
   window.addEventListener('resize', fit);
   if (wifiQrEl) wifiQrEl.addEventListener('click', function () {
@@ -2889,7 +3007,7 @@
     setLook({}, { transient: true, startup: true });
     norm(); render(); fit(); focusStage(); updateClock(); syncRotation();
     refreshWeather(function () { render(); syncRotation(); });
-    alexaPoll(true);
+    alexaPoll(true); spotifyPoll(true);
   }
   if (FCW && S.c.customAt) { FCW.persist(); loadCustom(function () { start(); startRelay(); }); } else { start(); startRelay(); }
 })();

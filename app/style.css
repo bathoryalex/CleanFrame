@@ -762,3 +762,17 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000}
 .detail-alexa .setting-label{margin-bottom:6px;font-size:24px;line-height:30px}
 .detail-alexa .setting-copy{min-width:0}
 .quiet-utils .u-compact .u-label{display:none}
+/* Spotify: what is playing, under the clock (and the date). */
+.cap-music{display:flex;align-items:center;gap:18px;margin-top:10px;max-width:900px;text-shadow:0 1px 3px rgba(0,0,0,.22)}
+.music-art{flex:none;width:64px;height:64px;border-radius:12px;object-fit:cover;box-shadow:0 6px 18px rgba(4,8,10,.3)}
+.music-art-empty{display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.12)}
+.music-art-empty .ico{width:32px;height:32px;stroke-width:1.7}
+.music-text{display:flex;flex-direction:column;min-width:0}
+.music-title{display:flex;align-items:center;gap:10px;font-size:32px;line-height:40px;font-weight:500;letter-spacing:-.4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.music-artist{font-size:26px;line-height:32px;opacity:.75;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.music-paused{flex:none;width:26px;height:26px;stroke-width:2.4}
+.cap-music.is-paused{opacity:.7}
+.has-clock-ink .cap-music,.has-adaptive-ink .cap-music{color:var(--tl-clock-ink,var(--tl-ink,var(--clock-ink,var(--ink))))}
+.clock-big .cap-music{justify-content:center;margin-left:auto;margin-right:auto}
+
+.stage.l-dock.clock-big .cap-music{position:relative;text-align:left}

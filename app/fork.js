@@ -29,6 +29,9 @@ window.FrameFork = {
   sendPage: 'https://bathoryalex.github.io/CleanFrame/send/',
   /* The Alexa QR code opens this sign-in page (docs/alexa/). Leave it empty to hide the Alexa card. */
   alexaPage: 'https://bathoryalex.github.io/CleanFrame/alexa/',
+  /* Spotify app from developer.spotify.com (Authorization Code with PKCE; the client id is public,
+     there is no secret). `page` must be listed as a Redirect URI in that app. Empty clientId hides Spotify. */
+  spotify: { clientId: '46baaffd46624e648beec0c38bc3d070', page: 'https://bathoryalex.github.io/CleanFrame/spotify/' },
 
   /* Shown beside the clock. Coordinates only; Open-Meteo needs no key. */
   weather: { name: 'Budapest', latitude: 47.4979, longitude: 19.0402 }

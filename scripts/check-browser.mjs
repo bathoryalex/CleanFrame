@@ -106,6 +106,7 @@ async function page(options = {}) {
     const url = route.request().url(), relay = current.__relay;
     const list = relay ? relay.messages || [{ id: relay.id, image: relay.image, type: relay.type, name: relay.name }] : [];
     if (url.includes('/file/')) { const m = list.find(x => url.includes('/file/' + x.id + '.')); return m ? route.fulfill({ contentType: m.type || 'image/jpeg', headers: { 'Access-Control-Allow-Origin': '*' }, body: m.slice ? readFileSync(root + m.image).subarray(m.slice[0], m.slice[1]) : readFileSync(root + m.image) }) : route.fulfill({ status: 404 }); }
+    if (url.includes('/framehome-spotify-')) return route.fulfill({ contentType: 'application/x-ndjson', headers: { 'Access-Control-Allow-Origin': '*' }, body: current.__spotify && current.__spotify.code ? JSON.stringify({ id: 's1', event: 'message', message: JSON.stringify({ code: 'SPcode123' }) }) + '\n' : '' });
     if (url.includes('/framehome-alexa-')) return route.fulfill({ contentType: 'application/x-ndjson', headers: { 'Access-Control-Allow-Origin': '*' }, body: current.__alexa && current.__alexa.code ? JSON.stringify({ id: 'a1', event: 'message', message: JSON.stringify({ code: 'ANtestCode123', domain: 'com' }) }) + '\n' : '' });
     const open = url.includes('poll=1') ? '' : JSON.stringify({ event: 'open' }) + '\n';
     const body = open + (relay && relay.ready() ? list.map(m => JSON.stringify({ id: m.id, time: 1, event: 'message', topic: 't', message: 'photo', tags: m.tags, title: m.title, attachment: { name: m.name || 'IMG_0001.jpg', type: m.type || 'image/jpeg', size: 1, url: 'https://ntfy.sh/file/' + m.id + '.jpg' } }) + '\n').join('') : '');
@@ -147,6 +148,27 @@ async function page(options = {}) {
     }
     return route.fulfill({ status: 400, headers: amazon, body: '' });
   });
+  // Spotify: token endpoint and the player API, answered locally.
+  current.__spotify = { code: false, tokens: [], calls: [], playing: true, refuse: '' };
+  const sp = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'content-type, authorization', 'Access-Control-Allow-Methods': 'GET, POST, PUT' };
+  await current.route('https://accounts.spotify.com/**', route => {
+    const r = route.request();
+    if (r.method() === 'OPTIONS') return route.fulfill({ status: 204, headers: sp });
+    current.__spotify.tokens.push(Object.fromEntries(new URLSearchParams(r.postData())));
+    return route.fulfill({ headers: sp, contentType: 'application/json', body: JSON.stringify({ access_token: 'BQtest', refresh_token: 'AQtest', expires_in: 3600, token_type: 'Bearer' }) });
+  });
+  await current.route('https://api.spotify.com/**', route => {
+    const r = route.request(), Q = current.__spotify, path = new URL(r.url()).pathname;
+    if (r.method() === 'OPTIONS') return route.fulfill({ status: 204, headers: sp });
+    if (r.headers()['authorization'] !== 'Bearer BQtest') return route.fulfill({ status: 401, headers: sp, contentType: 'application/json', body: '{"error":{"status":401}}' });
+    if (r.method() === 'GET') return route.fulfill({ headers: sp, contentType: 'application/json', body: JSON.stringify({ is_playing: Q.playing, device: { name: 'Echo Dot Max' },
+      item: { id: 't1', name: 'Song A', artists: [{ name: 'Artist A' }, { name: 'Guest B' }], album: { images: [{ url: 'https://i.scdn.co/image/big', width: 640 }, { url: 'https://i.scdn.co/image/small', width: 64 }] } } }) });
+    Q.calls.push(r.method() + ' ' + path);
+    if (Q.refuse) return route.fulfill({ status: 403, headers: sp, contentType: 'application/json', body: JSON.stringify({ error: { status: 403, message: 'Player command failed: Premium required', reason: Q.refuse } }) });
+    if (path.endsWith('/pause')) Q.playing = false; if (path.endsWith('/play')) Q.playing = true;
+    return route.fulfill({ status: 204, headers: sp, body: '' });
+  });
+  await current.route('https://i.scdn.co/**', route => route.fulfill({ contentType: 'image/jpeg', body: readFileSync(root + 'scripts/fixtures/still-red.jpg') }));
   // The weather caption is optional; answer it locally so checks never leave the machine.
   await current.route('https://api.open-meteo.com/**', route => route.fulfill({ contentType: 'application/json',
     body: JSON.stringify({ current: { temperature_2m: 12, weather_code: 2, is_day: 1 }, daily: { temperature_2m_max: [15], temperature_2m_min: [7] } }) }));
@@ -462,10 +484,11 @@ try {
   await run('Alexa: phone sign-in, readings, switches, groups and colour buttons', async () => {
     await page(); await scene('settings');
     const cards = await current.evaluate(() => [...document.querySelectorAll('.settings-card')].map(e => { return { id: e.getAttribute('data-id'), left: e.offsetLeft, top: e.offsetTop, bottom: e.offsetTop + e.offsetHeight + e.offsetParent.getBoundingClientRect().top }; }));
-    check('Settings shows nine cards in a 3 x 3 grid, Alexa before Samsung Home', cards.length === 9 && cards[7].id === 'alexa' && cards[8].id === 'samsung' && new Set(cards.map(c => c.left)).size === 3 && new Set(cards.map(c => c.top)).size === 3 && cards.every(c => c.bottom <= 1000), cards);
+    check('Settings shows nine cards in a 3 x 3 grid, Connections before Samsung Home', cards.length === 9 && cards[7].id === 'connections' && cards[8].id === 'samsung' && new Set(cards.map(c => c.left)).size === 3 && new Set(cards.map(c => c.top)).size === 3 && cards.every(c => c.bottom <= 1000), cards);
     await nav('down', 'down', 'right', 'right');
     check('Arrows move through the 3 x 3 grid', await current.evaluate(() => document.querySelector('.settings-card.is-focus').getAttribute('data-id')) === 'samsung');
-    await act('settings.group.alexa'); await current.waitForFunction(() => ShoreQA.state().settingsGroup === 'alexa');
+    await act('settings.group.connections'); await current.waitForFunction(() => ShoreQA.state().settingsGroup === 'connections');
+    await act('conn.alexa'); await current.waitForFunction(() => ShoreQA.state().settingsGroup === 'alexa');
     await act('alexa.connect');
     await current.waitForFunction(() => document.querySelector('.phone-qr') && document.querySelector('.phone-qr')._payload);
     const url = await current.evaluate(() => document.querySelector('.phone-qr')._payload);
@@ -524,14 +547,78 @@ try {
     await current.waitForFunction(() => /Piano lamp · On/.test(document.getElementById('alexaToast').textContent));
     check('The green remote button turns the piano lamp on', current.__alexa.sets[2][0].endpointId === 'amzn1.alexa.endpoint.lamp-3' && current.__alexa.sets[2][0].featureOperationName === 'turnOn');
     await current.evaluate(() => document.dispatchEvent(new KeyboardEvent('keydown', { keyCode: 403, bubbles: true })));
-    check('An unassigned colour button says how to assign it', /Red button/.test(await current.locator('#alexaToast').textContent()) && current.__alexa.sets.length === 3);
-    await group('alexa'); await act('alexa.signout');
+    check('An unassigned colour button says how to assign it', /Red button.*Connections/.test(await current.locator('#alexaToast').textContent()) && current.__alexa.sets.length === 3);
+    await group('connections'); await act('conn.alexa'); await act('alexa.signout');
     await current.waitForFunction(() => ShoreQA.where().view === 'message');
     await act('message.alexaout');
     const out = await stored();
     check('Sign out forgets the sign-in, readings, switches and buttons', !out.alexaReadings.length && !out.alexaSwitches.length && !out.alexaKeys.green && await current.evaluate(() => !localStorage.getItem('cleanframe.alexa.v1')));
     await scene('home');
     check('Home has no Alexa values after sign-out', await current.evaluate(() => !document.querySelector('.weather.indoor') && !document.querySelector('[data-action^="util.sw"]')));
+  });
+  await run('Spotify: phone sign-in, now playing and the remote', async () => {
+    await page(); await group('connections');
+    check('Connections lists Alexa and Spotify', same(await current.evaluate(() => [...document.querySelectorAll('[data-action^="conn."]')].map(e => e.getAttribute('data-action'))), ['conn.alexa', 'conn.spotify']));
+    await act('conn.spotify'); await current.waitForFunction(() => ShoreQA.state().settingsGroup === 'spotify');
+    check('Spotify settings go back to Connections', /Connections|Kapcsolatok/.test(await current.locator('.setting-back').first().textContent()));
+    await act('spotify.connect');
+    await current.waitForFunction(() => document.querySelector('.phone-qr') && document.querySelector('.phone-qr')._payload);
+    const url = await current.evaluate(() => document.querySelector('.phone-qr')._payload), frag = new URLSearchParams(url.split('#')[1]);
+    check('The QR code opens the Spotify page with a channel, a challenge and the client id', url.startsWith('https://bathoryalex.github.io/CleanFrame/spotify/#t=framehome-spotify-') && /^[A-Za-z0-9_-]{43}$/.test(frag.get('c')) && frag.get('i') === '46baaffd46624e648beec0c38bc3d070', url);
+    current.__spotify.code = true;
+    await current.waitForFunction(() => /Connected|Csatlakoztatva/.test(document.querySelector('.phone-status').textContent), null, { timeout: 15000 });
+    const tok = current.__spotify.tokens[0];
+    check('The code is exchanged with the verifier, the redirect URI and no secret', tok.grant_type === 'authorization_code' && tok.code === 'SPcode123' && tok.redirect_uri === 'https://bathoryalex.github.io/CleanFrame/spotify/'
+      && tok.client_id === '46baaffd46624e648beec0c38bc3d070' && createHash('sha256').update(tok.code_verifier).digest('base64url') === frag.get('c') && !tok.client_secret, tok);
+    check('Tokens are stored apart from the preferences', await current.evaluate(() => /AQtest/.test(localStorage.getItem('cleanframe.spotify.v1') || '') && !/AQtest/.test(localStorage.getItem('cleanframe.home.v1'))));
+    await nav('ok');
+    check('Done returns to the Spotify settings', (await state()).settingsGroup === 'spotify');
+    await scene('home');
+    await current.waitForFunction(() => document.querySelector('.cap-music'));
+    check('Home shows the song, the artists and the small cover', await current.evaluate(() => { const m = document.querySelector('.cap-music'); return /Song A/.test(m.querySelector('.music-title').textContent) && m.querySelector('.music-artist').textContent === 'Artist A, Guest B' && /\/small$/.test(m.querySelector('.music-art').src); }));
+    const key = code => current.evaluate(c => { document.dispatchEvent(new KeyboardEvent('keydown', { keyCode: c, bubbles: true })); document.dispatchEvent(new KeyboardEvent('keyup', { keyCode: c, bubbles: true })); }, code);
+    await key(10252);
+    await current.waitForFunction(() => document.querySelector('.cap-music.is-paused') && /Paused|Szünet/.test(document.getElementById('alexaToast').textContent));
+    check('Play/Pause pauses', current.__spotify.calls[0] === 'PUT /v1/me/player/pause');
+    await current.waitForTimeout(100); await key(10252);
+    await current.waitForFunction(() => document.querySelector('.cap-music.is-playing') && /Playing|Lejátszás/.test(document.getElementById('alexaToast').textContent));
+    check('Play/Pause again plays', current.__spotify.calls[1] === 'PUT /v1/me/player/play');
+    await key(417); await current.waitForFunction(() => /Next track|Következő/.test(document.getElementById('alexaToast').textContent));
+    check('Fast-forward skips to the next track', current.__spotify.calls[2] === 'POST /v1/me/player/next');
+    await group('connections'); await act('conn.spotify'); await act('alexa.list.keys'); await act('alexa.row.3');
+    const rows = await current.evaluate(() => [...document.querySelectorAll('.alexa-row')].map(e => e.textContent));
+    await act('alexa.row.' + rows.findIndex(t => /previous track|előző/.test(t)));
+    check('A colour button can skip back, even without Alexa', (await stored()).alexaKeys.blue.id === 'spotify:prev', rows);
+    await scene('home'); await key(406);
+    await current.waitForFunction(() => /Previous track|Előző/.test(document.getElementById('alexaToast').textContent));
+    check('The blue button goes to the previous track', current.__spotify.calls[3] === 'POST /v1/me/player/previous');
+    current.__spotify.refuse = 'PREMIUM_REQUIRED'; current.__expectedFailures.push('api.spotify.com/v1/me/player/pause');
+    await current.waitForTimeout(100); await key(10252);
+    await current.waitForFunction(() => /Premium/.test(document.getElementById('alexaToast').textContent));
+    check('Without Premium the remote says so and the state reverts', await current.evaluate(() => !!document.querySelector('.cap-music.is-playing')));
+    await group('connections'); await act('conn.spotify'); await act('choice.spotifyShow.off');
+    await scene('home');
+    check('Now playing can be hidden', await current.evaluate(() => !document.querySelector('.cap-music')));
+    await group('connections'); await act('conn.spotify'); await act('spotify.signout');
+    await current.waitForFunction(() => ShoreQA.where().view === 'message');
+    await act('message.spotifyout');
+    check('Sign out forgets the tokens and the Spotify colour button', await current.evaluate(() => !localStorage.getItem('cleanframe.spotify.v1')) && !(await stored()).alexaKeys.blue);
+  });
+  await run('Spotify phone page sends the code back to the TV', async () => {
+    const phone = await preview.browser.newPage({ viewport: { width: 390, height: 844 } }), posts = [];
+    await phone.route('https://ntfy.sh/**', async route => { const r = route.request(); posts.push({ url: r.url(), body: r.postData(), tags: r.headers()['tags'] }); await route.fulfill({ status: 200, headers: { 'Access-Control-Allow-Origin': '*' }, body: '{}' }); });
+    const pageUrl = 'file://' + root + 'docs/spotify/index.html', topic = 'framehome-spotify-abcdefghijklmnopqrst', challenge = 'A'.repeat(43);
+    try {
+      await phone.goto(pageUrl + '#t=' + topic + '&c=' + challenge + '&i=46baaffd46624e648beec0c38bc3d070');
+      const go = new URL(await phone.getAttribute('#go', 'href'));
+      check('The sign-in link asks Spotify for a PKCE code with the TV channel as state', go.origin + go.pathname === 'https://accounts.spotify.com/authorize' && go.searchParams.get('code_challenge') === challenge
+        && go.searchParams.get('code_challenge_method') === 'S256' && go.searchParams.get('state') === topic && go.searchParams.get('response_type') === 'code' && /user-modify-playback-state/.test(go.searchParams.get('scope')));
+      await phone.goto(pageUrl + '?code=AQcode-123_x&state=' + topic);
+      await phone.waitForFunction(() => /Done|Kész/.test(document.getElementById('status').textContent));
+      check('Back from Spotify the page posts only the code to the channel', posts.length === 1 && posts[0].url === 'https://ntfy.sh/' + topic && posts[0].body === '{"code":"AQcode-123_x"}', posts);
+      await phone.goto(pageUrl + '?code=AQcode&state=someone-else');
+      check('A code for another channel is not sent', posts.length === 1 && /not from Frame Home|nem a Frame Home/.test(await phone.textContent('#status')));
+    } finally { await phone.close(); }
   });
   await run('Alexa: 0.13 choices carry over', async () => {
     await page({ seed: baseline({ alexaTemp: 'amzn1.alexa.endpoint.temp-1', alexaTempName: 'TIMMERFLOTTE', alexaLamp: 'amzn1.alexa.endpoint.lamp-1', alexaLampName: 'Left lamp' }) });

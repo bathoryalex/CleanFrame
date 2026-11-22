@@ -21,8 +21,9 @@ This repo uses [Nathan Clark's CleanFrame](https://github.com/nthnclrk/CleanFram
 - **Clock, date and weather.** 24- or 12-hour clock, in the corner or large in the centre. An optional date ("15 November", or "November 15" in Hungarian). Weather from [Open-Meteo](https://open-meteo.com): an icon, the temperature and today's high and low.
 - **Backgrounds.** A photograph, light or dark. Seventeen bundled wallpapers with pre-rendered glass, optional rotation, and **Your picture**: send any photo or short looping video from your phone and it becomes the background (see below).
 - **Wi‑Fi QR.** A Home control that shows a QR code so guests can join your Wi‑Fi. The network name and password are entered on the TV and never leave it.
+- **Spotify.** What is playing on any of your Spotify devices, with the cover, under the clock. The remote's Play/Pause button plays or pauses, Fast-forward and Rewind skip, and a colour button can skip too (see below).
 - **Alexa.** Up to three readings (temperature, humidity) beside the clock, up to four light switches among the Home controls, named groups of lights, and the remote's red, green, yellow and blue buttons assigned to a light or a group. Works with any device in your Alexa app, including Matter devices paired to an Echo (see below).
-- **Settings.** A grid of cards, made for arrow keys. Each group (Background, Layout, Typography, Focus, Apps on Home, Language and clock, Wi‑Fi QR, Alexa) shows its choices beside a live Home preview. The last card opens Samsung's Home screen.
+- **Settings.** A grid of cards, made for arrow keys. Each group (Background, Layout, Typography, Focus, Apps on Home, Language and clock, Wi‑Fi QR, Connections for Alexa and Spotify) shows its choices beside a live Home preview. The last card opens Samsung's Home screen.
 - **English or Hungarian** interface, switchable at any time.
 
 The glass and blur are rendered ahead of time. The TV loads the finished images and uses transforms and opacity for focus feedback; nothing is blurred live while you navigate.
@@ -41,7 +42,7 @@ A **video** (MP4 with H.264 works best; up to 16 MB in original quality) plays m
 
 ## Alexa
 
-Settings → **Alexa** → **Connect Alexa** shows a QR code. Scan it, sign in on Amazon's own page in the phone's browser, then copy the address of the empty page Amazon lands on and paste it into the [sign-in page](docs/alexa/index.html) (GitHub Pages), which sends it to the TV. Then, in Settings → Alexa:
+Settings → **Connections** → **Alexa** → **Connect Alexa** shows a QR code. Scan it, sign in on Amazon's own page in the phone's browser, then copy the address of the empty page Amazon lands on and paste it into the [sign-in page](docs/alexa/index.html) (GitHub Pages), which sends it to the TV. Then, in Settings → Alexa:
 
 - **Readings**: up to three values shown beside the weather, for example a sensor's temperature and humidity. Humidity and other values come from Alexa range features; their name and unit are read from Alexa.
 - **Switches**: up to four lights or groups among the Home controls, before Wi‑Fi. OK switches; the icon lights up while it is on. With three or more, the switches show icons only and the focus label names them.
@@ -58,9 +59,18 @@ How it works, and what to know:
 - **On the TV.** The TV registers itself as a device in your Amazon account ("…'s Frame Home") and keeps a refresh token in its own storage, separate from the preferences. Requests use `Authorization: Bearer`; the TV runtime does not allow a hand-set `Cookie` header. **Sign out of Alexa** forgets the token; remove the device in your Amazon account to revoke it.
 - `tools/alexa-check/` is the diagnostic app that established which requests the TV runtime allows.
 
+## Spotify
+
+Settings → **Connections** → **Spotify** → **Connect Spotify** shows a QR code. Scan it, tap **Sign in with Spotify** on the [sign-in page](docs/spotify/index.html), sign in and allow access; Spotify returns to the page, which sends the sign-in to the TV by itself.
+
+- **Now playing** sits under the clock: the cover, the title and the artists, dimmed with a pause mark while paused. It refreshes every 10 seconds while music plays and every 30 seconds otherwise, and it can be turned off.
+- **Remote:** Play/Pause plays or pauses; Fast-forward and Rewind (or Next and Previous, where the remote has them) skip. Colour buttons can also be set to play/pause, next or previous track (Settings → Connections → Spotify → Colour buttons). Controlling playback needs Spotify Premium.
+- It uses the official [Spotify Web API](https://developer.spotify.com/documentation/web-api) with Authorization Code and PKCE, so there is no client secret. The app is registered at developer.spotify.com by the owner of this fork; its client id and the redirect URI (`https://bathoryalex.github.io/CleanFrame/spotify/`) are in [`app/fork.js`](app/fork.js). Since February 2026 a Development Mode app needs its owner to have Premium and allows five users.
+- The code Spotify returns travels to the TV through ntfy.sh and is useless without the PKCE verifier that stays on the TV. Tokens are kept on the TV, apart from the preferences; **Sign out of Spotify** forgets them, and the access can be removed in your Spotify account settings.
+
 ## Configure
 
-[`app/fork.js`](app/fork.js) is the one place for this installation's settings: the Home row (with HDMI inputs and alternative app IDs), the app's own ID, the weather location, the picture relay and the Alexa sign-in page (`alexaPage`; empty hides the Alexa card). Interface text lives in `app/main.js` with Hungarian translations in [`app/assets/i18n.js`](app/assets/i18n.js).
+[`app/fork.js`](app/fork.js) is the one place for this installation's settings: the Home row (with HDMI inputs and alternative app IDs), the app's own ID, the weather location, the picture relay, the Alexa sign-in page (`alexaPage`) and the Spotify app (`spotify.clientId`, `spotify.page`); empty values hide them. Interface text lives in `app/main.js` with Hungarian translations in [`app/assets/i18n.js`](app/assets/i18n.js).
 
 ## Try the interface
 
