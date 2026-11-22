@@ -4,14 +4,14 @@
 
   /* ---------- Bundled data ---------- */
   var ASSETS = 'assets/', ICONS = ASSETS + 'icons/', WP = ASSETS + 'wallpapers/';
-  var APP_VERSION = '0.19.0';
+  var APP_VERSION = '0.20.0';
   var CAP = 9, SCRIM_Y = 560, DOCK_BOTTOM = 1032; // the Dock sits 48 px above the bottom edge; names and actions go above it
-  var DOCK_MODES = { both: { tw: 288, th: 200, pitch: 296 }, text: { tw: 288, th: 104, pitch: 296 }, icons: { tw: 180, th: 176, pitch: 188 } }; // icons-only tiles leave room under the icon for the focused app's name
+  var DOCK_MODES = { both: { tw: 288, th: 200, pitch: 296 }, text: { tw: 288, th: 104, pitch: 296 }, icons: { tw: 200, th: 156, pitch: 206 } }; // icons-only tiles leave room under the icon for the focused app's name
   var GRID_ROW = 240, GRID_COL = 344, COLS = 5;
   var ED_ROW = 80, ED_SEP = 56, ED_VIEW = 752, STRIP_PITCH = 188;
   var PH_TOP = 220, PH_PITCH = 128, PH_FULL = 5, PH_HEIGHT = 944, PH_COMPACT_TOP = 144, PH_COMPACT_PITCH = 88, PH_COMPACT_VISIBLE = 9;
   var WALL_VISIBLE = 6, WALL_ROW = 92, WALL_DELAY = 200;
-  var KEYS = { 37: 'left', 38: 'up', 39: 'right', 40: 'down', 13: 'ok', 27: 'back', 8: 'back', 10009: 'back', 461: 'back', 403: 'red', 404: 'green', 405: 'yellow', 406: 'blue',
+  var KEYS = { 37: 'left', 38: 'up', 39: 'right', 40: 'down', 13: 'ok', 27: 'back', 8: 'back', 10009: 'back', 461: 'back', 403: 'red', 404: 'green', 405: 'yellow', 406: 'blue', 427: 'chup', 428: 'chdown', 458: 'guide',
     10252: 'playpause', 179: 'playpause', 415: 'play', 19: 'pause', 417: 'ffwd', 412: 'rew', 10233: 'tracknext', 176: 'tracknext', 10232: 'trackprev', 177: 'trackprev' };
   var FULL = 'Home holds nine apps. Remove one first.', LAST = 'Home needs one app';
 
@@ -31,7 +31,7 @@
   }
   window.FrameText = T;
   /* Saved preferences outside the appearance bundle: they apply at once and load nothing. */
-  var PREF_VALUES = { lang: ['en', 'hu'], clock: ['24', '12'], date: ['off', 'on'], clockPos: ['corner', 'center', 'large'], weather: ['off', 'now', 'day'], spotifyShow: ['on', 'off'], keyHints: ['top', 'always', 'off'], switchStyle: ['both', 'icons', 'text'] };
+  var PREF_VALUES = { lang: ['en', 'hu'], clock: ['24', '12'], date: ['off', 'on'], clockPos: ['corner', 'center', 'large'], weather: ['off', 'now', 'day'], spotifyShow: ['on', 'off'], keyHints: ['auto', 'always', 'off'], switchStyle: ['both', 'icons', 'text'] };
   var PREF_NAMES = { en: 'English', hu: 'Magyar', '24': '24-hour', '12': '12-hour', corner: 'Corner', center: 'Centre', large: 'Large', off: 'Off', on: 'On', now: 'Basic', day: 'Full', both: 'Both', icons: 'Icons', text: 'Text' };
   WALLS.forEach(function (w) { w.ut = w.ut || { tr: 'light', br: 'light' }; w.frostVeil = w.frostVeil || .12; });
   var MODES = [
@@ -401,8 +401,6 @@
     return width;
   }
   function dockLabelSize(id) { return S.c.apps === 'text' ? (textWidth(app(id).name, 40, 600, -.8, 'primary') > 264 ? 34 : 40) : textWidth(app(id).name, 36, 500, -.8, 'primary') > 280 ? 32 : 36; }
-  /* The focused name must fit inside its 180 px tile: 24 px when it can, down to 18 px, then an ellipsis. */
-  function iconNameSize(name) { var w = textWidth(name, 24, 600, -.3, 'primary'); return w <= 160 ? 24 : Math.max(18, Math.floor(24 * 160 / w)); }
   function reducedDockLabel(id) { return S.c.apps !== 'icons' && dockLabelSize(id) === (S.c.apps === 'text' ? 34 : 32); }
   function actionWidth(text) { return clamp(Math.ceil(textWidth(text, 30, 500, -.3) + 40), 288, 400); }
   function photoLabel(id, compact) {
@@ -448,7 +446,7 @@
   function safeId(id) { return typeof id === 'string' && /^[A-Za-z0-9][A-Za-z0-9._-]{0,160}$/.test(id) && ['constructor', 'prototype', '__proto__'].indexOf(id) < 0; }
   function endpointId(id) { return typeof id === 'string' && /^[A-Za-z0-9][A-Za-z0-9._:#@-]{0,200}$/.test(id); }
   function prefText(v, n) { return typeof v === 'string' ? v.slice(0, n) : ''; }
-  function prefTarget(t) { return t && typeof t === 'object' && (endpointId(t.id) || /^group:g[a-z0-9]{1,16}$/.test(t.id) || /^spotify:(toggle|next|prev)$/.test(t.id)) ? { id: t.id, name: prefText(t.name, 80) } : null; }
+  function prefTarget(t) { return t && typeof t === 'object' && (endpointId(t.id) || /^group:g[a-z0-9]{1,16}$/.test(t.id) || /^spotify:(toggle|next|prev)$/.test(t.id) || /^app:[A-Za-z0-9][A-Za-z0-9._-]{0,160}$/.test(t.id)) ? { id: t.id, name: prefText(t.name, 80) } : null; }
   /* 0.13 kept one sensor and one light; they become the first reading and switch. */
   function cleanReadings(s) {
     var list = Array.isArray(s.alexaReadings) ? s.alexaReadings : endpointId(s.alexaTemp) ? [{ id: s.alexaTemp, key: 'temp', name: s.alexaTempName, label: 'Temperature' }] : [];
@@ -457,13 +455,13 @@
   }
   function cleanSwitches(s) {
     var list = Array.isArray(s.alexaSwitches) ? s.alexaSwitches : endpointId(s.alexaLamp) ? [{ id: s.alexaLamp, name: s.alexaLampName }] : [];
-    return list.map(prefTarget).filter(function (t) { return t && !/^spotify:/.test(t.id); }).slice(0, 4);
+    return list.map(prefTarget).filter(function (t) { return t && !/^(spotify|app):/.test(t.id); }).slice(0, 4);
   }
   function cleanGroups(list) {
     return (Array.isArray(list) ? list : []).filter(function (g) { return g && /^g[a-z0-9]{1,16}$/.test(g.id) && typeof g.name === 'string' && g.name.trim(); }).slice(0, 12)
       .map(function (g) { return { id: g.id, name: g.name.slice(0, 24), members: (Array.isArray(g.members) ? g.members : []).map(prefTarget).filter(function (m) { return m && endpointId(m.id); }).slice(0, 20) }; });
   }
-  function cleanKeys(k) { var out = {}; ['red', 'green', 'yellow', 'blue'].forEach(function (c) { out[c] = k && typeof k === 'object' ? prefTarget(k[c]) : null; }); return out; }
+  function cleanKeys(k) { var out = {}; ['red', 'green', 'yellow', 'blue', 'chup', 'chdown', 'guide'].forEach(function (c) { out[c] = k && typeof k === 'object' ? prefTarget(k[c]) : null; }); return out; }
   function safeIcon(path) { return typeof path === 'string' && path.length < 2048 && /^(?:\/[^\/]|file:\/\/\/|wgt-package:\/\/\/)/.test(path) ? path : ''; }
   function load() {
     var keys = [KEY, 'cleanframe.shore.v1'], raw, saved, i;
@@ -505,7 +503,7 @@
       customAt: typeof s.customAt === 'number' && wall(CUSTOM) ? s.customAt : 0, customTone: s.customTone === 'light' ? 'light' : 'dark',
       relayTopic: safeId(s.relayTopic) ? s.relayTopic : '', relayAt: typeof s.relayAt === 'number' ? s.relayAt : 0, relaySince: safeId(s.relaySince) ? s.relaySince : '',
       alexaReadings: cleanReadings(s), alexaSwitches: cleanSwitches(s), alexaGroups: cleanGroups(s.alexaGroups), alexaKeys: cleanKeys(s.alexaKeys),
-      spotifyShow: pick(s.spotifyShow, PREF_VALUES.spotifyShow, 'on'), keyHints: pick(s.keyHints === 'on' ? 'top' : s.keyHints, PREF_VALUES.keyHints, 'top'), switchStyle: pick(s.switchStyle, PREF_VALUES.switchStyle, 'both')
+      spotifyShow: pick(s.spotifyShow, PREF_VALUES.spotifyShow, 'on'), keyHints: pick(s.keyHints === 'on' || s.keyHints === 'top' ? 'auto' : s.keyHints, PREF_VALUES.keyHints, 'auto'), switchStyle: pick(s.switchStyle, PREF_VALUES.switchStyle, 'both')
     };
   }
   function serialise(c) {
@@ -527,7 +525,7 @@
     if (saved && initial.mode === 'open') initial.wall = WALLS[(wallIndex(initial.wall) + 1) % WALLS.length].id;
     // Keep the old schema keys alongside the builder values for in-place updates.
     try { localStorage.setItem(KEY, JSON.stringify(serialise(initial))); S.c = initial; storageOk = true; } catch (e) { storageOk = false; }
-    registerTvKeys();
+    registerTvKeys(); syncSlotKeys();
     loadWeatherCache();
   }
   function registerTvKeys() {
@@ -1277,8 +1275,19 @@
   /* Everything on Home is a target: an Alexa device id, or 'group:<id>' for a named group of lights.
      Values are read every two minutes while the TV shows Frame Home; nothing runs while hidden. */
   var alexa = { list: null, loading: false, listErr: '', err: '', vals: {}, busy: {}, failed: {}, timer: null, pair: null, phase: 'idle', url: '', detail: '', toast: '', toastTimer: null };
-  var ALEXA_POLL = 2 * 60 * 1000, MAX_READINGS = 3, MAX_SWITCHES = 4, MAX_GROUPS = 12, MAX_MEMBERS = 20;
-  var COLOURS = ['red', 'green', 'yellow', 'blue'], COLOUR_NAMES = { red: 'Red button', green: 'Green button', yellow: 'Yellow button', blue: 'Blue button' };
+  var ALEXA_POLL = 2 * 60 * 1000, ALEXA_SWITCH_POLL = 15000, MAX_READINGS = 3, MAX_SWITCHES = 4, MAX_GROUPS = 12, MAX_MEMBERS = 20;
+  var COLOURS = ['red', 'green', 'yellow', 'blue'], SLOTS = COLOURS.concat(['chup', 'chdown', 'guide']);
+  var COLOUR_NAMES = { red: 'Red button', green: 'Green button', yellow: 'Yellow button', blue: 'Blue button', chup: 'CH +', chdown: 'CH −', guide: 'Guide' };
+  /* CH+, CH− and Guide keep the TV's own function unless something is assigned to them. */
+  var SLOT_KEYS = { chup: 'ChannelUp', chdown: 'ChannelDown', guide: 'Guide' }, slotRegistered = {};
+  function syncSlotKeys() {
+    if (!window.tizen || !tizen.tvinputdevice) return;
+    Object.keys(SLOT_KEYS).forEach(function (slot) {
+      var want = !!S.c.alexaKeys[slot];
+      if (want === !!slotRegistered[slot]) return;
+      try { if (want) tizen.tvinputdevice.registerKey(SLOT_KEYS[slot]); else tizen.tvinputdevice.unregisterKey(SLOT_KEYS[slot]); slotRegistered[slot] = want; } catch (e) { /* not on this TV */ }
+    });
+  }
   var NAME_CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZÁÉÍÓÖŐÚÜŰabcdefghijklmnopqrstuvwxyzáéíóöőúüű0123456789 -\'&+';
   function alexaOn() { return !!(FA && FA.connected()); }
   function alexaErrText(err) { return err === 'revoked' ? T('The Alexa sign-in no longer works. Sign out and connect again.') : T('Can’t reach Alexa ({0}).', err); }
@@ -1288,11 +1297,12 @@
   function isGroup(target) { return /^group:/.test(target); }
   function targetName(t) {
     if (!t) return '';
+    if (/^app:/.test(t.id)) return t.name || t.id.slice(4);
     if (SPOTIFY_ACTIONS[t.id]) return T(SPOTIFY_ACTIONS[t.id]);
     if (isGroup(t.id)) { var g = groupOf(t.id); return g ? g.name : ''; }
     return t.name || '';
   }
-  function targetMembers(id) { var g; if (/^spotify:/.test(id)) return []; if (!isGroup(id)) return [id]; g = groupOf(id); return g ? g.members.map(function (m) { return m.id; }) : []; }
+  function targetMembers(id) { var g; if (/^(spotify|app):/.test(id)) return []; if (!isGroup(id)) return [id]; g = groupOf(id); return g ? g.members.map(function (m) { return m.id; }) : []; }
   /* On when any member is on; null while nothing is known yet. */
   function targetPower(id) {
     var known = false, on = false;
@@ -1308,7 +1318,7 @@
     function add(id) { if (id && ids.indexOf(id) < 0) ids.push(id); }
     S.c.alexaReadings.forEach(function (r) { add(r.id); });
     S.c.alexaSwitches.forEach(function (t) { targetMembers(t.id).forEach(add); });
-    COLOURS.forEach(function (c) { var t = S.c.alexaKeys[c]; if (t) targetMembers(t.id).forEach(add); });
+    SLOTS.forEach(function (c) { var t = S.c.alexaKeys[c]; if (t) targetMembers(t.id).forEach(add); });
     return ids;
   }
   function storeVals(vals) { var id; for (id in vals) if (vals.hasOwnProperty(id) && !alexa.busy[id]) alexa.vals[id] = vals[id]; }
@@ -1323,7 +1333,7 @@
         render();
         if (!alexa.timer) alexaPoll(err === 'revoked' ? 10 * 60 * 1000 : undefined);
       });
-    }, when === true ? 0 : typeof when === 'number' ? when : ALEXA_POLL);
+    }, when === true ? 0 : typeof when === 'number' ? when : liveTargets().length || legendRows().length ? ALEXA_SWITCH_POLL : ALEXA_POLL);
   }
   function showToast(text) {
     alexa.toast = text; clearTimeout(alexa.toastTimer);
@@ -1365,12 +1375,18 @@
       alexaPoll(3000);
     });
   }
+  function slotShort(slot) { return COLOURS.indexOf(slot) >= 0 ? T(slot.charAt(0).toUpperCase() + slot.slice(1)) : T(COLOUR_NAMES[slot]); }
+  /* A remote button: a light or group, a Spotify action, or an app on the TV. */
   function colourKey(colour) {
-    var t = S.c.alexaKeys[colour];
-    showLegend(4000);
-    if (!alexaOn() && !spotifyOn()) return;
+    var t = S.c.alexaKeys[colour], a, appId;
+    if (t) showLegend(5000);
+    if (t && /^app:/.test(t.id)) {
+      appId = t.id.slice(4); a = APPS.filter(function (x) { return x.appId === appId || x.id === appId; })[0];
+      if (a) launch(a.id); else perform(t.name || appId, function (done) { FrameDevice.launchApp(appId, done); });
+      return;
+    }
     if (t && isSpotify(t.id)) { if (spotifyOn()) spotifyKey(t.id.slice(8)); return; }
-    if (!t || !alexaOn() || (isGroup(t.id) && !groupOf(t.id))) { showToast(T('{0} has nothing assigned. Settings → Connections → Colour buttons.', T(COLOUR_NAMES[colour]))); return; }
+    if (!t || !alexaOn() || (isGroup(t.id) && !groupOf(t.id))) { showToast(T('{0} has nothing assigned. Settings → Connections → Remote buttons.', T(COLOUR_NAMES[colour]))); return; }
     toggleTarget(t);
   }
   function switchLabel(t) {
@@ -1392,13 +1408,13 @@
   function alexaSections() {
     if (!alexaOn()) return [{ id: 'alexa-account', title: T('Account'), items: [{ action: 'alexa.connect', label: T('Connect Alexa'), description: T('Sign in on your phone') }],
       reason: T('Unofficial: Frame Home talks to Alexa the way the Alexa app does.') }];
-    var keys = COLOURS.filter(function (c) { return S.c.alexaKeys[c] && targetName(S.c.alexaKeys[c]); }).map(function (c) { return T(c.charAt(0).toUpperCase() + c.slice(1)) + ': ' + targetName(S.c.alexaKeys[c]); });
+    var keys = SLOTS.filter(function (c) { return S.c.alexaKeys[c] && targetName(S.c.alexaKeys[c]); }).map(function (c) { return slotShort(c) + ': ' + targetName(S.c.alexaKeys[c]); });
     return [
       { id: 'alexa-home', title: T('On Home'), items: [
         { action: 'alexa.list.readings', label: T('Readings'), description: summary(S.c.alexaReadings.map(function (r) { return r.name + ' (' + T(r.label) + ')'; }), 'Beside the clock') },
         { action: 'alexa.list.switches', label: T('Switches'), description: summary(liveTargets().map(targetName), 'Beside Wi‑Fi') }] },
       { id: 'alexa-remote', title: T('Remote and groups'), items: [
-        { action: 'alexa.list.keys', label: T('Colour buttons'), description: summary(keys, 'Red, green, yellow and blue') },
+        { action: 'alexa.list.keys', label: T('Remote buttons'), description: summary(keys, 'Red, green, yellow and blue') },
         { action: 'alexa.list.groups', label: T('Groups'), description: S.c.alexaGroups.length ? summary(S.c.alexaGroups.map(function (g) { return g.name; }), '') : T('Switch several lights together') }] },
       { id: 'alexa-account', title: T('Account'), items: [
         { action: 'alexa.list.details', label: T('Device details'), description: T('What Alexa reports for each device') },
@@ -1463,7 +1479,7 @@
   function paintProgress() {
     var n = spot.now, pos, i, els, w;
     if (!n || !n.duration) return;
-    pos = musicPos(n); w = (pos / n.duration * 100).toFixed(2) + '%';
+    pos = seek.at !== null && top().id === 'nowplaying' ? seek.at : musicPos(n); w = (pos / n.duration * 100).toFixed(2) + '%';
     els = document.querySelectorAll('[data-music-pos]');
     for (i = 0; i < els.length; i++) if (els[i].textContent !== fmtTime(pos)) els[i].textContent = fmtTime(pos);
     els = document.querySelectorAll('[data-music-bar]');
@@ -1482,14 +1498,16 @@
   }
   /* Alone in the corner the song shares the top row with the Home controls, so it stops 40 px short of
      them; under the clock it may use up to 760 px. Then long titles scroll. */
+  var MUSIC_W = 570;
   function fitMusic(inCorner) {
-    var box = stage.querySelector('.cap-music'), first = utilsEl.querySelector('.u'), sr, scale, limit = 760;
+    var box = stage.querySelector('.cap-music'), first = utilsEl.querySelector('.u'), sr, scale, limit = MUSIC_W;
     if (!box) return;
     if (inCorner && first && S.c.layout === 'dock') {
       sr = sceneEl.getBoundingClientRect(); scale = sr.width / 1920 || 1;
-      limit = Math.max(320, Math.min(760, Math.floor((first.getBoundingClientRect().left - sr.left) / scale) - 140 - 40));
+      limit = Math.max(320, Math.min(MUSIC_W, Math.floor((first.getBoundingClientRect().left - sr.left) / scale) - 140 - 40));
     }
-    if (box._limit !== limit) { box._limit = limit; box.style.maxWidth = limit + 'px'; }
+    /* Always the same width, whatever the title, so the progress bar keeps its length. */
+    if (box._limit !== limit) { box._limit = limit; box.style.width = limit + 'px'; box.style.maxWidth = limit + 'px'; }
     paintProgress(); marquee(box);
   }
   function mq(text) { return '<span class="mq"><span class="mq-in">' + esc(text) + '</span></span>'; }
@@ -1508,7 +1526,7 @@
     paintProgress();
     if (musicPos(n) >= n.duration && !n.ended) { n.ended = true; spotifyPoll(1500); }
   }, 1000);
-  function openNowPlaying() { push({ id: 'nowplaying', lyrics: false, f: { b: 1 } }); spotifyPoll(true); }
+  function openNowPlaying() { seek.at = null; push({ id: 'nowplaying', lyrics: false, f: { b: 1, row: 'controls' } }); spotifyPoll(true); }
   /* Lyrics: fetched once per song while the Lyrics view is open; synced lines follow the music. */
   var lyr = { key: '', state: 'idle', data: null, err: '', line: -1 };
   function lyricKey(n) { return n ? n.id || n.title + '|' + n.mainArtist : ''; }
@@ -1576,7 +1594,17 @@
   V.nowplaying = {
     sheet: false,
     key: function (t, k) {
+      var n = spot.now;
+      if (t.f.row === 'bar') {
+        /* The progress bar: Left/Right move 10 seconds, the song jumps there once you stop. */
+        if (k === 'back') { seek.at = null; pop(); }
+        else if (k === 'down' || !n || !n.duration) { t.f.row = 'controls'; }
+        else if (k === 'left' || k === 'right') seekBy(n, k === 'left' ? -10000 : 10000);
+        else if (k === 'ok') commitSeek();
+        return;
+      }
       if (k === 'back') pop();
+      else if (k === 'up' && n && n.duration) t.f.row = 'bar';
       else if (k === 'left' && t.f.b > 0) t.f.b--;
       else if (k === 'right' && t.f.b < 3) t.f.b++;
       else if (k === 'ok' && t.f.b === 3) {
@@ -1587,29 +1615,52 @@
       }
       else if (k === 'ok') spotifyKey(['prev', 'toggle', 'next'][t.f.b]);
     },
-    point: function (t, z, i) { if (z === 'np') { t.f.b = i; this.key(t, 'ok'); } }
+    point: function (t, z, i) { if (z === 'np') { t.f.row = 'controls'; t.f.b = i; this.key(t, 'ok'); } else if (z === 'npbar') t.f.row = 'bar'; }
   };
+  var seek = { at: null, timer: null };
+  function seekBy(n, delta) {
+    var from = seek.at !== null ? seek.at : musicPos(n);
+    seek.at = Math.max(0, Math.min(n.duration - 1000, from + delta));
+    clearTimeout(seek.timer); seek.timer = setTimeout(commitSeek, 700);
+    paintProgress();
+  }
+  function commitSeek() {
+    var n = spot.now, to = seek.at;
+    clearTimeout(seek.timer); seek.timer = null;
+    if (to === null || !n) return;
+    FS.control('seek', function (err) {
+      seek.at = null;
+      if (err) showToast(spotifyErrText(err));
+      else { n.progress = to; n.at = Date.now(); n.ended = false; lyr.line = -2; lyr.snap = true; }
+      render(); spotifyPoll(1200);
+    }, to);
+  }
   /* Colour-button legend: bottom left, beside where the remote's colour picker appears. */
   /* The remote's on-screen colour picker does not reach the app (checked with the remote test), so the
      legend shows with the top row, always, or never; a colour key also shows it for four seconds. */
   var legend = { until: 0, timer: null };
   function showLegend(ms) { legend.until = Date.now() + ms; clearTimeout(legend.timer); legend.timer = setTimeout(render, ms + 50); render(); }
-  function keyLegendHtml(hs) {
-    var rows, topRow = hs && (hs.zone === 'util' || hs.zone === 'music');
-    if (S.c.keyHints === 'off' || S.c.layout !== 'dock' || (!alexaOn() && !spotifyOn())) return '';
-    if (S.c.keyHints === 'top' ? !topRow && Date.now() >= legend.until : S.c.keyHints !== 'always') return '';
-    rows = COLOURS.filter(function (c) { var t = S.c.alexaKeys[c]; return t && (isSpotify(t.id) ? spotifyOn() : alexaOn() && targetName(t)); }).map(function (c) {
-      var t = S.c.alexaKeys[c], p = isSpotify(t.id) ? null : targetPower(t.id);
-      return '<span class="legend-row"><span class="key-dot key-' + c + '"></span><span class="legend-name">' + esc(targetName(t)) + '</span>' + (p === null ? '' : '<span class="legend-state' + (p ? ' is-on' : '') + '"></span>') + '</span>';
-    });
-    return rows.join('');
+  function keyBadge(slot) { return COLOURS.indexOf(slot) >= 0 ? '<span class="key-dot key-' + slot + '"></span>' : '<span class="key-text">' + esc({ chup: 'CH+', chdown: 'CH−', guide: 'GUIDE' }[slot]) + '</span>'; }
+  /* The remote's on-screen colour picker does not reach the app, so the legend is a row of chips above
+     the Dock, near where the eye already is: for a few seconds when Home opens and after a button, or
+     always. Only assigned buttons appear. */
+  function legendRows() {
+    return SLOTS.filter(function (c) { var t = S.c.alexaKeys[c]; return t && (/^app:/.test(t.id) || (isSpotify(t.id) ? spotifyOn() : alexaOn() && targetName(t))); });
+  }
+  function legendOn() { return S.c.keyHints === 'always' || S.c.keyHints === 'auto' && Date.now() < legend.until; }
+  function keyLegendHtml() {
+    if (S.c.keyHints === 'off' || S.c.layout !== 'dock') return '';
+    return legendRows().map(function (c) {
+      var t = S.c.alexaKeys[c], p = /^(spotify|app):/.test(t.id) ? null : targetPower(t.id);
+      return '<span class="legend-chip' + (p ? ' is-on' : '') + '">' + keyBadge(c) + '<span class="legend-name">' + esc(targetName(t)) + '</span></span>';
+    }).join('');
   }
   function spotifySections() {
     if (!spotifyOn()) return [{ id: 'spotify-account', title: T('Account'), items: [{ action: 'spotify.connect', label: T('Connect Spotify'), description: T('Sign in on your phone') }],
       reason: T('Shows what is playing on any of your Spotify devices. Play/Pause on the remote controls it (Spotify Premium).') }];
     return [
       { id: 'spotifyShow', title: T('Now playing on Home'), horizontal: true, items: [choice('spotifyShow', 'on'), choice('spotifyShow', 'off')] },
-      { id: 'spotify-remote', title: T('Remote'), items: [{ action: 'alexa.list.keys', label: T('Colour buttons'), description: T('Can also skip: Next or Previous track') }],
+      { id: 'spotify-remote', title: T('Remote'), items: [{ action: 'alexa.list.keys', label: T('Remote buttons'), description: T('Can also skip: Next or Previous track') }],
         reason: T('Play/Pause plays or pauses. Fast-forward and Rewind skip tracks, where the remote has them.') },
       { id: 'spotify-account', title: T('Account'), items: [{ action: 'spotify.signout', label: T('Sign out of Spotify'), description: T('Frame Home forgets the sign-in') }],
         reason: spot.err && spot.err !== 'no device' ? spotifyErrText(spot.err) : '' }
@@ -1617,13 +1668,14 @@
   }
   function connectionsSections() {
     return [{ id: 'connections', title: '', items: [].concat(FA ? [{ action: 'conn.alexa', label: 'Alexa', description: !alexaOn() ? T('Not connected') : summary(S.c.alexaReadings.map(function (r) { return r.name; }).concat(liveTargets().map(targetName)).filter(function (n, i, a) { return n && a.indexOf(n) === i; }), 'Connected') }] : [])
-      .concat(FS ? [{ action: 'conn.spotify', label: 'Spotify', description: !spotifyOn() ? T('Not connected') : spot.now ? spot.now.title + (spot.now.artist ? ' · ' + spot.now.artist : '') : T('Connected') }] : []) }];
+      .concat(FS ? [{ action: 'conn.spotify', label: 'Spotify', description: !spotifyOn() ? T('Not connected') : spot.now ? spot.now.title + (spot.now.artist ? ' · ' + spot.now.artist : '') : T('Connected') }] : [])
+      .concat([{ action: 'alexa.list.keys', label: T('Remote buttons'), description: summary(SLOTS.filter(function (c) { return S.c.alexaKeys[c]; }).map(function (c) { return slotShort(c) + ': ' + targetName(S.c.alexaKeys[c]); }), 'Colour buttons, CH +, CH −, Guide') }]) }];
   }
   function connectionsSummary() { var on = []; if (alexaOn()) on.push('Alexa'); if (spotifyOn()) on.push('Spotify'); return on.length ? on.join(', ') : T('Not connected'); }
   function spotifyForget() {
     var keys = {};
     FS.forget(); clearTimeout(spot.timer); spot.timer = null; spot.now = null; spot.err = '';
-    COLOURS.forEach(function (c) { keys[c] = S.c.alexaKeys[c] && isSpotify(S.c.alexaKeys[c].id) ? null : S.c.alexaKeys[c]; });
+    SLOTS.forEach(function (c) { keys[c] = S.c.alexaKeys[c] && isSpotify(S.c.alexaKeys[c].id) ? null : S.c.alexaKeys[c]; });
     savePrefs({ alexaKeys: keys }, 'Spotify sign-out');
   }
 
@@ -1669,6 +1721,7 @@
     for (k in extra || {}) if (extra.hasOwnProperty(k)) e[k] = extra[k];
     push(e);
     if (LIST_NEEDS_DEVICES[mode] && alexaOn()) loadAlexaList();
+    if (mode === 'keytarget') refreshCatalog();
   }
   function loadAlexaList() {
     alexa.loading = true; alexa.listErr = '';
@@ -1697,12 +1750,15 @@
         });
       });
     } else if (t.mode === 'switches') rows = switchRows(function (id) { return S.c.alexaSwitches.some(function (x) { return x.id === id; }); });
-    else if (t.mode === 'keys') rows = [{ id: 'hints', label: T('Show the buttons on Home'), value: T({ top: 'With the top row', always: 'Always', off: 'Off' }[S.c.keyHints]) }].concat(COLOURS.map(function (c) { var tg = S.c.alexaKeys[c]; return { id: c, colour: c, label: T(COLOUR_NAMES[c]), value: tg && targetName(tg) || T('Not set') }; }))
+    else if (t.mode === 'keys') rows = SLOTS.map(function (c) { var tg = S.c.alexaKeys[c]; return { id: c, colour: c, label: T(COLOUR_NAMES[c]), value: tg && targetName(tg) || T('Not set') }; })
+      .concat([{ id: 'hints', label: T('Show the buttons on Home'), value: T({ auto: 'When Home opens', always: 'Always', off: 'Off' }[S.c.keyHints]) }])
       .concat([{ id: 'test', label: T('Test the remote buttons'), value: '', forward: true }]);
     else if (t.mode === 'keytarget') {
-      rows = [{ id: '', label: T('Nothing'), ticked: !S.c.alexaKeys[t.colour] }].concat(spotifyOn() ? Object.keys(SPOTIFY_ACTIONS).map(function (id) {
-        return { id: id, label: T(SPOTIFY_ACTIONS[id]), ticked: !!S.c.alexaKeys[t.colour] && S.c.alexaKeys[t.colour].id === id, spotify: true };
-      }) : []).concat(switchRows(function (id) { return !!S.c.alexaKeys[t.colour] && S.c.alexaKeys[t.colour].id === id; }));
+      var cur = S.c.alexaKeys[t.colour], is = function (id) { return !!cur && cur.id === id; };
+      rows = [{ id: '', label: T('Nothing'), ticked: !cur }];
+      if (spotifyOn()) rows = rows.concat([{ id: 'h-spotify', label: 'Spotify', header: true }]).concat(Object.keys(SPOTIFY_ACTIONS).map(function (id) { return { id: id, label: T(SPOTIFY_ACTIONS[id]), ticked: is(id), spotify: true }; }));
+      if (alexaOn()) rows = rows.concat([{ id: 'h-alexa', label: 'Alexa', header: true }]).concat(switchRows(is));
+      rows = rows.concat([{ id: 'h-apps', label: T('Apps on the TV'), header: true }]).concat(appTargets().map(function (a) { return { id: 'app:' + a.appId, label: a.name, ticked: is('app:' + a.appId), app: true }; }));
     } else if (t.mode === 'groups') {
       rows = [{ id: 'new', label: T('New group'), add: true, disabled: S.c.alexaGroups.length >= MAX_GROUPS }].concat(S.c.alexaGroups.map(function (g) {
         return { id: g.id, label: g.name, value: T(g.members.length === 1 ? '{0} light' : '{0} lights', g.members.length), forward: true };
@@ -1730,8 +1786,8 @@
     return {
       readings: [T('Readings'), T('Choose up to {0} values to show beside the clock.', MAX_READINGS)],
       switches: [T('Switches'), T('Choose up to {0} lights or groups for the Home controls.', MAX_SWITCHES)],
-      keys: [T('Colour buttons'), T('Each colour button on the remote switches one light or group.')],
-      keytarget: [T(COLOUR_NAMES[t.colour] || 'Colour buttons'), T('Choose what this button switches.')],
+      keys: [T('Remote buttons'), T('The colour buttons, CH +, CH − and Guide can each switch a light or group, control Spotify or open an app. CH and Guide keep their usual job until you assign them.')],
+      keytarget: [T(COLOUR_NAMES[t.colour] || 'Remote buttons'), T('Choose what this button does.')],
       groups: [T('Groups'), T('A group switches all its lights at once: off when any is on, otherwise on.')],
       group: [g ? g.name : T('Groups'), T('Group settings')],
       members: [g ? g.name : T('Groups'), T('Choose the lights in this group.')],
@@ -1745,9 +1801,15 @@
     if (out.length === list.length) { if (list.length >= max) return null; out = list.concat([item]); }
     return out;
   }
+  /* Apps for remote buttons: the Home row first, then everything installed, by name. */
+  function appTargets() {
+    var seen = {}, out = [];
+    S.c.home.concat(ALPHA).forEach(function (id) { var a = app(id); if (a && a.appId && !seen[a.appId]) { seen[a.appId] = true; out.push(a); } });
+    return out;
+  }
   function alexaListOk(t, row) {
     var next, g;
-    if (!row || row.info || row.disabled) return;
+    if (!row || row.info || row.disabled || row.header) return;
     if (t.mode === 'readings') {
       next = toggleIn(S.c.alexaReadings, { id: row.dev.id, key: row.reading.key, name: row.dev.name.slice(0, 80), label: row.reading.label.slice(0, 40) }, function (x) { return x.id === row.dev.id && x.key === row.reading.key; }, MAX_READINGS);
       if (!next) { showToast(T('Up to {0}. Remove one first.', MAX_READINGS)); return; }
@@ -1757,11 +1819,12 @@
       next = toggleIn(S.c.alexaSwitches, { id: row.id, name: row.group ? '' : row.label.slice(0, 80) }, function (x) { return x.id === row.id; }, MAX_SWITCHES);
       if (!next) { showToast(T('Up to {0}. Remove one first.', MAX_SWITCHES)); return; }
       saveAlexa({ alexaSwitches: next }, 'Alexa switches');
-    } else if (t.mode === 'keys') { if (row.id === 'test') openRemoteTest(); else if (row.id === 'hints') savePrefs({ keyHints: { top: 'always', always: 'off', off: 'top' }[S.c.keyHints] }, 'Colour button hints'); else openAlexaList('keytarget', { colour: row.colour }); }
+    } else if (t.mode === 'keys') { if (row.id === 'test') openRemoteTest(); else if (row.id === 'hints') savePrefs({ keyHints: { auto: 'always', always: 'off', off: 'auto' }[S.c.keyHints] }, 'Remote button hints'); else openAlexaList('keytarget', { colour: row.colour }); }
     else if (t.mode === 'keytarget') {
-      next = {}; COLOURS.forEach(function (c) { next[c] = S.c.alexaKeys[c]; });
+      next = {}; SLOTS.forEach(function (c) { next[c] = S.c.alexaKeys[c]; });
       next[t.colour] = row.id ? { id: row.id, name: row.group || row.spotify ? '' : row.label.slice(0, 80) } : null;
-      if (saveAlexa({ alexaKeys: next }, 'Alexa colour button')) pop();
+      if (row.header) return;
+      if (saveAlexa({ alexaKeys: next }, 'Remote button')) { syncSlotKeys(); pop(); }
     } else if (t.mode === 'groups') {
       if (row.add) openNameEntry('');
       else openAlexaList('group', { gid: row.id });
@@ -1786,15 +1849,15 @@
     key: function (t, k) {
       var rows = alexaRows(t);
       if (k === 'back') pop();
-      else if (k === 'up' && t.f.i > 0) t.f.i--;
-      else if (k === 'down' && t.f.i < rows.length - 1) t.f.i++;
+      else if (k === 'up' && t.f.i > 0) { t.f.i--; while (t.f.i > 0 && rows[t.f.i].header) t.f.i--; }
+      else if (k === 'down' && t.f.i < rows.length - 1) { t.f.i++; while (t.f.i < rows.length - 1 && rows[t.f.i].header) t.f.i++; }
       else if (k === 'ok') alexaListOk(t, rows[t.f.i]);
     },
     point: function (t, z, i) { if (z === 'pick') { t.f.i = i; this.key(t, 'ok'); } }
   };
   function deleteGroup(id) {
     var keys = {}, gid = 'group:' + id;
-    COLOURS.forEach(function (c) { keys[c] = S.c.alexaKeys[c] && S.c.alexaKeys[c].id === gid ? null : S.c.alexaKeys[c]; });
+    SLOTS.forEach(function (c) { keys[c] = S.c.alexaKeys[c] && S.c.alexaKeys[c].id === gid ? null : S.c.alexaKeys[c]; });
     if (!saveAlexa({ alexaGroups: S.c.alexaGroups.filter(function (g) { return g.id !== id; }), alexaSwitches: S.c.alexaSwitches.filter(function (x) { return x.id !== gid; }), alexaKeys: keys }, 'Alexa group deleted')) return;
     if (top().id === 'alexalist' && top().mode === 'group') pop();
   }
@@ -1817,7 +1880,7 @@
   function alexaForget() {
     FA.forget(); clearTimeout(alexa.timer); alexa.timer = null;
     alexa.vals = {}; alexa.err = ''; alexa.list = null; alexa.failed = {};
-    var keys = {}; COLOURS.forEach(function (c) { keys[c] = S.c.alexaKeys[c] && isSpotify(S.c.alexaKeys[c].id) ? S.c.alexaKeys[c] : null; });
+    var keys = {}; SLOTS.forEach(function (c) { keys[c] = S.c.alexaKeys[c] && /^(spotify|app):/.test(S.c.alexaKeys[c].id) ? S.c.alexaKeys[c] : null; });
     savePrefs({ alexaReadings: [], alexaSwitches: [], alexaKeys: keys }, 'Alexa sign-out');
   }
   /* ---------- Remote test: shows every signal the TV gives the app ---------- */
@@ -1845,7 +1908,8 @@
   }
   function closeRemoteTest() {
     rt.registered.forEach(function (name) { try { tizen.tvinputdevice.unregisterKey(name); } catch (e) { /* already gone */ } });
-    rt.registered = [];
+    rt.registered = []; slotRegistered = {};
+    syncSlotKeys();
     pop();
   }
   V.remotetest = { sheet: true, key: function () { /* handled in the keydown listener */ } };
@@ -2231,7 +2295,7 @@
     renderUtils(hs);
     fitMusic(S.c.clockPos !== 'corner' && S.c.layout === 'dock');
     if (S.c.layout === 'list') renderList(hs);
-    else { photoMode = null; renderDock(hs); }
+    else { photoMode = null; renderDock(hs); keyLegend.style.bottom = (1080 - dockTopY + 18) + 'px'; }
     renderAppFocusName(hs);
   }
 
@@ -2332,7 +2396,8 @@
     var musicInCorner = S.c.clockPos !== 'corner' && S.c.layout === 'dock';
     if (musicInCorner) setHTML(musicEl, musicHtml(hs.zone === 'music'));
     else { setHTML(musicEl, ''); html += musicHtml(hs.zone === 'music'); }
-    setHTML(keyLegend, keyLegendHtml(hs));
+    setHTML(keyLegend, keyLegendHtml());
+    keyLegend.className = 'key-legend' + (legendOn() && legendRows().length ? ' is-on' : '');
     caption.setAttribute('data-weather', S.c.weather === 'off' || weather.temp === null ? '' : String(weather.temp));
     if (S.c.apps !== 'icons' && !(S.c.clockPos !== 'corner' && S.c.layout === 'dock') && hs.items[hs.i] && (S.c.layout === 'list' ? photoLabel(hs.items[hs.i].id, false).size < 88 || photoLabel(hs.items[hs.i].id, false).ellipsis : hs.zone === 'apps' && reducedDockLabel(hs.items[hs.i].id))) html += '<span class="cap-line full-name">' + esc(app(hs.items[hs.i].id).name) + '</span>';
     setHTML(caption, html);
@@ -2350,7 +2415,7 @@
       if (/^sw\d+$/.test(u)) {
         var sw = liveTargets()[+u.slice(2)], lit = targetPower(sw.id) === true;
         /* Alexa switches have their own style (Settings → Layout); icons only uses the focus label. */
-        html += utilBtn('util', i, 'util.' + u, icon(lit ? 'lampOn' : 'lamp', '', true) + '<span class="u-label">' + esc(targetName(sw)) + '</span>', ' u-lamp sw-' + S.c.switchStyle + (lit ? ' is-lit' : '') + (S.c.switchStyle === 'icons' ? ' u-compact' : ''), switchLabel(sw));
+        html += utilBtn('util', i, 'util.' + u, icon(lit ? 'lampOn' : 'lamp', '', true) + '<span class="u-label">' + esc(targetName(sw)) + '</span><span class="sw-track" aria-hidden="true"></span>', ' u-lamp sw-' + S.c.switchStyle + (lit ? ' is-lit' : '') + (S.c.switchStyle === 'icons' ? ' u-compact' : ''), switchLabel(sw));
         return;
       }
       html += utilBtn('util', i, 'util.' + u, icon(UTIL[u][1], '', true) + '<span class="u-label">' + esc(T(UTIL[u][0])) + '</span>', '', T(UTIL[u][0]));
@@ -2451,7 +2516,7 @@
     a = app(it.id);
     body = S.c.apps === 'text' ? '' : dockAppMark(a);
     if (S.c.apps !== 'text') body = '<span class="dock-icon' + (S.c.apps === 'icons' ? ' dock-icon-solo' : '') + '">' + body + '</span>';
-    return body + (S.c.apps === 'icons' ? '<span class="label icon-name" style="font-size:' + iconNameSize(a.name) + 'px"><span class="label-ink">' + esc(a.name) + '</span></span>' : '<span class="label' + (S.c.apps === 'both' ? ' dock-label' : '') + '" style="font-size:' + dockLabelSize(a.id) + 'px' + (S.c.apps === 'text' ? ';top:' + (28 + fontShift('primary', dockLabelSize(a.id))) + 'px' : '') + '"><span class="label-ink">' + esc(a.name) + '</span></span>') + '<span class="nudge nudge-l">' + icon('left') + '</span><span class="nudge nudge-r">' + icon('right') + '</span>';
+    return body + (S.c.apps === 'icons' ? '<span class="label icon-name"><span class="label-ink">' + esc(a.name) + '</span></span>' : '<span class="label' + (S.c.apps === 'both' ? ' dock-label' : '') + '" style="font-size:' + dockLabelSize(a.id) + 'px' + (S.c.apps === 'text' ? ';top:' + (28 + fontShift('primary', dockLabelSize(a.id))) + 'px' : '') + '"><span class="label-ink">' + esc(a.name) + '</span></span>') + '<span class="nudge nudge-l">' + icon('left') + '</span><span class="nudge nudge-r">' + icon('right') + '</span>';
   }
   function renderDock(hs) {
     var items = hs.items, n = items.length, empty = hs.mode !== 'arrange' && !n, g = dockGeom(empty ? -1 : n);
@@ -2938,13 +3003,17 @@
       if (el.art.getAttribute('src') !== art) { if (art) el.art.setAttribute('src', art); else el.art.removeAttribute('src'); }
       el.artwrap.className = 'np-art-wrap' + (art ? '' : ' is-empty');
       setHTML(el.device, n && n.device ? esc(T('Playing on {0}', n.device)) : '');
-      setHTML(el.title, esc(n ? n.title : T('Nothing is playing on Spotify.')));
-      setHTML(el.artist, esc(n ? n.artist : ''));
+      setHTML(el.title, t.lyrics && n ? mq(n.title) : esc(n ? n.title : T('Nothing is playing on Spotify.')));
+      setHTML(el.artist, t.lyrics && n ? mq(n.artist) : esc(n ? n.artist : ''));
       setHTML(el.album, esc(n ? n.album : ''));
       setHTML(el.progress, n ? progressHtml(n) : ''); paintProgress();
+      el.progress.className = 'np-progress' + (t.f.row === 'bar' ? ' is-focus' : '') + (seek.at !== null ? ' is-seeking' : '');
+      el.progress.setAttribute('data-z', 'npbar'); el.progress.setAttribute('data-i', '0');
+      el.progress.setAttribute('data-hint', T('Left and Right move 10 seconds'));
+      marquee(el.np);
       setHTML(el.controls, ['prev', n && n.playing ? 'pause' : 'play', 'next', 'lyrics'].map(function (name, i) {
         var label = T(i === 0 ? 'Previous track' : i === 2 ? 'Next track' : i === 3 ? 'Lyrics' : name === 'pause' ? 'Pause' : 'Play');
-        return '<button type="button" tabindex="-1" class="np-btn' + (i === 1 ? ' np-main' : '') + (i === 3 ? ' np-lyrics-btn' + (t.lyrics ? ' is-active' : '') : '') + (t.f.b === i ? ' is-focus' : '') + '" data-z="np" data-i="' + i + '" data-action="np.' + ['prev', 'toggle', 'next', 'lyrics'][i] + '"'
+        return '<button type="button" tabindex="-1" class="np-btn' + (i === 1 ? ' np-main' : '') + (i === 3 ? ' np-lyrics-btn' + (t.lyrics ? ' is-active' : '') : '') + (t.f.row !== 'bar' && t.f.b === i ? ' is-focus' : '') + '" data-z="np" data-i="' + i + '" data-action="np.' + ['prev', 'toggle', 'next', 'lyrics'][i] + '"'
           + (i === 3 ? ' aria-pressed="' + !!t.lyrics + '"' : '') + ' aria-label="' + esc(label) + '">' + icon(name) + (i === 3 ? '<span>' + esc(label) + '</span>' : '') + '</button>';
       }).join(''));
       placeLyrics();
@@ -2959,9 +3028,10 @@
       t.top = clamp(t.top, 0, Math.max(0, rows.length - ALEXA_VISIBLE));
       for (i = t.top; i < Math.min(rows.length, t.top + ALEXA_VISIBLE); i++) {
         r = rows[i];
+        if (r.header) { html += '<div class="alexa-head">' + esc(r.label) + '</div>'; continue; }
         html += '<button type="button" tabindex="-1" class="alexa-row' + (i === t.f.i ? ' is-focus' : '') + (r.ticked ? ' is-applied' : '') + (r.disabled ? ' is-disabled' : '') + (r.info ? ' is-info' : '') + '" data-z="pick" data-i="' + i + '" data-action="alexa.row.' + i + '"'
           + (r.ticked !== undefined ? ' role="checkbox" aria-checked="' + !!r.ticked + '"' : '') + '>'
-          + '<span class="alexa-tick" aria-hidden="true">' + (r.colour ? '<span class="key-dot key-' + r.colour + '"></span>' : r.add ? icon('plus') : r.ticked ? icon('check') : '') + '</span>'
+          + '<span class="alexa-tick" aria-hidden="true">' + (r.colour ? keyBadge(r.colour) : r.add ? icon('plus') : r.ticked ? icon('check') : '') + '</span>'
           + '<span class="alexa-name">' + esc(r.label) + '</span><span class="alexa-value">' + esc(r.value || '') + '</span>' + (r.forward ? icon('right', 'alexa-forward') : '') + '</button>';
       }
       setHTML(el.list, html);
@@ -3213,8 +3283,8 @@
     if (code === 9) { ev.preventDefault(); return; }
     if (!k || ev.metaKey || ev.ctrlKey || ev.altKey) return;
     ev.preventDefault();
-    if (k === 'ok' || k === 'back' || COLOURS.indexOf(k) >= 0 || MEDIA[k]) { if (ev.repeat || heldKeys[code]) return; heldKeys[code] = true; }
-    if (COLOURS.indexOf(k) >= 0) { if (top().id !== 'wifitype') colourKey(k); return; }
+    if (k === 'ok' || k === 'back' || SLOTS.indexOf(k) >= 0 || MEDIA[k]) { if (ev.repeat || heldKeys[code]) return; heldKeys[code] = true; }
+    if (SLOTS.indexOf(k) >= 0) { if (top().id !== 'wifitype') colourKey(k); return; }
     if (MEDIA[k]) { if (top().id !== 'wifitype') spotifyKey(MEDIA[k]); return; }
     press(k);
   });
@@ -3227,7 +3297,7 @@
       pauseRotation(); clearTimeout(clockTimer); stopRelay(); syncVideo(); clearTimeout(alexa.timer); alexa.timer = null; clearTimeout(spot.timer); spot.timer = null;
       if (S.hdmiInApp) { S.hdmiInApp = false; if (FrameDevice.hideHdmiView) FrameDevice.hideHdmiView(); }
     }
-    else { release(); after(); updateClock(); focusStage(); startRelay(); alexaPoll(true); spotifyPoll(true); }
+    else { release(); after(); updateClock(); focusStage(); startRelay(); alexaPoll(true); spotifyPoll(true); showLegend(6000); }
   });
   window.addEventListener('resize', fit);
   if (wifiQrEl) wifiQrEl.addEventListener('click', function () {
@@ -3286,7 +3356,7 @@
     setLook({}, { transient: true, startup: true });
     norm(); render(); fit(); focusStage(); updateClock(); syncRotation();
     refreshWeather(function () { render(); syncRotation(); });
-    alexaPoll(true); spotifyPoll(true);
+    alexaPoll(true); spotifyPoll(true); showLegend(6000);
   }
   if (FCW && S.c.customAt) { FCW.persist(); loadCustom(function () { start(); startRelay(); }); } else { start(); startRelay(); }
 })();

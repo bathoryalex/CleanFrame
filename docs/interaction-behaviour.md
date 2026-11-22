@@ -118,3 +118,9 @@ In the icons-only Dock the tiles are 176 px tall with the icons centred; the foc
 
 The song's title and artists scroll slowly back and forth when they do not fit. With the clock centred, the song shares the top row with the Home controls and stops 40 px before the first one; under the clock it may be 760 px wide. Settings → Layout has separate styles for **Wi‑Fi, All apps and Settings** and for **Alexa switches** (Text, Icons, Both); icons-only switches name the focused one in the focus label. Opening the lyrics places the current line at once; only later line changes glide.
 
+## Remote buttons
+
+Settings → Connections → **Remote buttons** lists the red, green, yellow and blue buttons, CH +, CH − and Guide. Each can switch a light or group, run a Spotify action (play or pause, next, previous) or open any app on the TV (the list has Spotify, Alexa and Apps sections; headings are skipped by Up/Down). CH +, CH − and Guide are registered only while something is assigned, so otherwise they keep the TV's own job. The remote's 123/colour button itself does not reach the app. Assigned buttons show as chips centred above the Dock (coloured dot or a CH+/CH−/GUIDE badge and the name; lights on have a warm edge): for six seconds when Home opens or returns, for five seconds after an assigned button, always, or never (Show the buttons on Home).
+
+Alexa switches on Home are toggle chips: a glass pill with the lamp and a small switch, warm when on. Their state is read every 15 seconds while Home is visible, so lights switched elsewhere (for example by voice) catch up. The song widget is always 570 px wide (less only when the Home controls would be closer). In Now playing, Up from the controls focuses the progress bar: Left/Right move 10 seconds and the song jumps there 0.7 seconds after the last press (OK jumps at once). With lyrics open the device line stays and long titles scroll.
+

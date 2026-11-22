@@ -163,7 +163,7 @@ async function page(options = {}) {
     if (r.headers()['authorization'] !== 'Bearer BQtest') return route.fulfill({ status: 401, headers: sp, contentType: 'application/json', body: '{"error":{"status":401}}' });
     if (r.method() === 'GET') return route.fulfill({ headers: sp, contentType: 'application/json', body: JSON.stringify({ is_playing: Q.playing, device: { name: 'Echo Dot Max' },
       progress_ms: 61000, item: { id: 't1', name: Q.title || 'Song A', duration_ms: 210000, artists: Q.artists || [{ name: 'Artist A' }, { name: 'Guest B' }], album: { name: 'Album A', images: [{ url: 'https://i.scdn.co/image/big', width: 640 }, { url: 'https://i.scdn.co/image/small', width: 64 }] } } }) });
-    Q.calls.push(r.method() + ' ' + path);
+    Q.calls.push(r.method() + ' ' + path); if (/seek/.test(path)) Q.seekUrl = r.url();
     if (Q.refuse) return route.fulfill({ status: 403, headers: sp, contentType: 'application/json', body: JSON.stringify({ error: { status: 403, message: 'Player command failed: Premium required', reason: Q.refuse } }) });
     if (path.endsWith('/pause')) Q.playing = false; if (path.endsWith('/play')) Q.playing = true;
     return route.fulfill({ status: 204, headers: sp, body: '' });
@@ -505,7 +505,7 @@ try {
     await nav('ok');
     check('Done returns to the Alexa settings', (await state()).settingsGroup === 'alexa');
     const rowsText = () => current.evaluate(() => [...document.querySelectorAll('.alexa-row')].map(e => e.textContent));
-    const pick = async re => { const rows = await rowsText(); const i = rows.findIndex(t => re.test(t)); if (i < 0) throw Error('No row ' + re + ' in ' + rows); await act('alexa.row.' + i); };
+    const pick = async re => { const rows = await current.evaluate(() => [...document.querySelectorAll('.alexa-row')].map(e => [e.textContent, e.getAttribute('data-action')])); const r = rows.find(x => re.test(x[0])); if (!r) throw Error('No row ' + re + ' in ' + rows.map(x => x[0])); await act(r[1]); };
     await act('alexa.list.readings');
     await current.waitForFunction(() => document.querySelectorAll('.alexa-row').length >= 3);
     const readings = await rowsText();
@@ -530,17 +530,14 @@ try {
     await pick(/Left lamp/); await pick(/^.?Nappali/);
     check('A light and a group are on Home', (await stored()).alexaSwitches.map(x => x.id).join() === 'amzn1.alexa.endpoint.lamp-1,group:' + groups[0].id, (await stored()).alexaSwitches);
     await nav('back');
-    await act('alexa.list.keys'); await act('alexa.row.2');
+    await act('alexa.list.keys'); await act('alexa.row.1');
     await current.waitForFunction(() => document.querySelectorAll('.alexa-row').length >= 4);
     await pick(/Piano lamp/);
     check('The green button switches the piano lamp', (await stored()).alexaKeys.green.id === 'amzn1.alexa.endpoint.lamp-3' && (await state()).view === 'alexalist');
     await scene('home');
     await current.waitForFunction(() => document.querySelectorAll('.weather.indoor').length === 2);
     check('Home shows the temperature and the humidity', await current.evaluate(() => [...document.querySelectorAll('.weather.indoor')].map(e => e.textContent).join(' ')) === '22.4° 45%');
-    check('The colour-button legend stays hidden until it is needed', !(await current.locator('#keyLegend').textContent()));
-    await nav('up');
-    check('With the top row focused the legend names the green button', /Piano lamp/.test(await current.locator('#keyLegend').textContent()) && await current.locator('#keyLegend .key-green').count() === 1);
-    await nav('down');
+    check('The remote-button legend names the green button', /Piano lamp/.test(await current.locator('#keyLegend').textContent()) && await current.locator('#keyLegend .key-green').count() === 1);
     check('Home controls start with the light and the group', await current.evaluate(() => [...document.querySelectorAll('#utils .u')].map(b => b.getAttribute('data-action')).join()) === 'util.sw0,util.sw1,util.wifi,util.apps,util.settings');
     await act('util.sw1');
     await current.waitForFunction(() => document.querySelectorAll('.u-lamp.is-lit').length === 2);
@@ -593,6 +590,12 @@ try {
     await current.waitForFunction(() => /Next track|Következő/.test(document.getElementById('alexaToast').textContent));
     check('Its controls drive Spotify', current.__spotify.calls[0] === 'POST /v1/me/player/next');
     current.__spotify.calls.length = 0;
+    await current.waitForTimeout(400); await nav('up', 'right');
+    await current.waitForFunction(() => document.querySelector('.np-progress.is-focus'));
+    await current.waitForTimeout(1200);
+    const seekAt = Number(new URL(current.__spotify.seekUrl || 'http://x/?position_ms=0').searchParams.get('position_ms'));
+    check('Up focuses the progress bar and Right moves ten seconds into the song', current.__spotify.calls[0] === 'PUT /v1/me/player/seek' && seekAt > 68000 && seekAt < 80000, [current.__spotify.calls, seekAt]);
+    current.__spotify.calls.length = 0; await nav('down');
     await current.waitForTimeout(400); await nav('right', 'ok');
     await current.waitForFunction(() => document.querySelector('.np.is-lyrics .lyric.is-now'));
     check('Lyrics load from LRCLIB and the current line follows the song', await current.evaluate(() => document.querySelector('.lyric.is-now').textContent) === 'Second line' && current.__lyrics.length === 1 && /track_name=Song%20A&artist_name=Artist%20A/.test(current.__lyrics[0]), current.__lyrics);
@@ -607,9 +610,9 @@ try {
     check('Play/Pause again plays', current.__spotify.calls[1] === 'PUT /v1/me/player/play');
     await key(417); await current.waitForFunction(() => /Next track|Következő/.test(document.getElementById('alexaToast').textContent));
     check('Fast-forward skips to the next track', current.__spotify.calls[2] === 'POST /v1/me/player/next');
-    await group('connections'); await act('conn.spotify'); await act('alexa.list.keys'); await act('alexa.row.4');
-    const rows = await current.evaluate(() => [...document.querySelectorAll('.alexa-row')].map(e => e.textContent));
-    await act('alexa.row.' + rows.findIndex(t => /previous track|előző/.test(t)));
+    await group('connections'); await act('conn.spotify'); await act('alexa.list.keys'); await act('alexa.row.3');
+    const rows = await current.evaluate(() => [...document.querySelectorAll('.alexa-row')].map(e => [e.textContent, e.getAttribute('data-action')]));
+    await act(rows.find(t => /previous track|előző/.test(t[0]))[1]);
     check('A colour button can skip back, even without Alexa', (await stored()).alexaKeys.blue.id === 'spotify:prev', rows);
     await scene('home'); await key(406);
     await current.waitForFunction(() => /Previous track|Előző/.test(document.getElementById('alexaToast').textContent));
@@ -642,13 +645,21 @@ try {
       check('A code for another channel is not sent', posts.length === 1 && /not from Frame Home|nem a Frame Home/.test(await phone.textContent('#status')));
     } finally { await phone.close(); }
   });
+  await run('Remote buttons can open apps and use CH and Guide', async () => {
+    await page({ seed: baseline({ alexaKeys: { chup: { id: 'app:9Ur5IzDKqV.TizenYouTube', name: 'YouTube' } } }) });
+    await current.evaluate(() => { document.dispatchEvent(new KeyboardEvent('keydown', { keyCode: 427, bubbles: true })); document.dispatchEvent(new KeyboardEvent('keyup', { keyCode: 427, bubbles: true })); });
+    await current.waitForTimeout(300);
+    check('CH + opens the app assigned to it', (await current.evaluate(() => __tv.calls.filter(c => /launch/i.test(c.method)).map(c => c.id))).includes('9Ur5IzDKqV.TizenYouTube'));
+    check('The legend shows CH + with the app', /CH\+/.test(await current.locator('#keyLegend').textContent()) && /YouTube/.test(await current.locator('#keyLegend').textContent()));
+  });
   await run('Remote test lists what the TV sends', async () => {
     await page({ seed: baseline({ alexaKeys: { red: { id: 'spotify:next', name: '' } } }) });
     await current.evaluate(() => localStorage.setItem('cleanframe.spotify.v1', JSON.stringify({ refresh: 'AQtest', access: 'BQtest', until: Date.now() + 3600000 })));
     await current.reload(); await ready();
     await group('connections'); await act('conn.spotify'); await act('alexa.list.keys');
-    const rows = await current.evaluate(() => [...document.querySelectorAll('.alexa-row')].map(e => e.textContent));
-    await act('alexa.row.' + rows.findIndex(t => /Test the remote|tesztje/.test(t)));
+    await nav('down', 'down', 'down', 'down', 'down', 'down', 'down', 'down', 'down');
+    check('The last row is the remote test', /Test the remote|tesztje/.test(await current.evaluate(() => document.querySelector('.alexa-row.is-focus').textContent)));
+    await nav('ok');
     check('The remote test opens', (await state()).view === 'remotetest');
     await current.evaluate(() => { document.dispatchEvent(new KeyboardEvent('keydown', { keyCode: 404, bubbles: true })); window.dispatchEvent(new Event('blur')); });
     const log = await current.evaluate(() => document.querySelector('.rt-log').textContent);

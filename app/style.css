@@ -787,14 +787,16 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000}
 .music{position:absolute;left:140px;top:44px}
 .music .cap-music{margin-top:0}
 .l-list .cap-music{margin:14px -14px 0 0}
-/* Colour-button legend, bottom left above the Dock, beside the remote's colour picker. */
-.key-legend{position:absolute;left:56px;bottom:296px;display:flex;flex-direction:column;gap:10px;pointer-events:none;padding:14px 22px 14px 18px;border-radius:22px;background:rgba(14,18,20,.55);color:#f4f4f1;box-shadow:0 12px 36px rgba(4,8,10,.3)}
-.key-legend:empty{display:none}
-.legend-row{display:flex;align-items:center;gap:14px;font-size:24px;line-height:30px;font-weight:500;letter-spacing:-.2px;text-shadow:0 1px 3px rgba(0,0,0,.35);max-width:420px}
-.legend-row .key-dot{flex:none;width:18px;height:18px;border-radius:50%;box-shadow:0 0 0 2px rgba(255,255,255,.35)}
-.legend-name{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;opacity:.9}
-.legend-state{flex:none;width:8px;height:8px;border-radius:50%;border:2px solid currentColor;opacity:.6}
-.legend-state.is-on{background:currentColor;opacity:.95}
+/* Remote-button legend: a row of chips centred just above the Dock. */
+.key-legend{position:absolute;left:160px;right:160px;bottom:300px;display:flex;flex-wrap:wrap;justify-content:center;gap:12px;pointer-events:none;opacity:0;transform:translate3d(0,12px,0);transition:opacity 260ms linear,transform 360ms cubic-bezier(.22,1,.28,1)}
+.key-legend.is-on{opacity:1;transform:none}
+.legend-chip{display:inline-flex;align-items:center;gap:12px;height:48px;padding:0 20px 0 14px;border-radius:24px;background:rgba(12,16,18,.46);box-shadow:inset 0 0 0 1px rgba(255,255,255,.14),0 8px 24px rgba(4,8,10,.22);color:#f4f4f1;font-size:22px;line-height:28px;font-weight:500;letter-spacing:-.1px;white-space:nowrap}
+.legend-chip.is-on{box-shadow:inset 0 0 0 1px rgba(255,214,150,.5),0 8px 24px rgba(4,8,10,.22)}
+.legend-chip .key-dot{width:18px;height:18px;border-radius:50%;box-shadow:0 0 0 2px rgba(255,255,255,.3)}
+.key-text{display:inline-flex;align-items:center;justify-content:center;min-width:44px;height:24px;padding:0 7px;border-radius:7px;border:1.5px solid rgba(255,255,255,.7);font-size:14px;line-height:1;font-weight:700;letter-spacing:.6px;color:#f4f4f1}
+.alexa-tick .key-text{margin-top:6px;color:inherit;border-color:currentColor}
+.legend-name{max-width:280px;overflow:hidden;text-overflow:ellipsis}
+.alexa-head{padding:18px 20px 6px 76px;font-size:24px;line-height:30px;font-weight:600;letter-spacing:.4px;text-transform:uppercase;color:var(--mute)}
 /* Now playing: a large cover, the song and three big controls. */
 .np{position:absolute;left:160px;right:160px;top:0;bottom:0;display:flex;align-items:center;gap:96px}
 .np-art-wrap{flex:none;width:560px;height:560px;border-radius:28px;overflow:hidden;background:rgba(255,255,255,.08);box-shadow:0 30px 80px rgba(4,8,10,.45)}
@@ -865,8 +867,8 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000}
 /* Icons-only Dock: icons stay centred; the focused icon moves up and its name rises in under it,
    inside the tile (sized to fit, else an ellipsis). */
 .stage.l-dock.a-icons .dock .tile .dock-icon-solo{bottom:0;transition:transform 280ms cubic-bezier(.22,1,.28,1)}
-.stage.l-dock.a-icons .dock .tile.is-focus .dock-icon-solo,.stage.l-dock.a-icons .dock .tile.is-lifted .dock-icon-solo{transform:translate3d(0,-18px,0)}
-.stage.l-dock.a-icons .dock .tile .label.icon-name{top:auto;bottom:14px;left:8px;right:8px;line-height:30px;font-weight:600;letter-spacing:-.3px;opacity:0;transform:translate3d(0,10px,0);transition:opacity 180ms linear,transform 280ms cubic-bezier(.22,1,.28,1)}
+.stage.l-dock.a-icons .dock .tile.is-focus .dock-icon-solo,.stage.l-dock.a-icons .dock .tile.is-lifted .dock-icon-solo{transform:translate3d(0,-16px,0)}
+.stage.l-dock.a-icons .dock .tile .label.icon-name{top:auto;bottom:12px;left:8px;right:8px;font-size:22px;line-height:28px;font-weight:600;letter-spacing:-.3px;opacity:0;transform:translate3d(0,10px,0);transition:opacity 180ms linear,transform 280ms cubic-bezier(.22,1,.28,1)}
 .stage.l-dock.a-icons .dock .tile.is-focus .label.icon-name,.stage.l-dock.a-icons .dock .tile.is-lifted .label.icon-name{opacity:1;transform:none;transition-delay:40ms}
 .stage.l-dock.a-icons .dock .tile:not(.is-focus):not(.is-lifted) .label.icon-name{opacity:0}
 @media(prefers-reduced-motion:reduce){.stage.l-dock.a-icons .dock .tile .label.icon-name,.stage.l-dock.a-icons .dock .tile .dock-icon-solo{transform:none!important;transition-duration:120ms}}
@@ -890,4 +892,26 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000}
 .quiet-utils .u.sw-icons{width:64px;padding:0;justify-content:center}
 .quiet-utils .u.sw-icons .u-label{display:none}
 .quiet-utils .u.sw-icons .u-content .ico{display:inline-block;width:36px;height:36px}
+/* Now playing: the progress bar can be focused (Up from the controls) to move through the song. */
+.np-progress{border-radius:18px;transition:background-color 140ms linear}
+.np-progress .music-bar{transition:height 160ms linear}
+.np-progress.is-focus .music-bar{height:12px;border-radius:6px;box-shadow:0 0 0 2px rgba(255,255,255,.35)}
+.np-progress.is-focus::after{content:attr(data-hint);display:block;margin-top:12px;font-size:22px;line-height:28px;color:rgba(246,241,231,.66)}
+.np-progress.is-focus .music-bar i{background:#f6f1e7;box-shadow:0 0 0 1px rgba(255,255,255,.4)}
+.np-progress.is-focus .music-progress{opacity:1}
+.np-progress.is-seeking [data-music-pos]{color:#ffd58a}
+.np-title .mq,.np-artist .mq{display:block}
+/* Alexa switches as toggle chips: a glass pill with a small switch; lit ones glow warm. */
+.quiet-utils .u.u-lamp{height:56px;margin:4px 0;border-radius:28px;background:rgba(12,16,18,.34);box-shadow:inset 0 0 0 1px rgba(255,255,255,.16);opacity:.92;gap:12px}
+.quiet-utils .u.u-lamp.sw-both,.quiet-utils .u.u-lamp.sw-text{padding:0 14px 0 16px}
+.quiet-utils .u.u-lamp.sw-icons{width:56px;padding:0}
+.quiet-utils .u.u-lamp.is-lit{background:rgba(255,186,84,.30);box-shadow:inset 0 0 0 1px rgba(255,214,150,.6);color:#fff4df;opacity:1}
+.quiet-utils .u.u-lamp.is-lit .ico{color:#ffd58a}
+.u-lamp .sw-track{position:relative;flex:none;width:34px;height:20px;border-radius:10px;background:rgba(255,255,255,.26);transition:background-color 180ms linear}
+.u-lamp .sw-track::after{content:"";position:absolute;left:3px;top:3px;width:14px;height:14px;border-radius:50%;background:#f6f1e7;transition:transform 220ms cubic-bezier(.22,1,.28,1)}
+.u-lamp.is-lit .sw-track{background:#f0a842}
+.u-lamp.is-lit .sw-track::after{transform:translateX(14px)}
+.u-lamp.sw-icons .sw-track{display:none}
+.quiet-utils .u.u-lamp.is-focus{opacity:1}
+.f-type .quiet-utils .u.u-lamp.is-focus{box-shadow:inset 0 0 0 2px rgba(255,255,255,.85)}
 

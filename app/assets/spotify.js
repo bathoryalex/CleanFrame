@@ -83,7 +83,13 @@
     });
   }
   var CONTROL = { play: ['PUT', '/me/player/play'], pause: ['PUT', '/me/player/pause'], next: ['POST', '/me/player/next'], prev: ['POST', '/me/player/previous'] };
-  function control(action, done) { var c = CONTROL[action]; if (!c) { done('unknown'); return; } api(c[0], c[1], function (err) { done(err); }); }
+  function control(action, done, arg) {
+    var c = CONTROL[action];
+    /* Seek within the song: PUT /me/player/seek?position_ms= (Premium, like every playback control). */
+    if (action === 'seek') { api('PUT', '/me/player/seek?position_ms=' + Math.max(0, Math.round(arg || 0)), function (err) { done(err); }); return; }
+    if (!c) { done('unknown'); return; }
+    api(c[0], c[1], function (err) { done(err); });
+  }
 
   /* Lyrics from LRCLIB (lrclib.net), an open community database: Spotify's own API has no lyrics.
      done(err, { synced: [{ t: ms, text }], plain: '' }); err 'none' when the song is not there. */
