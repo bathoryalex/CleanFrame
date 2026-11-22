@@ -4,9 +4,9 @@
 
   /* ---------- Bundled data ---------- */
   var ASSETS = 'assets/', ICONS = ASSETS + 'icons/', WP = ASSETS + 'wallpapers/';
-  var APP_VERSION = '0.17.1';
+  var APP_VERSION = '0.18.0';
   var CAP = 9, SCRIM_Y = 560, DOCK_BOTTOM = 1032; // the Dock sits 48 px above the bottom edge; names and actions go above it
-  var DOCK_MODES = { both: { tw: 288, th: 200, pitch: 296 }, text: { tw: 288, th: 104, pitch: 296 }, icons: { tw: 176, th: 144, pitch: 184 } };
+  var DOCK_MODES = { both: { tw: 288, th: 200, pitch: 296 }, text: { tw: 288, th: 104, pitch: 296 }, icons: { tw: 180, th: 196, pitch: 188 } }; // icons-only tiles leave room under the icon for the focused app's name
   var GRID_ROW = 240, GRID_COL = 344, COLS = 5;
   var ED_ROW = 80, ED_SEP = 56, ED_VIEW = 752, STRIP_PITCH = 188;
   var PH_TOP = 220, PH_PITCH = 128, PH_FULL = 5, PH_HEIGHT = 944, PH_COMPACT_TOP = 144, PH_COMPACT_PITCH = 88, PH_COMPACT_VISIBLE = 9;
@@ -1498,6 +1498,9 @@
     for (i = 0; i < lines.length; i++) { if (lines[i].t <= pos + 250) at = i; else break; }
     return at;
   }
+  /* No mask for the fade: on the TV a mask lets the video plane show through, so lines fade by
+     their distance from the current one instead. */
+  function lyricClass(i, at) { var d = Math.abs(i - at); return 'lyric' + (i === at ? ' is-now' : d === 1 ? ' is-near' : d === 2 ? ' is-mid' : d <= 4 ? ' is-far' : ' is-gone'); }
   function lyricsHtml(n) {
     var lines, at;
     if (!n) return '';
@@ -1509,7 +1512,7 @@
     if (lines.length) {
       at = lyricIndex(n);
       return '<div class="lyrics-track" data-lyrics-track>' + lines.map(function (l, i) {
-        return '<p class="lyric' + (i === at ? ' is-now' : i < at ? ' is-past' : '') + '" data-lyric="' + i + '">' + (esc(l.text) || '♪') + '</p>';
+        return '<p class="' + lyricClass(i, at) + '" data-lyric="' + i + '">' + (esc(l.text) || '♪') + '</p>';
       }).join('') + '</div>';
     }
     return '<div class="lyrics-track is-plain" data-lyrics-plain>' + lyr.data.plain.split(/\r?\n/).map(function (l) { return '<p class="lyric">' + (esc(l) || '&nbsp;') + '</p>'; }).join('') + '</div><p class="lyrics-source">' + esc(T('Not synced to the music')) + '</p>';
@@ -1523,7 +1526,7 @@
       at = lyricIndex(n);
       if (at !== lyr.line) {
         els = track.querySelectorAll('[data-lyric]');
-        for (i = 0; i < els.length; i++) els[i].className = 'lyric' + (i === at ? ' is-now' : i < at ? ' is-past' : '');
+        for (i = 0; i < els.length; i++) els[i].className = lyricClass(i, at);
         lyr.line = at;
         el = at >= 0 ? els[at] : null;
         track.style.transform = 'translate3d(0,' + Math.round(panel.clientHeight / 2 - (el ? el.offsetTop + el.offsetHeight / 2 : 0)) + 'px,0)';
@@ -1543,7 +1546,12 @@
       if (k === 'back') pop();
       else if (k === 'left' && t.f.b > 0) t.f.b--;
       else if (k === 'right' && t.f.b < 3) t.f.b++;
-      else if (k === 'ok' && t.f.b === 3) { t.lyrics = !t.lyrics; if (t.lyrics) loadLyrics(); }
+      else if (k === 'ok' && t.f.b === 3) {
+        /* Fade the layout out, switch it, fade it back in. */
+        if (t.switching) return;
+        t.switching = true;
+        setTimeout(function () { t.lyrics = !t.lyrics; if (t.lyrics) loadLyrics(); t.switching = false; render(); }, 200);
+      }
       else if (k === 'ok') spotifyKey(['prev', 'toggle', 'next'][t.f.b]);
     },
     point: function (t, z, i) { if (z === 'np') { t.f.b = i; this.key(t, 'ok'); } }
@@ -2324,7 +2332,7 @@
   var dockTopY = 776;
   function renderAppFocusName(hs) {
     var it = hs.items[hs.i], width, x, y, placement;
-    if (S.c.apps !== 'icons' || hs.mode !== 'browse' || hs.zone !== 'apps' || !it) { appFocusName.className = 'app-focus-name'; return; }
+    if (S.c.apps !== 'icons' || S.c.layout !== 'list' || hs.mode !== 'browse' || hs.zone !== 'apps' || !it) { appFocusName.className = 'app-focus-name'; return; }
     appFocusName.textContent = app(it.id).name;
     width = Math.min(S.c.layout === 'list' ? 1056 : 1640, Math.ceil(textWidth(app(it.id).name, S.c.layout === 'list' ? 40 : 36, 500, -.6, 'primary') + 8));
     appFocusName.style.width = width + 'px';
@@ -2359,7 +2367,7 @@
     a = app(it.id);
     body = S.c.apps === 'text' ? '' : dockAppMark(a);
     if (S.c.apps !== 'text') body = '<span class="dock-icon' + (S.c.apps === 'icons' ? ' dock-icon-solo' : '') + '">' + body + '</span>';
-    return body + (S.c.apps === 'icons' ? '' : '<span class="label' + (S.c.apps === 'both' ? ' dock-label' : '') + '" style="font-size:' + dockLabelSize(a.id) + 'px' + (S.c.apps === 'text' ? ';top:' + (28 + fontShift('primary', dockLabelSize(a.id))) + 'px' : '') + '"><span class="label-ink">' + esc(a.name) + '</span></span>') + '<span class="nudge nudge-l">' + icon('left') + '</span><span class="nudge nudge-r">' + icon('right') + '</span>';
+    return body + (S.c.apps === 'icons' ? '<span class="label icon-name"><span class="label-ink">' + esc(a.name) + '</span></span>' : '<span class="label' + (S.c.apps === 'both' ? ' dock-label' : '') + '" style="font-size:' + dockLabelSize(a.id) + 'px' + (S.c.apps === 'text' ? ';top:' + (28 + fontShift('primary', dockLabelSize(a.id))) + 'px' : '') + '"><span class="label-ink">' + esc(a.name) + '</span></span>') + '<span class="nudge nudge-l">' + icon('left') + '</span><span class="nudge nudge-r">' + icon('right') + '</span>';
   }
   function renderDock(hs) {
     var items = hs.items, n = items.length, empty = hs.mode !== 'arrange' && !n, g = dockGeom(empty ? -1 : n);
@@ -2832,8 +2840,8 @@
     nowplaying: function (t, el) {
       var n = spot.now, art = n && (n.artBig || n.art) || '', lyricsNow, bare;
       if (t.lyrics) loadLyrics();
-      el.np.className = 'np' + (t.lyrics ? ' is-lyrics' : '');
-      lyricsNow = t.lyrics ? lyricsHtml(n) : ''; bare = lyricsNow.replace(/ is-(now|past)/g, '');
+      el.np.className = 'np' + (t.lyrics ? ' is-lyrics' : '') + (t.switching ? ' is-switching' : '');
+      lyricsNow = t.lyrics ? lyricsHtml(n) : ''; bare = lyricsNow.replace(/ is-(now|near|mid|far|gone)/g, '');
       if (el.lyrics._html !== bare) { el.lyrics.innerHTML = lyricsNow; el.lyrics._html = bare; lyr.line = -2; }
       if (el.art.getAttribute('src') !== art) { if (art) el.art.setAttribute('src', art); else el.art.removeAttribute('src'); }
       el.artwrap.className = 'np-art-wrap' + (art ? '' : ' is-empty');

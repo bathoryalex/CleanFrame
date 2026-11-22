@@ -114,3 +114,5 @@ When Spotify shows a song, the song is a focusable Home element: Left from the f
 
 With colour buttons assigned, a small legend (coloured dot, name and, for lights, an on/off dot) appears at the bottom left above the Dock while the app has lost focus on Home (the remote's on-screen colour picker takes focus) and for 1.5 seconds after focus returns, and for four seconds after a colour key. Colour buttons → Show the buttons on Home turns it off. The Dock layout only.
 
+In the icons-only Dock the tiles are taller (196 px) and the focused app's name rises in under its icon, inside the Dock; the separate name above the Dock is now used only in the List layout. Lyrics toggle with a fade (200 ms out, switch, back in) while the lyrics slide in from the right and the cover column settles; lines fade by their distance from the current one (no CSS mask, which on the TV lets the video plane show through).
+
