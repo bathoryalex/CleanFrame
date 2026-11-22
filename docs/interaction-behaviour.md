@@ -12,7 +12,7 @@
 
 ## Settings and appearance
 
-Settings opens a grouped overview of large cards in a 4 x 2 grid (each arrow moves to the neighbouring card; the Background card shows the current wallpaper and Typography previews the chosen font): Background, Layout, Typography, Focus, Apps on Home, Language and clock and Wifi QR code settings, followed by a Samsung Home row that opens Samsung's Home screen directly. OK opens a group. Appearance groups use a two-pane screen with visible choices on the left and the committed Home preview on the right.
+Settings opens a grouped overview of large cards in a grid of four columns (each arrow moves to the neighbouring card; the Background card shows the current wallpaper and Typography previews the chosen font): Background, Layout, Typography, Focus, Apps on Home, Language and clock, Wifi QR code settings and Alexa, followed by a Samsung Home card that opens Samsung's Home screen directly. With the Alexa card the grid has three shorter rows. OK opens a group. Appearance groups use a two-pane screen with visible choices on the left and the committed Home preview on the right.
 
 | Group | Choices |
 | --- | --- |
@@ -95,3 +95,7 @@ Beside the clock, the weather for the place in `app/fork.js` comes from Open-Met
 Language applies at once to every screen. A missing translation falls back to the English text. App names stay as installed.
 
 Photographic materials and blurred panel backgrounds are generated before packaging and stay aligned with the full-screen image. Photo colour and contrast metadata are also prepared offline. Navigation does not sample image pixels, run an optics engine or apply live backdrop blur. Flat backgrounds use matching light or dark panel colours. Focus feedback uses transforms and opacity; reduced motion removes animated scaling and movement while retaining opacity feedback.
+
+## Alexa
+
+Settings → Alexa shows **Connect Alexa** until the TV is signed in: OK opens a QR screen (Back or Close cancels; after a failure OK tries again). Once connected the group shows **Indoor temperature** and **Light switch on Home**, each opening a list of matching devices with their current value (Off first, the saved choice ticked; Up/Down move, OK chooses and returns), and **Sign out of Alexa**, which asks first. The chosen light becomes the first Home control, before Wi‑Fi: OK switches it, the icon lights up while it is on, and a failed switch reverts and says so in the focus label. The indoor temperature sits after the weather in the caption. Values are read every two minutes and once on return to the app; nothing is read while the app is hidden.

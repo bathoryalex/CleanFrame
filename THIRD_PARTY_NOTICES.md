@@ -43,3 +43,7 @@ Development dependencies retain the licences in their npm packages. They are not
 ## mp4-muxer
 
 `docs/send/mp4-muxer.js` is [mp4-muxer](https://github.com/Vanilagy/mp4-muxer) 5.2.2 by Vanilagy, vendored unchanged under the MIT licence in `docs/send/mp4-muxer-LICENSE.txt`. It is used only by the phone send page, not by the TV app.
+
+## aioamazondevices (reference only)
+
+`app/assets/alexa.js` and `tools/alexa-check/` follow the sign-in flow, request parameters and GraphQL queries of [aioamazondevices](https://github.com/chemelli74/aioamazondevices) (Apache License 2.0). No code is copied; the queries are shortened to the fields Frame Home reads.

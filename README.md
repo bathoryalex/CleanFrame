@@ -21,7 +21,8 @@ This repo uses [Nathan Clark's CleanFrame](https://github.com/nthnclrk/CleanFram
 - **Clock, date and weather.** 24- or 12-hour clock, in the corner or large in the centre. An optional date ("15 November", or "November 15" in Hungarian). Weather from [Open-Meteo](https://open-meteo.com): an icon, the temperature and today's high and low.
 - **Backgrounds.** A photograph, light or dark. Seventeen bundled wallpapers with pre-rendered glass, optional rotation, and **Your picture**: send any photo or short looping video from your phone and it becomes the background (see below).
 - **Wi‑Fi QR.** A Home control that shows a QR code so guests can join your Wi‑Fi. The network name and password are entered on the TV and never leave it.
-- **Settings.** A 4 x 2 grid of cards, made for arrow keys. Each group (Background, Layout, Typography, Focus, Apps on Home, Language and clock, Wi‑Fi QR) shows its choices beside a live Home preview. The last card opens Samsung's Home screen.
+- **Alexa.** An indoor temperature beside the clock and a light switch among the Home controls, for any sensor or light in your Alexa app, including Matter devices paired to an Echo (see below).
+- **Settings.** A grid of cards, made for arrow keys. Each group (Background, Layout, Typography, Focus, Apps on Home, Language and clock, Wi‑Fi QR, Alexa) shows its choices beside a live Home preview. The last card opens Samsung's Home screen.
 - **English or Hungarian** interface, switchable at any time.
 
 The glass and blur are rendered ahead of time. The TV loads the finished images and uses transforms and opacity for focus feedback; nothing is blurred live while you navigate.
@@ -38,9 +39,20 @@ The TV keeps listening while it is on, so the QR screen can be closed; a new pho
 
 A **video** (MP4 with H.264 works best; up to 16 MB in original quality) plays muted and looped behind Home, over a photo and glass made from a still of it. Samsung TVs cannot copy a frame out of a playing video, so the still comes from the MP4's cover art (`scripts/animate-glow.py` embeds one) or from the still the send page sends first. A video with neither gets neutral dark glass. It pauses while Settings or another panel covers Home and when the app is in the background. To turn a still picture with glowing light, such as an aurora, into a gently moving loop, run `python3 scripts/animate-glow.py photo.jpg loop.mp4` (needs NumPy, Pillow and ffmpeg) and send the result; a 12-second 1080p loop with its cover comes out at about 1.8 MB. The photo passes through the public ntfy.sh server on a channel name that cannot be guessed and is deleted there after a few hours; the TV keeps its own copy. The relay host and the send page address are set in [`app/fork.js`](app/fork.js); with `sendPage` empty the QR code opens the ntfy.sh web page instead. GitHub Pages must serve `docs/` from the `main` branch for the send page to exist.
 
+## Alexa
+
+Settings → **Alexa** → **Connect Alexa** shows a QR code. Scan it, sign in on Amazon's own page in the phone's browser, then copy the address of the empty page Amazon lands on and paste it into the [sign-in page](docs/alexa/index.html) (GitHub Pages), which sends it to the TV. After that choose a sensor for **Indoor temperature** (shown beside the weather) and a light for **Light switch on Home** (a control before Wi‑Fi; OK turns it on or off). Values refresh every two minutes while Home is on screen.
+
+How it works, and what to know:
+
+- **Unofficial.** Amazon offers no public API for reading Alexa devices. Frame Home signs in the way the Alexa mobile app does and uses the same endpoints; the flow and the GraphQL queries follow the open-source [aioamazondevices](https://github.com/chemelli74/aioamazondevices) library (Apache-2.0) used by Home Assistant. Amazon can change these at any time.
+- **Sign-in.** OAuth with PKCE: the TV keeps the code verifier, the QR code carries only the challenge. The phone page forwards the one-time authorization code through ntfy.sh, and that code is useless without the verifier. Your password only goes to Amazon.
+- **On the TV.** The TV registers itself as a device in your Amazon account ("…'s Frame Home") and keeps a refresh token in its own storage, separate from the preferences. Requests use `Authorization: Bearer`; the TV runtime does not allow a hand-set `Cookie` header. **Sign out of Alexa** forgets the token; remove the device in your Amazon account to revoke it.
+- `tools/alexa-check/` is the diagnostic app that established which requests the TV runtime allows.
+
 ## Configure
 
-[`app/fork.js`](app/fork.js) is the one place for this installation's settings: the Home row (with HDMI inputs and alternative app IDs), the app's own ID, the weather location and the picture relay. Interface text lives in `app/main.js` with Hungarian translations in [`app/assets/i18n.js`](app/assets/i18n.js).
+[`app/fork.js`](app/fork.js) is the one place for this installation's settings: the Home row (with HDMI inputs and alternative app IDs), the app's own ID, the weather location, the picture relay and the Alexa sign-in page (`alexaPage`; empty hides the Alexa card). Interface text lives in `app/main.js` with Hungarian translations in [`app/assets/i18n.js`](app/assets/i18n.js).
 
 ## Try the interface
 

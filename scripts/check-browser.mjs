@@ -106,9 +106,42 @@ async function page(options = {}) {
     const url = route.request().url(), relay = current.__relay;
     const list = relay ? relay.messages || [{ id: relay.id, image: relay.image, type: relay.type, name: relay.name }] : [];
     if (url.includes('/file/')) { const m = list.find(x => url.includes('/file/' + x.id + '.')); return m ? route.fulfill({ contentType: m.type || 'image/jpeg', headers: { 'Access-Control-Allow-Origin': '*' }, body: m.slice ? readFileSync(root + m.image).subarray(m.slice[0], m.slice[1]) : readFileSync(root + m.image) }) : route.fulfill({ status: 404 }); }
+    if (url.includes('/framehome-alexa-')) return route.fulfill({ contentType: 'application/x-ndjson', headers: { 'Access-Control-Allow-Origin': '*' }, body: current.__alexa && current.__alexa.code ? JSON.stringify({ id: 'a1', event: 'message', message: JSON.stringify({ code: 'ANtestCode123', domain: 'com' }) }) + '\n' : '' });
     const open = url.includes('poll=1') ? '' : JSON.stringify({ event: 'open' }) + '\n';
     const body = open + (relay && relay.ready() ? list.map(m => JSON.stringify({ id: m.id, time: 1, event: 'message', topic: 't', message: 'photo', tags: m.tags, title: m.title, attachment: { name: m.name || 'IMG_0001.jpg', type: m.type || 'image/jpeg', size: 1, url: 'https://ntfy.sh/file/' + m.id + '.jpg' } }) + '\n').join('') : '');
     return route.fulfill({ contentType: 'application/x-ndjson', headers: { 'Access-Control-Allow-Origin': '*' }, body });
+  });
+  // Alexa: a local stand-in for Amazon's sign-in, token and GraphQL endpoints.
+  current.__alexa = { code: false, register: null, sets: [], devices: [
+    { id: 'amzn1.alexa.endpoint.temp-1', name: 'TIMMERFLOTTE', temp: 22.43 },
+    { id: 'amzn1.alexa.endpoint.lamp-1', name: 'Left lamp', power: 'OFF' },
+    { id: 'amzn1.alexa.endpoint.echo-1', name: 'Alex\'s Echo Dot Max', temp: 26.3 },
+    { id: 'amzn1.alexa.endpoint.plug-1', name: 'Fan', power: 'ON' },
+    { id: 'amzn1.alexa.endpoint.none-1', name: 'Speaker group' }] };
+  const amazon = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'content-type, authorization, accept-language', 'Access-Control-Allow-Methods': 'GET, POST' };
+  await current.route('https://api.amazon.com/**', route => {
+    const r = route.request(), A = current.__alexa;
+    if (r.method() === 'OPTIONS') return route.fulfill({ status: 204, headers: amazon });
+    if (r.url().endsWith('/auth/register')) { A.register = JSON.parse(r.postData()); return route.fulfill({ headers: amazon, contentType: 'application/json', body: JSON.stringify({ response: { success: { tokens: { bearer: { access_token: 'Atza|test', refresh_token: 'Atzr|test', expires_in: 3600 } } } } }) }); }
+    return route.fulfill({ headers: amazon, contentType: 'application/json', body: JSON.stringify({ access_token: 'Atza|renewed', expires_in: 3600 }) });
+  });
+  await current.route('https://alexa.amazon.com/**', route => {
+    const r = route.request(), A = current.__alexa;
+    if (r.method() === 'OPTIONS') return route.fulfill({ status: 204, headers: amazon });
+    if (!/^Bearer Atza\|/.test(r.headers()['authorization'] || '')) return route.fulfill({ status: 401, headers: amazon, body: '' });
+    if (r.url().endsWith('/api/users/me')) return route.fulfill({ headers: amazon, contentType: 'application/json', body: JSON.stringify({ marketPlaceDomainName: 'https://www.amazon.com' }) });
+    const body = JSON.parse(r.postData()), op = Array.isArray(body) ? body[0] : body;
+    const wrap = data => route.fulfill({ headers: amazon, contentType: 'application/json', body: JSON.stringify(Array.isArray(body) ? [{ data }] : { data }) });
+    if (op.operationName === 'getDevicesBaseData') return wrap({ listEndpoints: { endpoints: A.devices.map(d => ({ endpointId: d.id, friendlyNameObject: { value: { text: d.name } } })) } });
+    if (op.operationName === 'getEndpointFeatures') return wrap({ listEndpoints: { endpoints: A.devices.filter(d => op.variables.endpointIds.includes(d.id)).map(d => ({ endpointId: d.id, features: [].concat(
+      d.temp !== undefined ? [{ name: 'temperatureSensor', properties: [{ __typename: 'TemperatureSensor', name: 'temperature', value: { value: d.temp, scale: 'CELSIUS' } }] }] : [],
+      d.power ? [{ name: 'power', operations: [{ name: 'turnOn' }, { name: 'turnOff' }], properties: [{ __typename: 'Power', name: 'powerState', powerStateValue: d.power }] }] : []) })) } });
+    if (op.operationName === 'setEndpointFeatures') {
+      const req = op.variables.setEndpointFeaturesInput.featureControlRequests[0], d = A.devices.find(x => x.id === req.endpointId);
+      A.sets.push(req); if (d) d.power = req.featureOperationName === 'turnOn' ? 'ON' : 'OFF';
+      return wrap({ setEndpointFeatures: { featureControlResponses: [{ endpointId: req.endpointId, code: 'SUCCESS' }], errors: [] } });
+    }
+    return route.fulfill({ status: 400, headers: amazon, body: '' });
   });
   // The weather caption is optional; answer it locally so checks never leave the machine.
   await current.route('https://api.open-meteo.com/**', route => route.fulfill({ contentType: 'application/json',
@@ -421,6 +454,52 @@ try {
     await current.reload(); await ready();
     const after = await state();
     check('Preferences survive a restart', after.lang === 'hu' && after.clock === '12' && after.weather === 'off' && after.clockPos === 'large', after);
+  });
+  await run('Alexa: phone sign-in, indoor temperature and a light switch', async () => {
+    await page(); await scene('settings');
+    const cards = await current.evaluate(() => [...document.querySelectorAll('.settings-card')].map(e => { const r = e.getBoundingClientRect(); return { id: e.getAttribute('data-id'), bottom: r.bottom }; }));
+    check('Settings shows an Alexa card and all nine cards fit on screen', cards.length === 9 && cards[7].id === 'alexa' && cards[8].id === 'samsung' && cards.every(c => c.bottom <= 1000), cards);
+    await act('settings.group.alexa'); await current.waitForFunction(() => ShoreQA.state().settingsGroup === 'alexa');
+    await act('alexa.connect');
+    await current.waitForFunction(() => document.querySelector('.phone-qr') && document.querySelector('.phone-qr')._payload);
+    const url = await current.evaluate(() => document.querySelector('.phone-qr')._payload);
+    const frag = new URLSearchParams(url.split('#')[1]);
+    check('The QR code opens the Alexa sign-in page with a channel, a challenge and a client id', /\/alexa\/#t=framehome-alexa-/.test(url) && /^[A-Za-z0-9_-]{43}$/.test(frag.get('c')) && Buffer.from(frag.get('i'), 'hex').toString().endsWith('#A2IVLV5VM2W81'), url);
+    current.__alexa.code = true;
+    await current.waitForFunction(() => /Connected|Csatlakoztatva/.test(document.querySelector('.phone-status').textContent), null, { timeout: 15000 });
+    const reg = current.__alexa.register;
+    check('Registration sends the code with the verifier that matches the challenge', reg && reg.auth_data.authorization_code === 'ANtestCode123' && createHash('sha256').update(reg.auth_data.code_verifier).digest('base64url') === frag.get('c'));
+    check('The refresh token is stored apart from the preferences', await current.evaluate(() => /Atzr\|test/.test(localStorage.getItem('cleanframe.alexa.v1') || '') && !/Atzr/.test(localStorage.getItem('cleanframe.home.v1'))));
+    await nav('ok');
+    check('Done returns to the Alexa settings', (await state()).settingsGroup === 'alexa');
+    await act('alexa.pick.temp');
+    await current.waitForFunction(() => document.querySelectorAll('.alexa-row').length === 3);
+    const temps = await current.evaluate(() => [...document.querySelectorAll('.alexa-row')].map(e => e.textContent));
+    check('The sensor list has Off and only devices with a temperature', /Off|Ki/.test(temps[0]) && temps.some(t => /TIMMERFLOTTE\s*22.4°/.test(t)) && !temps.some(t => /lamp|Speaker/.test(t)), temps);
+    await act('alexa.choose.' + temps.findIndex(t => /TIMMERFLOTTE/.test(t)));
+    check('The chosen sensor is saved', (await stored()).alexaTemp === 'amzn1.alexa.endpoint.temp-1' && (await stored()).alexaTempName === 'TIMMERFLOTTE');
+    await act('alexa.pick.lamp');
+    await current.waitForFunction(() => document.querySelectorAll('.alexa-row').length === 3);
+    const lamps = await current.evaluate(() => [...document.querySelectorAll('.alexa-row')].map(e => e.textContent));
+    await act('alexa.choose.' + lamps.findIndex(t => /Left lamp/.test(t)));
+    check('The chosen light is saved', (await stored()).alexaLamp === 'amzn1.alexa.endpoint.lamp-1', lamps);
+    await scene('home');
+    await current.waitForFunction(() => document.querySelector('.weather.indoor'));
+    check('Home shows the indoor temperature beside the weather', /22.4°/.test(await current.evaluate(() => document.querySelector('.weather.indoor').textContent)));
+    check('Home has a light switch before Wi‑Fi', await current.evaluate(() => { const u = [...document.querySelectorAll('#utils .u')].map(b => b.getAttribute('data-action')); return u[0] === 'util.lamp' && u[1] === 'util.wifi'; }));
+    await act('util.lamp');
+    await current.waitForFunction(() => document.querySelector('.u-lamp.is-lit'));
+    check('OK turns the light on through Alexa', current.__alexa.sets.length === 1 && current.__alexa.sets[0].featureOperationName === 'turnOn' && current.__alexa.sets[0].featureName === 'power', current.__alexa.sets);
+    await act('util.lamp');
+    await current.waitForFunction(() => !document.querySelector('.u-lamp.is-lit'));
+    check('OK again turns it off', current.__alexa.sets.length === 2 && current.__alexa.sets[1].featureOperationName === 'turnOff');
+    await group('alexa'); await act('alexa.signout');
+    await current.waitForFunction(() => ShoreQA.where().view === 'message');
+    await act('message.alexaout');
+    const out = await stored();
+    check('Sign out forgets the sign-in and the chosen devices', !out.alexaTemp && !out.alexaLamp && await current.evaluate(() => !localStorage.getItem('cleanframe.alexa.v1')));
+    await scene('home');
+    check('Home has no Alexa values after sign-out', await current.evaluate(() => !document.querySelector('.weather.indoor') && !document.querySelector('[data-action="util.lamp"]')));
   });
   await run('Your picture arrives from a phone', async () => {
     await page(); await group('background');

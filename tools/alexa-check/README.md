@@ -23,6 +23,10 @@ custom headers sent, third-party cookies kept.
 4. It then tries Bearer, `x-amz-access-token` and cookie-jar access to `alexa.amazon.<site>` and,
    with the first that works, lists devices with a temperature or an on/off state.
 
+Result on the same TV: registration worked, `Authorization: Bearer` worked for `api/users/me` and the
+GraphQL device list, `x-amz-access-token` and the cookie-jar routes did not. All 76 devices were listed
+with their temperatures and on/off states. Frame Home's `app/assets/alexa.js` uses the Bearer route.
+
 The registration shows up in the Amazon account as a device named "<first name>'s Frame Home" and can
 be removed there. Uninstalling the app deletes the saved sign-in. Red button: forget it and start again.
 
