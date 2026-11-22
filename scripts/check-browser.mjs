@@ -162,6 +162,7 @@ async function page(options = {}) {
     const r = route.request(), Q = current.__spotify, path = new URL(r.url()).pathname;
     if (r.method() === 'OPTIONS') return route.fulfill({ status: 204, headers: sp });
     if (r.headers()['authorization'] !== 'Bearer BQtest') return route.fulfill({ status: 401, headers: sp, contentType: 'application/json', body: '{"error":{"status":401}}' });
+    if (r.method() === 'GET' && path.endsWith('/devices') && Q.slowDevices) { setTimeout(() => route.fulfill({ headers: sp, contentType: 'application/json', body: JSON.stringify({ devices: [{ id: 'dev-echo', is_active: true, is_restricted: false, name: 'Echo Dot Max', type: 'Speaker' }, { id: 'dev-pc', is_active: false, is_restricted: false, name: 'Desk PC', type: 'Computer' }, { id: 'dev-car', is_active: false, is_restricted: true, name: 'Car', type: 'Automobile' }] }) }), 900); return; }
     if (r.method() === 'GET' && path.endsWith('/devices')) return route.fulfill({ headers: sp, contentType: 'application/json', body: JSON.stringify({ devices: [
       { id: 'dev-echo', is_active: true, is_restricted: false, name: 'Echo Dot Max', type: 'Speaker' }, { id: 'dev-pc', is_active: false, is_restricted: false, name: 'Desk PC', type: 'Computer' },
       { id: 'dev-car', is_active: false, is_restricted: true, name: 'Car', type: 'Automobile' }, { id: null, name: 'Ghost', type: 'Speaker' }]
@@ -653,8 +654,15 @@ try {
     await current.waitForFunction(() => ShoreQA.where().view === 'nowplaying');
     await nav('up', 'up');
     check('Up from the progress bar focuses "Playing on"', await current.evaluate(() => document.querySelector('.np-device.is-focus') && /Echo Dot Max/.test(document.querySelector('.np-device').textContent)));
+    current.__spotify.slowDevices = true;
     await nav('ok');
+    await current.waitForFunction(() => document.querySelector('.np-devices.is-open .np-dev-note'));
+    await current.waitForTimeout(350);
+    const loadingTop = await current.evaluate(() => document.querySelector('.np-devices').getBoundingClientRect().top);
+    current.__spotify.slowDevices = false;
     await current.waitForFunction(() => document.querySelectorAll('.np-dev-row').length > 0);
+    const listTop = await current.evaluate(() => document.querySelector('.np-devices').getBoundingClientRect().top);
+    check('The list keeps its top edge when the devices arrive (no jump)', Math.abs(loadingTop - listTop) < 1, { loadingTop, listTop });
     const rows = await current.evaluate(() => [...document.querySelectorAll('.np-dev-row')].map(e => e.textContent + (e.classList.contains('is-focus') ? '*' : '') + (e.classList.contains('is-restricted') ? '!' : '')));
     check('OK lists the devices Spotify reports, the current one focused and restricted ones marked', rows.length === 3 && /Echo Dot Max\*/.test(rows[0]) && /Desk PC/.test(rows[1]) && /!$/.test(rows[2]), rows);
     await nav('down', 'ok');

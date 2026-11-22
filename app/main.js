@@ -4,7 +4,7 @@
 
   /* ---------- Bundled data ---------- */
   var ASSETS = 'assets/', ICONS = ASSETS + 'icons/', WP = ASSETS + 'wallpapers/';
-  var APP_VERSION = '0.25.1';
+  var APP_VERSION = '0.25.2';
   var CAP = 9, SCRIM_Y = 560, DOCK_BOTTOM = 1032; // the Dock sits 48 px above the bottom edge; names and actions go above it
   var DOCK_MODES = { both: { tw: 288, th: 200, pitch: 296 }, text: { tw: 288, th: 104, pitch: 296 }, icons: { tw: 200, th: 156, pitch: 206 } }; // icons-only tiles leave room under the icon for the focused app's name
   var GRID_ROW = 240, GRID_COL = 344, COLS = 5;
@@ -1646,10 +1646,11 @@
   var DEV_VISIBLE = 7;
   function devicesHtml(t) {
     var d = t.dev, rows, n, from, to;
+    var head = '<h3 class="np-dev-title">' + esc(T('Play on')) + '</h3>';
     if (!d) return '';
-    if (!d.list) return '<p class="np-dev-note">' + esc(T('Looking for your Spotify devices…')) + '</p>';
-    if (d.err) return '<p class="np-dev-note">' + esc(spotifyErrText(d.err)) + '</p><p class="np-dev-hint">' + esc(T('OK tries again.')) + '</p>';
-    if (!d.list.length) return '<p class="np-dev-note">' + esc(T('No Spotify devices are on right now. Open Spotify on the device you want, then try again.')) + '</p>';
+    if (!d.list) return head + '<p class="np-dev-note is-wait">' + esc(T('Looking for your Spotify devices…')) + '</p>';
+    if (d.err) return head + '<p class="np-dev-note">' + esc(spotifyErrText(d.err)) + '</p><p class="np-dev-hint">' + esc(T('OK tries again.')) + '</p>';
+    if (!d.list.length) return head + '<p class="np-dev-note">' + esc(T('No Spotify devices are on right now. Open Spotify on the device you want, then try again.')) + '</p>';
     n = d.list.length;
     if (d.i < d.top) d.top = d.i;
     if (d.i > d.top + DEV_VISIBLE - 1) d.top = d.i - DEV_VISIBLE + 1;
