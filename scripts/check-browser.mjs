@@ -164,7 +164,8 @@ async function page(options = {}) {
     if (r.headers()['authorization'] !== 'Bearer BQtest') return route.fulfill({ status: 401, headers: sp, contentType: 'application/json', body: '{"error":{"status":401}}' });
     if (r.method() === 'GET' && path.endsWith('/devices')) return route.fulfill({ headers: sp, contentType: 'application/json', body: JSON.stringify({ devices: [
       { id: 'dev-echo', is_active: true, is_restricted: false, name: 'Echo Dot Max', type: 'Speaker' }, { id: 'dev-pc', is_active: false, is_restricted: false, name: 'Desk PC', type: 'Computer' },
-      { id: 'dev-car', is_active: false, is_restricted: true, name: 'Car', type: 'Automobile' }, { id: null, name: 'Ghost', type: 'Speaker' }] }) });
+      { id: 'dev-car', is_active: false, is_restricted: true, name: 'Car', type: 'Automobile' }, { id: null, name: 'Ghost', type: 'Speaker' }]
+      .concat(Q.many ? Array.from({ length: 11 }, (_, i) => ({ id: 'dev-x' + i, is_active: false, is_restricted: false, name: 'Echo ' + (i + 1), type: 'Speaker' })) : []) }) });
     if (r.method() === 'GET') return route.fulfill({ headers: sp, contentType: 'application/json', body: JSON.stringify({ is_playing: Q.playing, device: { name: Q.device || 'Echo Dot Max' },
       progress_ms: 61000, item: { id: 't1', name: Q.title || 'Song A', duration_ms: 210000, artists: Q.artists || [{ name: 'Artist A' }, { name: 'Guest B' }], album: { name: 'Album A', images: [{ url: 'https://i.scdn.co/image/big', width: 640 }, { url: 'https://i.scdn.co/image/small', width: 64 }] } } }) });
     Q.calls.push(r.method() + ' ' + path); if (/seek/.test(path)) Q.seekUrl = r.url();
@@ -662,7 +663,13 @@ try {
     check('OK moves playback there and keeps it playing', tr && tr.device_ids[0] === 'dev-pc' && tr.play === true, tr);
     await current.waitForFunction(() => /Desk PC/.test(document.querySelector('.np-device').textContent));
     check('Now playing shows the new device', true);
+    current.__spotify.many = true;
     await nav('ok'); await current.waitForFunction(() => document.querySelectorAll('.np-dev-row').length > 0);
+    await nav('down', 'down', 'down', 'down', 'down', 'down', 'down', 'down', 'down', 'down');
+    const box = await current.evaluate(() => { const p = document.querySelector('.np-devices').getBoundingClientRect(), f = document.querySelector('.np-dev-row.is-focus').getBoundingClientRect(), s = document.getElementById('stage').getBoundingClientRect();
+      return { rows: document.querySelectorAll('.np-dev-row').length, top: p.top - s.top, bottom: p.bottom - s.top, focusIn: f.top >= p.top && f.bottom <= p.bottom, count: document.querySelector('.np-dev-count') && document.querySelector('.np-dev-count').textContent }; });
+    check('A long device list shows seven rows on screen and follows the focus', box.rows === 7 && box.top >= 0 && box.bottom <= 1080 && box.focusIn && box.count === '11 / 14', box);
+    current.__spotify.many = false;
     await nav('back');
     check('Back closes the list and keeps Now playing', (await current.evaluate(() => ShoreQA.where().view)) === 'nowplaying' && await current.evaluate(() => !document.querySelector('.np-devices.is-open')));
   });

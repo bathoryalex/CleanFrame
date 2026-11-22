@@ -4,7 +4,7 @@
 
   /* ---------- Bundled data ---------- */
   var ASSETS = 'assets/', ICONS = ASSETS + 'icons/', WP = ASSETS + 'wallpapers/';
-  var APP_VERSION = '0.25.0';
+  var APP_VERSION = '0.25.1';
   var CAP = 9, SCRIM_Y = 560, DOCK_BOTTOM = 1032; // the Dock sits 48 px above the bottom edge; names and actions go above it
   var DOCK_MODES = { both: { tw: 288, th: 200, pitch: 296 }, text: { tw: 288, th: 104, pitch: 296 }, icons: { tw: 200, th: 156, pitch: 206 } }; // icons-only tiles leave room under the icon for the focused app's name
   var GRID_ROW = 240, GRID_COL = 344, COLS = 5;
@@ -1613,7 +1613,7 @@
      Spotify appear; OK moves the music there and keeps it playing (or paused). */
   function openDevices(t) {
     if (!spotifyOn()) return;
-    t.dev = { list: null, err: '', i: 0, busy: '' };
+    t.dev = { list: null, err: '', i: 0, top: 0, busy: '' };
     render();
     FS.devices(function (err, list) {
       if (top() !== t || !t.dev) return;
@@ -1642,18 +1642,29 @@
     }
   }
   function deviceIcon(type) { type = String(type).toLowerCase(); return icon(type === 'smartphone' || type === 'tablet' ? 'phone' : type === 'computer' ? 'computer' : type === 'tv' || type === 'castvideo' || type === 'stb' || type === 'gameconsole' ? 'tv' : 'speaker'); }
+  /* At most DEV_VISIBLE rows show at once; the window follows the focus, with cues above and below. */
+  var DEV_VISIBLE = 7;
   function devicesHtml(t) {
-    var d = t.dev, rows;
+    var d = t.dev, rows, n, from, to;
     if (!d) return '';
     if (!d.list) return '<p class="np-dev-note">' + esc(T('Looking for your Spotify devices…')) + '</p>';
     if (d.err) return '<p class="np-dev-note">' + esc(spotifyErrText(d.err)) + '</p><p class="np-dev-hint">' + esc(T('OK tries again.')) + '</p>';
     if (!d.list.length) return '<p class="np-dev-note">' + esc(T('No Spotify devices are on right now. Open Spotify on the device you want, then try again.')) + '</p>';
-    rows = d.list.map(function (v, i) {
+    n = d.list.length;
+    if (d.i < d.top) d.top = d.i;
+    if (d.i > d.top + DEV_VISIBLE - 1) d.top = d.i - DEV_VISIBLE + 1;
+    d.top = clamp(d.top, 0, Math.max(0, n - DEV_VISIBLE));
+    from = d.top; to = Math.min(n, from + DEV_VISIBLE);
+    rows = d.list.slice(from, to).map(function (v, k) {
+      var i = from + k;
       return '<button type="button" tabindex="-1" class="np-dev-row' + (i === d.i ? ' is-focus' : '') + (v.active ? ' is-active' : '') + (v.restricted ? ' is-restricted' : '') + (d.busy === v.id ? ' is-busy' : '') + '" data-z="npdevrow" data-i="' + i + '">'
         + deviceIcon(v.type) + '<span class="np-dev-name">' + esc(v.name) + (v.restricted ? '<small>' + esc(T('Can’t be controlled here')) + '</small>' : '') + '</span>'
         + (v.active ? icon('check', 'np-dev-tick') : d.busy === v.id ? '<span class="np-dev-wait">…</span>' : '') + '</button>';
     }).join('');
-    return '<h3 class="np-dev-title">' + esc(T('Play on')) + '</h3><div class="np-dev-list">' + rows + '</div>';
+    return '<h3 class="np-dev-title">' + esc(T('Play on')) + (n > DEV_VISIBLE ? '<span class="np-dev-count">' + (d.i + 1) + ' / ' + n + '</span>' : '') + '</h3>'
+      + '<div class="np-dev-cue' + (from > 0 ? ' is-on' : '') + '" aria-hidden="true">' + icon('up') + '</div>'
+      + '<div class="np-dev-list">' + rows + '</div>'
+      + '<div class="np-dev-cue' + (to < n ? ' is-on' : '') + '" aria-hidden="true">' + icon('down') + '</div>';
   }
   var seek = { at: null, timer: null };
   function seekBy(n, delta) {
