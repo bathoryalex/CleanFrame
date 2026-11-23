@@ -38,7 +38,7 @@ Signing with Apps2Samsung on this TV: use **Level = Automatic** (which resolves 
 - Frame Home installs and opens from the app list.
 - The HDMI tiles switch input with `tizen.tvwindow` and open Samsung's TV viewer (`org.tizen.tv-viewer`). If the viewer cannot open, the input is shown inside Frame Home and Back returns to the Home row.
 - Nuvio Legacy is the native `.tpk` build (`NuvioTV002.Nuvio`), signed for this TV.
-- Backup and restore (0.34) was exercised on the TV on 23 November 2026: a backup was made, saved to the phone from the backup page, sent back and restored; after the reload the settings looked unchanged (a same-state round-trip; a change-then-restore check was not done).
+- Backup and restore (0.34) was verified on the TV on 23 November 2026: a backup was made, saved to the phone from the backup page, and restored. A change-then-restore check also passed — the layout was changed, then restoring from the backup reverted it to the saved state.
 
 ## Still to check physically
 
