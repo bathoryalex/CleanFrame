@@ -4,7 +4,7 @@
 
   /* ---------- Bundled data ---------- */
   var ASSETS = 'assets/', ICONS = ASSETS + 'icons/', WP = ASSETS + 'wallpapers/';
-  var APP_VERSION = '0.36.2';
+  var APP_VERSION = '0.36.3';
   var CAP = 9, SCRIM_Y = 560, DOCK_BOTTOM = 1032; // the Dock sits 48 px above the bottom edge; names and actions go above it
   var DOCK_MODES = { both: { tw: 288, th: 200, pitch: 296 }, text: { tw: 288, th: 104, pitch: 296 }, icons: { tw: 200, th: 156, pitch: 206 } }; // icons-only tiles leave room under the icon for the focused app's name
   var GRID_ROW = 240, GRID_COL = 344, COLS = 5;
@@ -1390,7 +1390,19 @@
     SLOTS.forEach(function (c) { var t = S.c.alexaKeys[c]; if (t) targetMembers(t.id).forEach(add); });
     return ids;
   }
-  function storeVals(vals) { var id; for (id in vals) if (vals.hasOwnProperty(id) && !alexa.busy[id]) alexa.vals[id] = vals[id]; }
+  /* Battery sensors often answer a read without their value (asleep, or between reports). A reading
+     missing from one answer keeps its last value for up to an hour instead of vanishing from Home. */
+  var KEEP_READING_MS = 60 * 60 * 1000;
+  function storeVals(vals) {
+    var id, now = Date.now();
+    for (id in vals) if (vals.hasOwnProperty(id) && !alexa.busy[id]) (function (prev, next) {
+      next.readings.forEach(function (r) { r.at = now; });
+      if (prev && prev.readings) prev.readings.forEach(function (r) {
+        if (!next.readings.some(function (x) { return x.key === r.key; }) && now - (r.at || 0) < KEEP_READING_MS) next.readings.push(r);
+      });
+      alexa.vals[id] = next;
+    }(alexa.vals[id], vals[id]));
+  }
   /* Schedules the next read: now (true), after ms (number) or after the regular interval. */
   function alexaPoll(when) {
     clearTimeout(alexa.timer); alexa.timer = null;

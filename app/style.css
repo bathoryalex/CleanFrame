@@ -1170,7 +1170,10 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000}
 .settings-grid.is-grouped .card-name{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:30px;line-height:38px}
 .settings-grid.is-grouped .card-lang .card-type{font-size:30px;letter-spacing:.5px}
 /* Day panel (0.33): holiday, name days and calendar events in one soft glass panel under the date. */
-.cap-panel{display:flex;flex-direction:column;align-items:flex-start;gap:6px;align-self:flex-start;margin-top:12px;padding:12px 22px 13px;border-radius:20px;max-width:900px;color:#f6f1e7;background:linear-gradient(180deg,rgba(14,18,20,.44),rgba(14,18,20,.26));box-shadow:inset 0 1px 0 rgba(255,255,255,.10),inset 0 0 0 1px rgba(255,255,255,.07),0 10px 30px rgba(4,8,10,.14);text-shadow:0 1px 2px rgba(0,0,0,.18)}
+/* The day panel has no frame: the glass fades out to the left, right and bottom like the docks; its
+   top edge stays. The fade is a shadow of the same colour pushed down by its blur, so nothing shows above
+   the panel and no mask or live blur is needed. */
+.cap-panel{display:flex;flex-direction:column;align-items:flex-start;gap:6px;align-self:flex-start;margin-top:12px;padding:12px 22px 13px;border-radius:18px 18px 0 0;max-width:900px;color:#f6f1e7;background:rgba(14,18,20,.34);box-shadow:0 48px 24px 24px rgba(14,18,20,.34);text-shadow:0 1px 2px rgba(0,0,0,.18)}
 .clock-big .cap-panel{align-self:center;align-items:center;margin:16px auto 0}
 .cap-row{display:flex;align-items:center;gap:10px;max-width:100%;font-size:26px;line-height:34px;font-weight:500;letter-spacing:-.2px;white-space:nowrap}
 .cap-row.cap-holiday{color:#f2d8ad;font-weight:600}
@@ -1185,7 +1188,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000}
 .cap-cal-who{flex:none;font-size:20px;line-height:26px;font-weight:600;padding:1px 9px;border-radius:9px;background:rgba(255,255,255,.10);opacity:.9}
 .clock-big .cap-row{font-size:28px;line-height:36px}
 .clock-big .cap-row.cap-nameday{font-size:26px;line-height:32px}
-.stage.bg-dark .cap-panel{background:linear-gradient(180deg,rgba(255,255,255,.07),rgba(255,255,255,.035))}
+.stage.bg-dark .cap-panel{background:rgba(255,255,255,.05);box-shadow:0 48px 24px 24px rgba(255,255,255,.05)}
 /* Settings overview (0.33): three equal columns that fill the width, each a framed group of three
    equal wide cards (picture or icon on the left, name and value on the right). */
 .settings-grid.is-columns{position:absolute;left:140px;top:176px;width:1640px;display:grid;grid-template-columns:repeat(3,1fr);gap:28px;align-items:stretch}

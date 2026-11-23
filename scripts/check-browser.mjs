@@ -831,6 +831,21 @@ try {
     check('A compilation album shows no year', await current.evaluate(() => document.querySelector('.np-album').textContent === 'Album A'));
     current.__spotify.albumType = ''; current.__spotify.title = ''; current.__spotify.releaseDate = '';
   });
+  await run('Alexa: a reading missing from one answer stays on Home', async () => {
+    await page({ seed: baseline({ alexaReadings: [{ id: 'amzn1.alexa.endpoint.temp-1', key: 'temp', name: 'Living room', label: 'Temperature' }], alexaSwitches: [{ id: 'amzn1.alexa.endpoint.lamp-1', name: 'Left lamp' }] }) });
+    await current.evaluate(() => localStorage.setItem('cleanframe.alexa.v1', JSON.stringify({ serial: 'X', domain: 'com', site: 'com', refresh: 'Atzr|test', access: 'Atza|test', at: Date.now() })));
+    await current.reload(); await ready();
+    await current.waitForFunction(() => /22\.4/.test((document.querySelector('.weather.indoor') || {}).textContent || ''));
+    const dev = current.__alexa.devices.find(d => d.id.endsWith('temp-1')), saved = dev.temp;
+    delete dev.temp; current.__alexa.reads = 0;
+    const before = await current.evaluate(() => ShoreQA.alexaReads ? ShoreQA.alexaReads() : 0);
+    await current.waitForTimeout(6500);
+    check('A sensor that answers without its value keeps showing its last temperature', await current.evaluate(() => /22\.4/.test((document.querySelector('.weather.indoor') || {}).textContent || '')), before);
+    dev.temp = 23.1;
+    await current.waitForTimeout(6000);
+    check('A fresh value replaces it on the next read', await current.evaluate(() => /23\.1/.test((document.querySelector('.weather.indoor') || {}).textContent || '')));
+    dev.temp = saved;
+  });
   await run('Spotify phone page sends the code back to the TV', async () => {
     const phone = await preview.browser.newPage({ viewport: { width: 390, height: 844 } }), posts = [];
     await phone.route('https://ntfy.sh/**', async route => { const r = route.request(); posts.push({ url: r.url(), body: r.postData(), tags: r.headers()['tags'] }); await route.fulfill({ status: 200, headers: { 'Access-Control-Allow-Origin': '*' }, body: '{}' }); });
