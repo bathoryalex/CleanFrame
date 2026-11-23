@@ -734,15 +734,20 @@ try {
     await nav('left', 'left');
     check('Left from minus goes back to Lyrics', await current.evaluate(() => !!document.querySelector('.np-lyrics-btn.is-focus') && !document.querySelector('.np-vol-btn.is-focus')));
     await nav('ok'); await current.waitForTimeout(400);
-    const gl = await current.evaluate(() => { const r = e => document.querySelector(e).getBoundingClientRect(); return { ctl: r('.np-controls'), vol: r('.np-volume') }; });
-    check('With lyrics open the volume pill is under the buttons', gl.vol.top >= gl.ctl.bottom, gl);
-    await nav('down');
-    check('With lyrics open Down reaches the volume', (await focused()) === '0');
+    const gl = await current.evaluate(() => { const r = e => document.querySelector(e).getBoundingClientRect(), mid = b => (b.left + b.right) / 2;
+      const bar = r('.np-progress .music-bar'), prev = r('.np-btn[data-i="0"]'), next = r('.np-btn[data-i="2"]'), lyr = r('.np-lyrics-btn'), vol = r('.np-volume'), play = r('.np-main');
+      return { bar: mid(bar), row1: (prev.left + next.right) / 2, row2: (lyr.left + vol.right) / 2, row1Top: play.top, row1Bottom: play.bottom, lyrTop: lyr.top, volTop: vol.top, lyrMid: (lyr.top + lyr.bottom) / 2, volMid: (vol.top + vol.bottom) / 2 }; });
+    check('With lyrics open: previous, play and next in one row, Lyrics and the volume in a row below, both centred under the progress bar',
+      Math.abs(gl.row1 - gl.bar) <= 3 && Math.abs(gl.row2 - gl.bar) <= 3 && gl.lyrTop >= gl.row1Bottom && Math.abs(gl.lyrMid - gl.volMid) <= 2, gl);
+    check('Lyrics stays focused after opening', await current.evaluate(() => !!document.querySelector('.np-lyrics-btn.is-focus')));
+    await nav('right');
+    check('With lyrics open Right from Lyrics reaches the volume beside it', (await focused()) === '0');
+    await nav('left', 'up');
+    check('Up from the second row goes to play/pause', await current.evaluate(() => !!document.querySelector('.np-main.is-focus')));
+    await nav('right', 'down');
+    check('Down from the first row goes to Lyrics; Right stops at next in the first row', await current.evaluate(() => !!document.querySelector('.np-lyrics-btn.is-focus')));
     await nav('up');
-    check('and Up returns to the buttons', await current.evaluate(() => !!document.querySelector('.np-controls .is-focus') && !document.querySelector('.np-vol-btn.is-focus')));
-    await nav('right', 'right', 'right', 'right');
-    check('With lyrics open Right does not jump down to the volume', (await focused()) === null);
-    await current.evaluate(() => ShoreQA.where());
+    check('Up returns to the button you came from', await current.evaluate(() => document.querySelector('.np-btn.is-focus') && document.querySelector('.np-btn.is-focus').getAttribute('data-i') === '2'));
     // A device that cannot set volume through the API hides the pill.
     current.__spotify.supportsVolume = false;
     await current.reload(); await ready();

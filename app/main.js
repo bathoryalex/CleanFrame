@@ -4,7 +4,7 @@
 
   /* ---------- Bundled data ---------- */
   var ASSETS = 'assets/', ICONS = ASSETS + 'icons/', WP = ASSETS + 'wallpapers/';
-  var APP_VERSION = '0.35.3';
+  var APP_VERSION = '0.35.4';
   var CAP = 9, SCRIM_Y = 560, DOCK_BOTTOM = 1032; // the Dock sits 48 px above the bottom edge; names and actions go above it
   var DOCK_MODES = { both: { tw: 288, th: 200, pitch: 296 }, text: { tw: 288, th: 104, pitch: 296 }, icons: { tw: 200, th: 156, pitch: 206 } }; // icons-only tiles leave room under the icon for the focused app's name
   var GRID_ROW = 240, GRID_COL = 344, COLS = 5;
@@ -1662,6 +1662,12 @@
 
   /* Not a sheet: like the Wi‑Fi QR code it fades in over Home on the pre-blurred panel image,
      and fades out again on Back, so opening and closing move instead of cutting. */
+  /* Fade the Now playing layout out, switch lyrics on or off, fade it back in. */
+  function toggleLyrics(t) {
+    if (t.switching) return;
+    t.switching = true;
+    setTimeout(function () { t.lyrics = !t.lyrics; if (t.lyrics) loadLyrics(); t.switching = false; render(); }, 200);
+  }
   V.nowplaying = {
     sheet: false,
     norm: function (t) { var n = spot.now; if (t.f.row === 'volume' && !volumeAvailable(n)) t.f.row = 'controls'; },
@@ -1679,7 +1685,7 @@
         /* The progress bar: Left/Right move 10 seconds, the song jumps there once you stop. */
         if (k === 'back') { seek.at = null; pop(); }
         else if (k === 'up') t.f.row = 'device';
-        else if (k === 'down' || !n || !n.duration) { t.f.row = 'controls'; }
+        else if (k === 'down' || !n || !n.duration) { t.f.row = 'controls'; if (t.lyrics && t.f.b === 3) t.f.b = typeof t.f.top === 'number' ? t.f.top : 1; }
         else if (k === 'left' || k === 'right') seekBy(n, k === 'left' ? -10000 : 10000);
         else if (k === 'ok') commitSeek();
         return;
@@ -1691,22 +1697,33 @@
         else if (k === 'ok') setVolume((n && typeof n.volume === 'number' ? n.volume : 0) + (t.f.v ? 5 : -5));
         else if (k === 'right' && !t.f.v) t.f.v = 1;
         else if (k === 'left' && t.f.v) t.f.v = 0;
-        else if (k === 'left' && !t.lyrics) { t.f.row = 'controls'; t.f.b = 3; }
-        else if (k === 'up') { if (t.lyrics) t.f.row = 'controls'; else t.f.row = n && n.duration ? 'bar' : 'device'; }
+        else if (k === 'left') { t.f.row = 'controls'; t.f.b = 3; }
+        else if (k === 'up') { if (t.lyrics) { t.f.row = 'controls'; t.f.b = typeof t.f.top === 'number' ? t.f.top : 1; } else t.f.row = n && n.duration ? 'bar' : 'device'; }
+        return;
+      }
+      if (t.lyrics) {
+        /* With lyrics open the buttons are two centred rows: previous, play/pause, next above;
+           Lyrics and the volume below. Up and Down move between the rows. */
+        if (k === 'back') pop();
+        else if (t.f.b < 3) {
+          if (k === 'up') t.f.row = n && n.duration ? 'bar' : 'device';
+          else if (k === 'left' && t.f.b > 0) t.f.b--;
+          else if (k === 'right' && t.f.b < 2) t.f.b++;
+          else if (k === 'down') { t.f.top = t.f.b; t.f.b = 3; }
+          else if (k === 'ok') spotifyKey(['prev', 'toggle', 'next'][t.f.b]);
+        } else {
+          if (k === 'up') t.f.b = typeof t.f.top === 'number' ? t.f.top : 1;
+          else if (k === 'right' && volumeAvailable(n)) { t.f.row = 'volume'; t.f.v = 0; }
+          else if (k === 'ok') toggleLyrics(t);
+        }
         return;
       }
       if (k === 'back') pop();
       else if (k === 'up') t.f.row = n && n.duration ? 'bar' : 'device';
       else if (k === 'left' && t.f.b > 0) t.f.b--;
       else if (k === 'right' && t.f.b < 3) t.f.b++;
-      else if (k === 'right' && !t.lyrics && volumeAvailable(n)) { t.f.row = 'volume'; t.f.v = 0; }
-      else if (k === 'down' && t.lyrics && volumeAvailable(n)) { t.f.row = 'volume'; t.f.v = 0; }
-      else if (k === 'ok' && t.f.b === 3) {
-        /* Fade the layout out, switch it, fade it back in. */
-        if (t.switching) return;
-        t.switching = true;
-        setTimeout(function () { t.lyrics = !t.lyrics; if (t.lyrics) loadLyrics(); t.switching = false; render(); }, 200);
-      }
+      else if (k === 'right' && volumeAvailable(n)) { t.f.row = 'volume'; t.f.v = 0; }
+      else if (k === 'ok' && t.f.b === 3) toggleLyrics(t);
       else if (k === 'ok') spotifyKey(['prev', 'toggle', 'next'][t.f.b]);
     },
     point: function (t, z, i) {

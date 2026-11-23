@@ -714,7 +714,14 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000}
 .np.is-lyrics .np-progress{margin-top:0;padding-top:20px}
 .np.is-lyrics .np-progress .music-progress{font-size:20px}
 /* With lyrics the column is 400 px wide: the volume goes under the buttons. */
-.np.is-lyrics .np-ctl-row{flex-direction:column;align-items:flex-start;gap:20px;margin-top:46px}
+/* With lyrics open: previous, play/pause, next in one centred row under the progress bar, Lyrics and the
+   volume in a second centred row (the zero-height ::before breaks the line). */
+.np.is-lyrics .np-ctl-row{flex-wrap:wrap;justify-content:center;column-gap:14px;row-gap:10px;width:400px;margin-top:46px}
+.np.is-lyrics .np-ctl-row::before{content:"";order:2;flex-basis:100%;height:0}
+.np.is-lyrics .np-controls{display:contents}
+.np.is-lyrics .np-btn{order:1}
+.np.is-lyrics .np-btn.np-lyrics-btn{order:3}
+.np.is-lyrics .np-volume{order:4}
 .np.is-lyrics .np-volume{height:72px;padding:0 6px}
 .np.is-lyrics .np-vol-btn{width:60px;height:60px}
 .np.is-lyrics .np-vol-btn .ico{width:28px;height:28px}

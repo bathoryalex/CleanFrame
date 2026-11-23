@@ -249,3 +249,7 @@ The volume row now looks like the progress bar above it: the same 6 px bar with 
 ## 0.35.3
 
 - **Volume pill**: the volume is a pill as tall as the Lyrics button, with a − button, the level (speaker icon and percentage; a crossed speaker at 0 %) and a + button. − and + are ordinary buttons: OK steps the volume by 5 %, there is no special mode and no hint. Without lyrics the pill follows Lyrics in the button row (Right from Lyrics reaches −, Left from − returns to Lyrics, Up goes to the progress bar). With lyrics open it is the row under the buttons (Down reaches it, Up returns; Right from Lyrics no longer jumps down to it). Back closes Now playing from the pill as from any other button. The OK-mute of 0.35–0.35.2 is gone: − down to 0 % mutes.
+
+## 0.35.4
+
+With lyrics open the buttons are two rows, both centred under the progress bar: previous, play/pause and next; then Lyrics with the volume pill beside it. Down from the first row goes to Lyrics, Up from the second row returns to the button you came from (play/pause by default); Right from Lyrics reaches −, Left from − returns to Lyrics. Down from the progress bar lands in the first row. Without lyrics nothing changes.
