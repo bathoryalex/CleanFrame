@@ -177,9 +177,9 @@ async function page(options = {}) {
       { id: 'dev-echo', is_active: true, is_restricted: false, name: 'Echo Dot Max', type: 'Speaker' }, { id: 'dev-pc', is_active: false, is_restricted: false, name: 'Desk PC', type: 'Computer' },
       { id: 'dev-car', is_active: false, is_restricted: true, name: 'Car', type: 'Automobile' }, { id: null, name: 'Ghost', type: 'Speaker' }]
       .concat(Q.many ? Array.from({ length: 11 }, (_, i) => ({ id: 'dev-x' + i, is_active: false, is_restricted: false, name: 'Echo ' + (i + 1), type: 'Speaker' })) : []) }) });
-    if (r.method() === 'GET') return route.fulfill({ headers: sp, contentType: 'application/json', body: JSON.stringify({ is_playing: Q.playing, device: { name: Q.device || 'Echo Dot Max', volume_percent: Q.volume == null ? 40 : Q.volume, supports_volume: Q.supportsVolume !== false },
+    if (r.method() === 'GET') return route.fulfill({ headers: sp, contentType: 'application/json', body: JSON.stringify({ is_playing: Q.playing, device: { id: Q.deviceId || 'dev-echo', name: Q.device || 'Echo Dot Max', volume_percent: Q.volume == null ? 40 : Q.volume + (Q.volumeDrift ? Q.volumeDrift[(Q.gets = (Q.gets || 0) + 1) % Q.volumeDrift.length] : 0), supports_volume: Q.supportsVolume !== false },
       progress_ms: 61000, item: { id: Q.id || '4uLU6hMCjMI75M1A2tKUQC', name: Q.title || 'Song A', duration_ms: 210000, artists: Q.artists || [{ name: 'Artist A' }, { name: 'Guest B' }], album: { name: 'Album A', release_date: Q.releaseDate || '2001-05-01', album_type: Q.albumType || 'album', images: [{ url: 'https://i.scdn.co/image/big', width: 640 }, { url: 'https://i.scdn.co/image/small', width: 64 }] } } }) });
-    Q.calls.push(r.method() + ' ' + path); if (/seek/.test(path)) Q.seekUrl = r.url(); if (/volume/.test(path)) { Q.volumeUrl = r.url(); if (!Q.volumeSticky) Q.volume = Number(new URL(r.url()).searchParams.get('volume_percent')); }
+    Q.calls.push(r.method() + ' ' + path); if (/seek/.test(path)) Q.seekUrl = r.url(); if (/volume/.test(path)) { Q.volumeUrl = r.url(); Q.volume = Number(new URL(r.url()).searchParams.get('volume_percent')); }
     if (r.method() === 'PUT' && path === '/v1/me/player') { Q.transfer = JSON.parse(r.postData() || '{}'); Q.device = 'Desk PC'; return route.fulfill({ status: 204, headers: sp, body: '' }); }
     if (Q.refuse) return route.fulfill({ status: 403, headers: sp, contentType: 'application/json', body: JSON.stringify({ error: { status: 403, message: 'Player command failed: Premium required', reason: Q.refuse } }) });
     if (path.endsWith('/pause')) Q.playing = false; if (path.endsWith('/play')) Q.playing = true;
@@ -821,14 +821,20 @@ try {
     check('With lyrics open the heart follows the volume in the centred second row', Math.abs(g.row2 - g.bar) <= 3 && Math.abs(g.likeMid - g.lyrMid) <= 2 && g.left >= g.copyL - 1 && g.right <= g.copyR + 1, g);
     await nav('right', 'right', 'right');
     check('With lyrics open Right from plus reaches the heart', (await look()).focus);
-    // A speaker group that ignores the volume: the pill holds what you chose, then says so and shows the truth.
-    Q().volumeSticky = true; Q().volume = 32;
+    // An Echo reports back a volume near the one set (42 → 38, 41 …): the pill keeps what you chose.
+    Q().volume = 32;
     await open();
-    await nav('right', 'right', 'right', 'right', 'ok', 'ok'); await current.waitForTimeout(2500);
-    check('While Spotify has not confirmed it, the pill keeps showing the volume you chose', await current.evaluate(() => document.querySelector('.np-vol-pct').textContent) === '42%');
-    await current.waitForFunction(() => document.querySelector('.np-vol-pct').textContent === '32%', null, { timeout: 15000 });
-    check('When the speaker keeps its volume, the pill shows the real level and a toast explains', await current.evaluate(() => /kept its own volume \(32%\)/.test(document.body.textContent)));
-    Q().volumeSticky = false;
+    await nav('right', 'right', 'right', 'right', 'ok', 'ok'); await current.waitForTimeout(800);
+    Q().volumeDrift = [-4, -1, -3];
+    const seen = [];
+    for (let i = 0; i < 4; i++) { await current.waitForTimeout(1500); seen.push(await current.evaluate(() => document.querySelector('.np-vol-pct').textContent)); }
+    check('While the speaker reports a volume near the one set, the pill keeps showing the one you chose', Q().volume === 42 && seen.every(v => v === '42%'), { seen, volume: Q().volume });
+    await nav('ok'); await current.waitForTimeout(800);
+    check('The next press steps from the value shown, not from the drifting report', Q().volume === 47 && await current.evaluate(() => document.querySelector('.np-vol-pct').textContent) === '47%', Q().volume);
+    // Changed elsewhere (phone, Alexa by voice): the pill follows Spotify again.
+    Q().volumeDrift = null; Q().volume = 70;
+    await current.waitForFunction(() => document.querySelector('.np-vol-pct').textContent === '70%', null, { timeout: 15000 });
+    check('A volume changed elsewhere shows up on the pill', true);
   });
   await run('Spotify: song facts from Wikipedia on Now playing', async () => {
     const W = () => current.__wiki;

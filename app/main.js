@@ -4,7 +4,7 @@
 
   /* ---------- Bundled data ---------- */
   var ASSETS = 'assets/', ICONS = ASSETS + 'icons/', WP = ASSETS + 'wallpapers/';
-  var APP_VERSION = '0.37.0';
+  var APP_VERSION = '0.37.1';
   var CAP = 9, SCRIM_Y = 560, DOCK_BOTTOM = 1032; // the Dock sits 48 px above the bottom edge; names and actions go above it
   var DOCK_MODES = { both: { tw: 288, th: 200, pitch: 296 }, text: { tw: 288, th: 104, pitch: 296 }, icons: { tw: 200, th: 156, pitch: 206 } }; // icons-only tiles leave room under the icon for the focused app's name
   var GRID_ROW = 240, GRID_COL = 344, COLS = 5;
@@ -1523,7 +1523,7 @@
       FS.nowPlaying(function (err, now) {
         if (err) spot.err = err; else { spot.err = ''; volumeSeen(now); spot.now = now; }
         render();
-        if (!spot.timer) spotifyPoll(err === 'revoked' ? 10 * 60 * 1000 : err ? 60000 : volState.want !== null ? 2000 : now && now.playing ? 10000 : 30000);
+        if (!spot.timer) spotifyPoll(err === 'revoked' ? 10 * 60 * 1000 : err ? 60000 : now && now.playing ? 10000 : 30000);
       });
     }, when === true ? 0 : typeof when === 'number' ? when : 30000);
   }
@@ -1947,7 +1947,7 @@
   }
   /* Volume of the device the music plays on, set with the − and + of the volume pill. The change shows
      at once and the PUT is sent shortly after, so repeated presses do not flood the API. */
-  var volState = { v: null, timer: null, want: null, until: 0 };
+  var volState = { v: null, timer: null, want: null, dev: '' };
   function volumeAvailable(n) { return !!(n && n.supportsVolume && typeof n.volume === 'number'); }
   function setVolume(v) {
     var n = spot.now; if (!n) return;
@@ -1962,22 +1962,22 @@
     if (to === null) return;
     FS.control('volume', function (err) {
       volState.v = null;
-      if (err) { volState.want = null; showToast(spotifyErrText(err)); } else { volState.want = to; volState.until = Date.now() + VOLUME_CONFIRM_MS; }
+      if (err) { volState.want = null; showToast(spotifyErrText(err)); } else { volState.want = to; volState.dev = spot.now && spot.now.deviceId || ''; }
       render(); spotifyPoll(1200);
     }, to);
   }
-  /* Spotify accepts a volume before the speaker has taken it, and some speakers (Alexa multi-room groups
-     such as "Everywhere") never do: their reported volume wanders instead. So the pill keeps showing what
-     you chose until Spotify reports it (±2 %), for up to 8 seconds; after that it shows what Spotify
-     reports and says the speaker kept its own volume, rather than a number that is not true. */
-  var VOLUME_CONFIRM_MS = 8000;
+  /* Speakers report back a volume near, not at, the one that was set: an Echo set to 42 % answers 38, then
+     41, while it plays at the new level. Showing each report made the presses look miscounted, so after a
+     change the pill keeps the value you chose as long as Spotify's reports stay within 8 % of it on the
+     same device. A report further off means the volume was changed elsewhere (the phone, Alexa by voice),
+     and from then on the pill shows Spotify's value again. */
+  var VOLUME_SLACK = 8;
   function volumeSeen(now) {
     if (!now) { volState.want = null; return; }
     if (volState.v !== null) { now.volume = volState.v; return; }
     if (volState.want === null || typeof now.volume !== 'number') return;
-    if (Math.abs(now.volume - volState.want) <= 2) volState.want = null;
-    else if (Date.now() < volState.until) now.volume = volState.want;
-    else { volState.want = null; showToast(T('{0} kept its own volume ({1}%). Some speakers and speaker groups ignore volume changes from apps.', now.device || 'Spotify', Math.round(now.volume))); }
+    if ((now.deviceId || '') !== volState.dev || Math.abs(now.volume - volState.want) > VOLUME_SLACK) volState.want = null;
+    else now.volume = volState.want;
   }
   /* Colour-button legend: bottom left, beside where the remote's colour picker appears. */
   /* The remote's on-screen colour picker does not reach the app (checked with the remote test), so the

@@ -288,3 +288,7 @@ Sentence choice for the song fact is now scored instead of taking the first matc
   - *Bare surnames*: a sentence that names someone only by surname ("Parker stated …") while the article introduces them in full ("Kevin Parker") is skipped, unless the surname is part of the artist's name.
   - *Dull sentences*: a sentence must score at least 2 (one strong story sign, or two plain ones); the old fallback to a section's first sentence is gone, so a song with only "written by …" shows no fact rather than a dull one.
 
+## 0.37.1
+
+**Volume, corrected.** The 0.37 explanation was wrong: the speaker does take the new volume, also a single Echo, it only reports back a value near the one set (set 42 %, Spotify then reports 38 %, then 41 %). 0.37's toast saying the speaker "kept its own volume" would therefore have been false and is removed. Now, after you change the volume, the pill keeps showing the value you chose as long as Spotify's reports for the same device stay within 8 % of it, and the next − or + steps from that value. A report further off (or another device) means the volume was changed elsewhere, such as on the phone or by voice, and the pill shows Spotify's value again. Polling is back to its normal pace.
+

@@ -41,7 +41,6 @@ window.CleanFrameI18n = {
     'Remove from Liked Songs': 'Eltávolítás a Kedvelt dalok közül',
     'To save songs, Frame Home needs one more Spotify permission. Sign out of Spotify in Settings and connect again.': 'A dalok mentéséhez a Frame Home-nak még egy Spotify-engedély kell. A Beállításokban jelentkezz ki a Spotifyból, és csatlakoztasd újra.',
     'Wikipedia, CC BY-SA 4.0 · Back closes': 'Wikipédia, CC BY-SA 4.0 · A Vissza bezárja',
-    '{0} kept its own volume ({1}%). Some speakers and speaker groups ignore volume changes from apps.': '{0} megtartotta a saját hangerejét ({1}%). Egyes hangszórók és hangszórócsoportok nem fogadják el az appokból érkező hangerőváltást.',
     'System': 'Rendszer',
     'Backup, Samsung Home': 'Mentés, Samsung Kezdőlap',
     'Open system settings': 'Rendszerbeállítások megnyitása',
