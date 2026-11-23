@@ -296,7 +296,7 @@ Sentence choice for the song fact is now scored instead of taking the first matc
 
 **Ticker for long titles and artists**, on Home and on the large Now playing screen.
 - Before: the text waited, eased slowly to its end, waited, and eased back (about 25 px/s).
-- Now: it waits 1 second at its start, then moves left at a steady 2.6 font sizes per second (78 px/s for the 30 px Home title, 177 px/s for the 68 px Now playing title). It runs out of the box on the left and comes back in from the right. A copy follows 2.5 font sizes behind, so one lap is the text plus that gap and the loop never jumps. The copy is added only while the text moves.
+- Now: it waits 1 second at its start, then moves left at a steady 2.6 font sizes per second (78 px/s for the 30 px Home title, 177 px/s for the 68 px Now playing title; 1.8 since 0.38.2). It runs out of the box on the left and comes back in from the right. A copy follows 2.5 font sizes behind, so one lap is the text plus that gap and the loop never jumps. The copy is added only while the text moves.
 - The edges fade over 0.8 em with a mask on the text box (the only element masked). While the text waits only the right edge fades, so the first letter is not dimmed; both edges fade once it runs.
 - On the large Now playing screen the title and the artists are always one line, at full size. The 0.36.1 shrinking (68 → 48 px) and the two-line wrap are gone, so the song fact always has its two lines.
 - With reduced motion the text does not move and ends in an ellipsis.
@@ -305,4 +305,9 @@ Sentence choice for the song fact is now scored instead of taking the first matc
 
 - **Alexa and Spotify polling cannot be stopped by a drawing error.** The next read is now scheduled before Home is redrawn; before, an exception while drawing would have ended the 5-second Alexa read loop (and Spotify's) until Home was reopened. A light switched elsewhere not showing on the TV (reported on 0.37.1) could not be reproduced in the browser: there the change shows within one read, also after switching the same light from the TV and with a sensor answering without its value. So this is a safeguard, not a confirmed fix.
 - **Settings → Alexa → Device details** now says how often Home reads Alexa, how long ago the last answer came and, if the last read failed, why. A recent answer while the light still shows the old state means Alexa itself reports the old state (open the device to see its power value); an old answer means reading stalled.
+
+## 0.38.2
+
+- **Alexa switches on Home update again while you watch.** On the TV the reads kept arriving (Device details said "last answer 0–4 s ago") but the switches only showed the new state after visiting a Settings screen. Home is drawn top to bottom: the clock line (weather, readings, date, day panel, song) first, then the switches. An error while drawing the first part leaves the switches as they were. Each part (clock line, switches, song) is now drawn on its own, so an error in one cannot hold back the others. The error itself is still thrown afterwards (console, checks) and is shown in Settings → Alexa → Device details as "Drawing error N s ago: where: message". Which part fails on the TV is not known yet; that line will say.
+- **Ticker slower**: 1.8 font sizes per second (was 2.6), starting after 1.2 s (was 1 s).
 

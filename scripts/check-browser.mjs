@@ -909,10 +909,10 @@ try {
       return { cls: box.className, x: m.m41, texts: [...inner.children].map(c => c.textContent), mask: cs.webkitMaskImage || cs.maskImage, dur: parseFloat(getComputedStyle(inner).animationDuration), w: inner.firstChild.offsetWidth, gap: parseFloat(inner.children[1] ? inner.children[1].style.paddingLeft : 0), lines: Math.round(document.querySelector('.np-title').getBoundingClientRect().height / 78) }; });
     const t0 = await tick();
     check('A long title stays on one line, waits at its start with only the right edge faded', t0.lines === 1 && t0.cls === 'mq is-moving' && Math.abs(t0.x) < 1 && /(transparent|rgba\(0, 0, 0, 0\)) 100%\)$/.test(t0.mask) && /^linear-gradient\(90deg, (#000|rgb\(0, 0, 0\)) 0/.test(t0.mask), t0);
-    await current.waitForTimeout(1600);
+    await current.waitForTimeout(1900);
     const t1 = await tick();
     check('After a second it runs left at a steady pace, with both edges faded and a copy following', /is-run/.test(t1.cls) && t1.x < -30 && t1.texts.length === 2 && t1.texts[0] === t1.texts[1] && t1.texts[0] === longTitle && /^linear-gradient\(90deg, (transparent|rgba\(0, 0, 0, 0\)) 0/.test(t1.mask) && /(transparent|rgba\(0, 0, 0, 0\)) 100%\)$/.test(t1.mask), t1);
-    check('One lap is the text and its gap, at 2.6 font sizes a second', Math.abs(t1.dur - (t1.w + t1.gap) / (68 * 2.6)) < 0.05, t1);
+    check('One lap is the text and its gap, at 1.8 font sizes a second', Math.abs(t1.dur - (t1.w + t1.gap) / (68 * 1.8)) < 0.05, t1);
     const lt = await current.evaluate(() => { const r = e => document.querySelector(e).getBoundingClientRect(), f = document.querySelector('.np-fact'); return { factH: getComputedStyle(f).display === 'none' ? 0 : Math.round(r('.np-fact').height), row: r('.np-ctl-row').bottom, art: r('.np-art-wrap').bottom }; });
     check('With a long title the fact keeps its two lines and the buttons stay on the cover bottom', Math.round(lt.factH / 30) === 2 && Math.abs(lt.row - lt.art) <= 2, lt);
     await nav('right', 'right', 'ok'); await current.waitForTimeout(900);
@@ -949,6 +949,19 @@ try {
     await current.waitForFunction(() => /Home reads Alexa/.test(document.querySelector('.alexa-pick .s-sub').textContent));
     const sub = await current.evaluate(() => document.querySelector('.alexa-pick .s-sub').textContent);
     check('Device details show the read interval and the last answer', /Home reads Alexa every 5 s\. Last answer \d+ s ago\./.test(sub), sub);
+    // An error while drawing the clock line must not keep the switches from showing a light switched elsewhere.
+    await scene('home'); await current.waitForTimeout(500);
+    await current.evaluate(() => { const c = document.querySelector('.caption'); Object.defineProperty(c, 'innerHTML', { configurable: true, set() { throw new Error('test: caption broken'); }, get() { return ''; } }); });
+    const lamp = current.__alexa.devices.find(d => d.id.endsWith('lamp-1')), was = lamp.power;
+    lamp.power = was === 'ON' ? 'OFF' : 'ON'; dev.temp = 24.5;
+    await current.waitForFunction(on => !!document.querySelector('.u-lamp') && document.querySelector('.u-lamp').classList.contains('is-lit') === on, lamp.power === 'ON', { timeout: 9000 });
+    check('With the clock line failing to draw, a light switched elsewhere still shows on Home', true);
+    await current.evaluate(() => delete document.querySelector('.caption').innerHTML);
+    await group('connections'); await act('conn.alexa'); await current.waitForFunction(() => ShoreQA.state().settingsGroup === 'alexa'); await act('alexa.list.details');
+    await current.waitForFunction(() => /Drawing error \d+ s ago: caption: test: caption broken/.test(document.querySelector('.alexa-pick .s-sub').textContent));
+    check('Device details name the drawing error', true);
+    report.pageErrors = report.pageErrors.filter(e => !/test: caption broken/.test(e.error || ''));
+    lamp.power = was;
   });
   await run('Spotify phone page sends the code back to the TV', async () => {
     const phone = await preview.browser.newPage({ viewport: { width: 390, height: 844 } }), posts = [];

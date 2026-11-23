@@ -4,7 +4,7 @@
 
   /* ---------- Bundled data ---------- */
   var ASSETS = 'assets/', ICONS = ASSETS + 'icons/', WP = ASSETS + 'wallpapers/';
-  var APP_VERSION = '0.38.1';
+  var APP_VERSION = '0.38.2';
   var CAP = 9, SCRIM_Y = 560, DOCK_BOTTOM = 1032; // the Dock sits 48 px above the bottom edge; names and actions go above it
   var DOCK_MODES = { both: { tw: 288, th: 200, pitch: 296 }, text: { tw: 288, th: 104, pitch: 296 }, icons: { tw: 200, th: 156, pitch: 206 } }; // icons-only tiles leave room under the icon for the focused app's name
   var GRID_ROW = 240, GRID_COL = 344, COLS = 5;
@@ -1575,7 +1575,7 @@
      in font sizes per second, so large and small text read alike. The edges fade (a mask on the small text
      box only); while the text still waits at its start only the right edge fades, so the first letter is
      not dimmed. The copy is added only while the text moves, so textContent is the plain text otherwise. */
-  var MQ_SPEED = 2.6, MQ_WAIT = 1000;
+  var MQ_SPEED = 1.8, MQ_WAIT = 1200;
   function marquee(root) {
     var els = root ? root.querySelectorAll('.mq') : [], i, box, inner, text, copy, over, key, fs, gap;
     for (i = 0; i < els.length; i++) {
@@ -2232,6 +2232,7 @@
     var text = T('Home reads Alexa every {0} s.', Math.round(every / 1000));
     text += ' ' + (alexa.lastOk ? T('Last answer {0} s ago.', ago(alexa.lastOk)) : T('No answer yet.'));
     if (alexa.lastErr && alexa.answered && alexa.answered > (alexa.lastOk || 0)) text += ' ' + T('Last read failed: {0}', alexaErrText(alexa.lastErr));
+    if (drawErr.text) text += ' ' + T('Drawing error {0} s ago: {1}', ago(drawErr.at), drawErr.text);
     return text;
   }
   function saveAlexa(patch, label) { if (!savePrefs(patch, label)) { showToast(T('Couldn’t save this change.')); return false; } alexaPoll(true); return true; }
@@ -2774,11 +2775,22 @@
     return hs;
   }
 
+  /* Each part of Home is drawn on its own: an error in one (say the song widget) must not leave the
+     others, such as the Alexa switches, showing an old state. The error is kept for Device details. */
+  var drawErr = { text: '', at: 0 };
+  function noteError(where, e) {
+    drawErr.text = where + ': ' + (e && (e.message || e) || 'error') + (e && e.lineNumber ? ' (line ' + e.lineNumber + ')' : '');
+    drawErr.at = Date.now();
+    try { if (window.console && console.error) console.error(e); } catch (x) { /* nothing */ }
+  }
+  window.addEventListener('error', function (ev) { if (!(ev.error && ev.error.noted)) noteError('script', { message: ev.message, lineNumber: ev.lineno }); });
+  /* The error is still thrown afterwards (on its own), so it shows in the console and in the checks. */
+  function guarded(where, fn) { try { fn(); } catch (e) { noteError(where, e); try { e.noted = true; } catch (x) { /* frozen */ } setTimeout(function () { throw e; }, 0); } }
   function renderHome(t) {
     var hs = homeState(t);
-    renderCaption(t, hs);
-    renderUtils(hs);
-    fitMusic(musicOnTop());
+    guarded('caption', function () { renderCaption(t, hs); });
+    guarded('switches', function () { renderUtils(hs); });
+    guarded('music', function () { fitMusic(musicOnTop()); });
     renderDock(hs); keyLegend.style.bottom = (1080 - dockTopY + 18) + 'px'; alexaToast.style.bottom = (1080 - dockTopY + 18 + 64) + 'px';
   }
 
