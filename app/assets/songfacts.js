@@ -41,7 +41,7 @@
     for (i = 0; i < parts.length; i++) {
       p = parts[i];
       cur += p;
-      if (/(?:\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|No|vs|Vol|Inc|Ltd|Co)|\b[A-Z])\.$/.test(cur.replace(/\s+$/, ''))) continue;
+      if (/(?:\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|No|vs|Vol|Inc|Ltd|Co|Bros|Mt|Ft|Corp|Ave|Sgt|Capt|Gen|Rev|Prof)|\b[A-Z])\.$/.test(cur.replace(/\s+$/, ''))) continue;
       cur = cur.replace(/^\s+|\s+$/g, '');
       if (cur) out.push(cur);
       cur = '';
@@ -52,25 +52,40 @@
   }
   var GOOD = /\b(background|writing|written|composition|recording|inspiration|origins?|conception|history|development|production|lyrics|meaning|music and lyrics)\b/i;
   var SKIP = /\b(charts?|track listings?|personnel|credits|certifications?|references|external links|see also|notes|release history|music video|live performances?|cover versions?|accolades|formats)\b/i;
-  var STORY = /\b(inspir\w*|wrote|written|writing|idea|came up|came to|originally|based on|dedicated|named after|tribute|dream\w*|shower|in (?:about |just )?(?:\d+|ten|twenty|thirty|fifteen|five) minutes|demo|recorded in|story|about (?:his|her|their)|after (?:his|her|their))\b/i;
+  /* A sentence scores by how much of a story it tells: strong signs (originally, inspired, last-minute,
+     turned down, by accident, a shower or a dream, looped …) count three, plain ones (wrote, recorded,
+     idea …) one. Sentences that start with a pronoun lose a point, since they lean on the sentence before;
+     sentences too long for two lines on screen lose one too. */
+  var STRONG = /\b(originally|initially|inspir\w*|last[- ]minute|turned (?:it |them |the [a-z]+ )?down|rejected|refused|by accident|accidental\w*|by chance|shower|dream\w*|loop(?:ed|ing)?|almost|never intended|on a whim|spontaneous\w*|napkin|nicknamed|in (?:about |just |only |under )?(?:\d+|ten|fifteen|twenty|thirty|five) minutes)\b/gi;
+  var PLAIN = /\b(wrote|written|writing|idea|came up|came to|based on|dedicated|named after|tribute|demo|recorded in|story)\b/gi;
   function tidy(s) { return s.replace(/\s*\([^)]*\b(?:listen|pronounced|IPA)\b[^)]*\)/g, '').replace(/\s+([,.;:])/g, '$1').replace(/\s{2,}/g, ' '); }
-  function usable(s) { return s.length >= 40 && s.length <= 240 && !/\{|\}|\|/.test(s); }
-  /* From the article's plain text with "== Heading ==" lines: one sentence on how the song came about. */
+  function usable(s) { return s.length >= 40 && s.length <= 220 && !/\{|\}|\|/.test(s); }
+  function score(s) {
+    var strong = (s.match(STRONG) || []).length, plain = (s.match(PLAIN) || []).length;
+    if (!strong && !plain) return 0;
+    return strong * 3 + plain - (/^(he|she|they|it|its|this|these|those|their|his|her)\b/i.test(s) ? 1 : 0) - (s.length > 160 ? 1 : 0);
+  }
+  /* From the article's plain text with "== Heading ==" lines: the sentence that tells the most about how
+     the song came about, from Background / Writing / Recording … sections or the introduction (never its
+     first sentence, which only says what the song is); else the first sentence of such a section. */
   function pick(full) {
-    var lines = String(full || '').split('\n'), sections = [{ head: '', text: '' }], i, m, j, s, list, k;
+    var lines = String(full || '').split('\n'), sections = [{ head: '', text: '' }], i, m, j, k, s, list, best = '', bestScore = 0, sc;
     for (i = 0; i < lines.length; i++) {
       m = /^(={2,})\s*(.*?)\s*\1\s*$/.exec(lines[i]);
       if (m) sections.push({ head: m[2], text: '' }); else sections[sections.length - 1].text += lines[i] + '\n';
     }
     var good = sections.filter(function (x) { return x.head && GOOD.test(x.head) && !SKIP.test(x.head); });
-    /* 1. a story sentence from Background / Writing / Recording …; 2. a story sentence in the introduction
-       (not its first, which only says what the song is); 3. the first sentence of such a section. */
-    for (j = 0; j < good.length; j++) {
-      list = sentences(good[j].text);
-      for (k = 0; k < list.length; k++) { s = tidy(list[k]); if (usable(s) && STORY.test(s)) return s; }
+    function consider(list, from) {
+      for (k = from; k < list.length; k++) {
+        s = tidy(list[k]);
+        if (!usable(s)) continue;
+        sc = score(s);
+        if (sc > bestScore) { best = s; bestScore = sc; }
+      }
     }
-    list = sentences(sections[0].text);
-    for (k = 1; k < list.length; k++) { s = tidy(list[k]); if (usable(s) && STORY.test(s)) return s; }
+    consider(sentences(sections[0].text), 1);
+    for (j = 0; j < good.length; j++) consider(sentences(good[j].text), 0);
+    if (best) return best;
     for (j = 0; j < good.length; j++) {
       list = sentences(good[j].text);
       if (list.length) { s = tidy(list[0]); if (usable(s)) return s; }

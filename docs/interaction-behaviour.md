@@ -266,3 +266,7 @@ With lyrics open the buttons are two rows, both centred under the progress bar: 
 ## 0.36.1
 
 Long titles on the large Now playing screen first get smaller to stay on one line (68 → 60 → 52 → 48 px, measured against the 944 px text column); only a title that does not fit at 48 px wraps onto two lines, at 52 px. Before, a long title such as "I'll Be There for You - Theme From "Friends"" wrapped at 68 px and left no room for the song fact, which was then hidden.
+
+## 0.36.2
+
+Sentence choice for the song fact is now scored instead of taking the first match: strong signs of a story (originally, initially, inspired, last-minute, turned down, rejected, by accident, shower, dream, looped, in N minutes …) count three, plain ones (wrote, written, idea, based on, demo, recorded in …) one; a sentence that starts with a pronoun loses one (it leans on the one before), and one longer than 160 characters loses one (two lines on screen). Candidates are the introduction (not its first sentence) and Background / Writing / Composition / Recording / Inspiration / History sections, up to 220 characters. "Bros.", "Mt.", "Corp." and similar no longer end a sentence. With the real "I'll Be There for You" article this picks "American rock band R.E.M. was originally asked to allow their song "Shiny Happy People" to be used for the Friends theme, but they turned the opportunity down." instead of a sentence that starts "When Stipe rejected the offer"; that article is a test fixture.

@@ -797,14 +797,16 @@ try {
     check('With lyrics open the fact is hidden', await current.evaluate(() => getComputedStyle(document.querySelector('.np-fact')).display === 'none'));
     // A long title like Spotify's "I'll Be There for You - Theme From "Friends"" shrinks onto one line, so the fact still fits.
     W().search = [{ pageid: 4, title: "I'll Be There for You (The Rembrandts song)", extract: '"I\'ll Be There for You" is a song by American rock duo the Rembrandts, best known as the theme song of the sitcom Friends.', pageprops: {} }];
-    W().full = { 4: 'x\n== Background ==\nThe theme was originally recorded as a short piece for the opening titles, and the band only recorded a full-length version after radio stations started playing it on a loop.\n' };
+    // Excerpt of the English Wikipedia article "I'll Be There for You (The Rembrandts song)", CC BY-SA 4.0, as the API's plain text.
+    W().full = { 4: readFileSync(root + 'scripts/fixtures/wiki-ill-be-there-for-you.txt', 'utf8') };
     current.__spotify.title = 'I\'ll Be There for You - Theme From "Friends"'; current.__spotify.artists = [{ name: 'The Rembrandts' }];
     await current.reload(); await ready(); await current.waitForFunction(() => document.querySelector('.cap-music'));
     await nav('up', 'left', 'ok'); await current.waitForFunction(() => ShoreQA.where().view === 'nowplaying');
     await current.waitForFunction(() => document.querySelector('.np-fact').textContent.length > 0); await current.waitForTimeout(300);
     const fr = await current.evaluate(() => { const r = e => document.querySelector(e).getBoundingClientRect(), f = document.querySelector('.np-fact'), t = document.querySelector('.np-title');
-      return { size: parseFloat(getComputedStyle(t).fontSize), titleH: Math.round(r('.np-title').height), factShown: getComputedStyle(f).display !== 'none' && r('.np-fact').height > 20, row: r('.np-ctl-row').bottom, art: r('.np-art-wrap').bottom }; });
+      return { size: parseFloat(getComputedStyle(t).fontSize), titleH: Math.round(r('.np-title').height), factShown: getComputedStyle(f).display !== 'none' && r('.np-fact').height > 20, whole: f.scrollHeight <= f.clientHeight + 1, text: f.textContent, row: r('.np-ctl-row').bottom, art: r('.np-art-wrap').bottom }; });
     check('A long title shrinks onto one line and the Wikipedia fact still shows', fr.size < 68 && fr.titleH < 90 && fr.factShown && Math.abs(fr.row - fr.art) <= 2, fr);
+    check('From the real article it picks the story sentence about R.E.M. turning the theme down, shown whole', /R\.E\.M\. was originally asked .* turned the opportunity down\.$/.test(fr.text) && fr.whole, fr);
     current.__spotify.artists = null;
     // A title on two lines leaves room for one line of the fact at most; the buttons stay on the cover's bottom edge.
     const longTitle = 'A Very Long Song Title That Certainly Wraps Onto Two Lines';
