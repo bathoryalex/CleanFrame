@@ -7,7 +7,7 @@ This records what is known about the TV this fork is built for. Other models, fi
 | Item | This setup |
 | --- | --- |
 | TV | Samsung UE75U8072 |
-| OS | Tizen 9 until November 2026, then a Samsung update to Tizen 10 (One UI Tizen) |
+| OS | Samsung One UI 9 (Tizen) until November 2026; updated to One UI 10 (Tizen) on 23 November 2026 |
 | Firmware | S/W version `T-KSU2EFDEUC-0100-2103.1` (A0710200), read 23 November 2026 after the Tizen 10 update (model code UE75U8072FUXXH). The pre-update version was not recorded; the TV's update screen had shown "current 1300 / new 6500", which appear to be a different internal field, not the S/W version. |
 
 ## After the Tizen 10 update (S/W T-KSU2EFDEUC-0100-2103.1), 23 November 2026
