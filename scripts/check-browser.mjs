@@ -1089,6 +1089,31 @@ try {
     check('The first calendar can be named', await current.evaluate(() => FrameCalendar.list()[0].name === 'Alex'));
     await scene('home');
     check('Home shows both names', await current.evaluate(() => [...document.querySelectorAll('.cap-cal-who')].map(e => e.textContent).sort().join() === 'Alex,Ági'));
+    const size = await current.evaluate(() => { const t = document.querySelector('.cap-cal-title'), w = document.querySelector('.cap-cal-who'); return [parseFloat(getComputedStyle(t).fontSize), parseFloat(getComputedStyle(w).fontSize)]; });
+    check('An event is written as large as its calendar\'s name', size[0] === size[1], size);
+    // A colour of one's own for a calendar's dot.
+    await group('region'); await act('region.dateinfo'); await act('calendar.item.c2');
+    const swatches = await current.evaluate(() => [...document.querySelectorAll('.alexa-row .cal-swatch')].length);
+    check('A calendar offers dot colours with its default ticked', swatches >= 4 && await current.evaluate(() => /Pink|Rózsaszín/.test([...document.querySelectorAll('.alexa-row.is-applied')].map(e => e.textContent).join())), swatches);
+    const yellow = await current.evaluate(() => { const r = [...document.querySelectorAll('.alexa-row')].find(e => /Yellow|Sárga/.test(e.textContent)); return r && r.getAttribute('data-action'); });
+    for (let i = 0; i < 12; i++) await nav('down');
+    check('The list scrolls down to the ninth colour, White', await current.evaluate(() => [...document.querySelectorAll('.alexa-row')].some(e => /White|Fehér/.test(e.textContent) && e.querySelector('.cal-swatch'))));
+    for (let i = 0; i < 12; i++) await nav('up');
+    await act(yellow);
+    check('Choosing a colour keeps it with the calendar', await current.evaluate(() => FrameCalendar.list()[1].colour === 'yellow' && JSON.parse(localStorage.getItem('cleanframe.calendar.v1')).cals[1].colour === 'yellow'));
+    await scene('home');
+    check('Home draws the calendar\'s dot in its colour', await current.evaluate(() => [...document.querySelectorAll('.cap-cal')].some(e => /Ági/.test(e.textContent) && getComputedStyle(e.querySelector('.cap-cal-dot')).backgroundColor === 'rgb(255, 213, 138)')));
+    // Tomorrow's events: from 18:00 under today's, otherwise only when today has nothing left.
+    const evening = await current.evaluate(() => { const d = new Date(), at = h => new Date(d.getFullYear(), d.getMonth(), d.getDate(), h, 0).getTime(), ev = {};
+      const real = FrameCalendar.upcoming, end = new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1).getTime();
+      FrameCalendar.upcoming = (from, to) => [{ title: 'Today all day', allDay: true, start: end - 86400000, end }, { title: 'Tomorrow 9', allDay: false, start: end + 9 * 3600000, end: end + 10 * 3600000 }, { title: 'Tomorrow 11', allDay: false, start: end + 11 * 3600000, end: end + 12 * 3600000 }, { title: 'Tomorrow 13', allDay: false, start: end + 13 * 3600000, end: end + 14 * 3600000 }].filter(e => e.start < to && e.end > from);
+      ev.noon = ShoreQA.calendarEvents(at(12)); ev.night = ShoreQA.calendarEvents(at(21));
+      FrameCalendar.upcoming = (from, to) => real(from, to).filter(e => e.start >= end) .concat([{ title: 'Tomorrow 9', allDay: false, start: end + 9 * 3600000, end: end + 10 * 3600000 }].filter(e => e.start < to && e.end > from));
+      ev.empty = ShoreQA.calendarEvents(at(12));
+      FrameCalendar.upcoming = real; return ev; });
+    check('At noon an all-day event today keeps tomorrow away', evening.noon.today.join() === 'Today all day' && evening.noon.tomorrow.length === 0, evening);
+    check('From 18:00 tomorrow\'s first two show under today\'s', evening.night.today.join() === 'Today all day' && evening.night.tomorrow.join() === 'Tomorrow 9,Tomorrow 11', evening);
+    check('With nothing left today tomorrow shows at any time', evening.empty.today.length === 0 && evening.empty.tomorrow.join() === 'Tomorrow 9', evening);
   });
   await run('Settings backup: encrypt, send, restore and the phone page', async () => {
     await page({ seed: baseline({ dockStyle: 'tiles', clock: '24', wifiSsid: 'HomeNet', wifiPass: 'secretwifi' }) });

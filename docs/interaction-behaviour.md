@@ -319,3 +319,9 @@ Sentence choice for the song fact is now scored instead of taking the first matc
 
 **The actual cause of the frozen Alexa switches.** Device details on the TV said "No answer for: frame:home". `frame:home` is not an Alexa device: it is the "Home screen" target of a remote button (0.27.1). `targetMembers` treated every id that was not Spotify, an app or a group as an Alexa device, so with a remote button set to the Home screen, `frame:home` was sent to Alexa with the devices on Home. Alexa then answered the whole read with no devices and no error, and nothing on Home changed until a full device list was loaded (Device details). It worked before the remote button was set to the Home screen. Now `frame:` targets are excluded like Spotify and apps, and a check asserts that only Alexa endpoint ids are read. The 0.38.3 one-by-one retry stays as a safeguard for devices that really disappear.
 
+## 0.39
+
+- **Tomorrow in the evening**: the day panel shows today's events that are still on (all-day events count all day), at most three. From 18:00 it also shows tomorrow's first two under a TOMORROW heading, with at most two of today's above. When today has nothing left, tomorrow's first three show at any time, as before. Before, an all-day event today kept tomorrow's events off Home all day.
+- **Event size**: calendar events are 20 px, as large as the calendar's name chip (they were 26–28 px, larger than the name days above them).
+- **Calendar colours**: each calendar's dot colour can be chosen in Date details → the calendar → Colour on Home: blue, pink, green, yellow, orange, red, purple, teal or white. The default stays by position (blue, pink, green). The colour is kept with the calendar (`cleanframe.calendar.v1`, so backups carry it).
+

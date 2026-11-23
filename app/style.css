@@ -1225,3 +1225,11 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000}
 .settings-grid.is-columns .card-go{top:50%;right:22px;margin-top:-17px}
 .settings-grid.is-columns .settings-card.is-focus{transform:scale(1.03)}
 .settings-grid.is-columns{grid-auto-rows:auto}
+/* 0.39: calendar events are as large as the calendar's name chip, smaller than the name days above them. */
+.cap-row.cap-cal,.clock-big .cap-row.cap-cal{font-size:20px;line-height:28px;font-weight:500}
+.cap-row.cap-cal .ico{width:20px;height:20px}
+.cap-cal-gap{width:20px}
+.cap-row.cap-cal b{font-weight:600}
+/* Colour choices for a calendar's dot (Date details → a calendar). */
+.cal-swatch{display:block;width:26px;height:26px;border-radius:50%;box-shadow:0 0 0 2px rgba(255,255,255,.25)}
+

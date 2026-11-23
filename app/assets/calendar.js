@@ -13,7 +13,7 @@
   function okUrl(u) { return typeof u === 'string' && /^https:\/\//.test(u); }
   var cals = !state ? [] : Array.isArray(state.cals) ? state.cals : okUrl(state.url) ? [{ id: 'c1', url: state.url, name: '' }] : [];
   cals = cals.filter(function (c) { return c && okUrl(c.url) && /^c[0-9a-z]{1,12}$/.test(c.id); }).slice(0, MAX)
-    .map(function (c) { return { id: c.id, url: c.url, name: typeof c.name === 'string' ? c.name.slice(0, 16) : '' }; });
+    .map(function (c) { return { id: c.id, url: c.url, name: typeof c.name === 'string' ? c.name.slice(0, 16) : '', colour: typeof c.colour === 'string' && /^[a-z]{1,12}$/.test(c.colour) ? c.colour : '' }; });
   function persist() { try { if (cals.length) localStorage.setItem(STORE, JSON.stringify({ cals: cals })); else localStorage.removeItem(STORE); return true; } catch (e) { return false; } }
   function find(id) { for (var i = 0; i < cals.length; i++) if (cals[i].id === id) return cals[i]; return null; }
 
@@ -62,6 +62,8 @@
     persist();
   }
   function rename(id, name) { var c = find(id); if (!c) return false; c.name = String(name || '').replace(/\s+/g, ' ').trim().slice(0, 16); return persist(); }
+  /* The colour of a calendar's dot on Home, by name from main.js's palette; '' is the default for its place. */
+  function recolour(id, colour) { var c = find(id); if (!c) return false; c.colour = /^[a-z]{1,12}$/.test(colour || '') ? colour : ''; return persist(); }
 
   /* ---------- ICS ---------- */
   var caches = {};
@@ -176,7 +178,7 @@
   /* Events overlapping [from, to), sorted: { start, end, allDay, title }. */
   function upcoming(from, to) {
     var list = [];
-    cals.forEach(function (c, n) { if (caches[c.id]) list = list.concat(upcomingIn(caches[c.id], from, to).map(function (e) { e.cal = c.id; e.calIndex = n; e.calName = c.name || ''; return e; })); });
+    cals.forEach(function (c, n) { if (caches[c.id]) list = list.concat(upcomingIn(caches[c.id], from, to).map(function (e) { e.cal = c.id; e.calIndex = n; e.calName = c.name || ''; e.calColour = c.colour || ''; return e; })); });
     return list.sort(function (a, b) { return a.allDay !== b.allDay ? (a.allDay ? -1 : 1) : a.start - b.start; });
   }
   function upcomingIn(cache, from, to) {
@@ -194,9 +196,9 @@
 
   window.FrameCalendar = {
     connected: function () { return cals.length > 0; },
-    list: function () { return cals.map(function (c, n) { return { id: c.id, name: c.name, index: n }; }); },
+    list: function () { return cals.map(function (c, n) { return { id: c.id, name: c.name, colour: c.colour || '', index: n }; }); },
     max: MAX,
-    pair: pair, forget: forget, rename: rename, refresh: fetchIcs, upcoming: upcoming,
+    pair: pair, forget: forget, rename: rename, recolour: recolour, refresh: fetchIcs, upcoming: upcoming,
     loadedAt: function () { var t = 0; Object.keys(caches).forEach(function (k) { t = Math.max(t, caches[k].at || 0); }); return t; },
     _parse: function (text) { var id = cals[0] ? cals[0].id : 'c1'; caches[id] = parse(text); caches[id].at = Date.now(); }
   };

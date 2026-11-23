@@ -4,7 +4,7 @@
 
   /* ---------- Bundled data ---------- */
   var ASSETS = 'assets/', ICONS = ASSETS + 'icons/', WP = ASSETS + 'wallpapers/';
-  var APP_VERSION = '0.38.4';
+  var APP_VERSION = '0.39.0';
   var CAP = 9, SCRIM_Y = 560, DOCK_BOTTOM = 1032; // the Dock sits 48 px above the bottom edge; names and actions go above it
   var DOCK_MODES = { both: { tw: 288, th: 200, pitch: 296 }, text: { tw: 288, th: 104, pitch: 296 }, icons: { tw: 200, th: 156, pitch: 206 } }; // icons-only tiles leave room under the icon for the focused app's name
   var GRID_ROW = 240, GRID_COL = 344, COLS = 5;
@@ -2161,7 +2161,8 @@
       });
     } else if (t.mode === 'calendar') {
       var cc = calById(t.cal);
-      if (cc) rows = [{ id: 'rename', label: T('Name'), value: cc.name || T('Not set'), forward: true }, { id: 'forget', label: T('Disconnect this calendar'), value: '' }];
+      if (cc) rows = [{ id: 'rename', label: T('Name'), value: cc.name || T('Not set'), forward: true }, { id: 'forget', label: T('Disconnect this calendar'), value: '' }, { id: 'h-colour', label: T('Colour on Home'), header: true }]
+        .concat(CAL_PALETTE.map(function (c) { return { id: 'colour:' + c[0], label: T(c[2]), swatch: c[1], ticked: calColourName(cc.colour, cc.index) === c[0] }; }));
     } else if (t.mode === 'icons') rows = liveTargets().map(function (x) { return { id: x.id, label: targetName(x), value: (S.c.alexaNames[x.id] ? originalName(x) + ' · ' : '') + T(SWITCH_ICON_NAMES[switchIcon(x.id)]), forward: true, icon: switchIcon(x.id) }; });
     else if (t.mode === 'icon') {
       var tg = S.c.alexaSwitches.filter(function (x) { return x.id === t.target; })[0] || { id: t.target };
@@ -2216,7 +2217,7 @@
     return {
       readings: [T('Readings'), T('Choose up to {0} values to show beside the clock.', MAX_READINGS)],
       switches: [T('Switches'), T('Choose up to {0} devices or groups for the Home controls.', maxSwitches()) + (S.c.topStyle === 'bar' ? '' : ' ' + T('Up to {0} with the top Dock bar.', MAX_SWITCHES)) + ' ' + T('Right on a chosen one moves it with Up and Down.')],
-      calendar: [(calById(t.cal) || {}).name || T('Calendar {0}', ((calById(t.cal) || {}).index || 0) + 1), T('The name shows beside its events on Home, so you can tell whose they are.')],
+      calendar: [(calById(t.cal) || {}).name || T('Calendar {0}', ((calById(t.cal) || {}).index || 0) + 1), T('Its name and colour show beside its events on Home, so you can tell whose they are.')],
       icons: [T('Switch names and icons'), T('Give a switch a short name for Home (for example AC) and choose its icon.')],
       icon: [t.tname || T('Switch names and icons'), T('Name and icon of this switch on Home.')],
       keys: [T('Remote buttons'), T('The colour buttons, CH +, CH − and Guide can each switch a light or group, control Spotify or open an app. CH and Guide keep their usual job until you assign them.')],
@@ -2292,6 +2293,7 @@
     else if (t.mode === 'icons') openAlexaList('icon', { target: row.id, tname: row.label });
     else if (t.mode === 'calendar' && row.id === 'rename') openCalName(t.cal);
     else if (t.mode === 'calendar' && row.id === 'forget') { S.forgetCal = t.cal; openMessage('calendarOut'); }
+    else if (t.mode === 'calendar' && /^colour:/.test(row.id)) { if (!FC.recolour(t.cal, row.id.slice(7))) showToast(T('Couldn’t save this change.')); }
     else if (t.mode === 'icon' && row.id === 'rename') openSwitchName(t.target);
     else if (t.mode === 'icon' && row.id === 'unname') { next = {}; Object.keys(S.c.alexaNames).forEach(function (k) { if (k !== t.target) next[k] = S.c.alexaNames[k]; }); saveAlexa({ alexaNames: next }, 'Switch name'); }
     else if (t.mode === 'icon') {
@@ -2936,25 +2938,49 @@
      the Hungarian holiday, the name days, then the calendar events (now and next today, otherwise
      tomorrow's first). With more than one calendar each event carries its calendar's colour and name.
      The panel is only as tall as its lines and is not drawn when there is nothing to show. */
-  var CAL_COLOURS = ['#8ab4f8', '#f4a7c3', '#9fdcb2'];
-  function calendarEvents() {
-    var now = Date.now(), day = new Date(), end, list, tomorrow = false;
-    if (!FC || !FC.connected() || S.c.calShow === 'off') return { list: [] };
-    end = new Date(day.getFullYear(), day.getMonth(), day.getDate() + 1).getTime();
-    list = FC.upcoming(now, end).filter(function (e) { return e.end > now || e.allDay; });
-    if (!list.length) { list = FC.upcoming(end, end + 86400000).filter(function (e) { return e.start >= end || e.allDay; }); tomorrow = true; }
-    return { list: list.slice(0, 3), tomorrow: tomorrow };
+  /* Dot colours a calendar can have (Date details → the calendar → Colour); by default the first
+     calendar is blue, the second pink, the third green. */
+  var CAL_PALETTE = [['blue', '#8ab4f8', 'Blue'], ['pink', '#f4a7c3', 'Pink'], ['green', '#9fdcb2', 'Green'], ['yellow', '#ffd58a', 'Yellow'],
+    ['orange', '#f6ae7b', 'Orange'], ['red', '#f28b82', 'Red'], ['purple', '#c9a7f5', 'Purple'], ['teal', '#7fd6d6', 'Teal'], ['white', '#f6f1e7', 'White']];
+  function calColour(name, index) {
+    var i, hit = null;
+    for (i = 0; i < CAL_PALETTE.length; i++) if (CAL_PALETTE[i][0] === name) hit = CAL_PALETTE[i];
+    return (hit || CAL_PALETTE[index % 3])[1];
   }
+  function calColourName(name, index) {
+    var i;
+    for (i = 0; i < CAL_PALETTE.length; i++) if (CAL_PALETTE[i][0] === name) return CAL_PALETTE[i][0];
+    return CAL_PALETTE[index % 3][0];
+  }
+  /* Today's events that are still on (all-day ones count all day), at most three. From 18:00 tomorrow's
+     first two follow under a "Tomorrow" heading, with at most two of today's above them; when today has
+     nothing left, tomorrow's first three show at any time. */
+  var CAL_EVENING = 18;
+  function calendarEvents(at) {
+    var now = at || Date.now(), day = new Date(now), end, today, next, evening;
+    if (!FC || !FC.connected() || S.c.calShow === 'off') return { today: [], tomorrow: [] };
+    end = new Date(day.getFullYear(), day.getMonth(), day.getDate() + 1).getTime();
+    today = FC.upcoming(now, end).filter(function (e) { return e.end > now || e.allDay; });
+    evening = day.getHours() >= CAL_EVENING;
+    if (today.length && !evening) return { today: today.slice(0, 3), tomorrow: [] };
+    next = FC.upcoming(end, end + 86400000).filter(function (e) { return e.start >= end || e.allDay; });
+    return today.length ? { today: today.slice(0, 2), tomorrow: next.slice(0, 2) } : { today: [], tomorrow: next.slice(0, 3) };
+  }
+  QA.calendarEvents = function (at) { var ev = calendarEvents(at); return { today: ev.today.map(function (e) { return e.title; }), tomorrow: ev.tomorrow.map(function (e) { return e.title; }) }; };
   function calName(e) { return e.calName || T('Calendar {0}', e.calIndex + 1); }
   function dayPanelHtml() {
     var rows = [], d = new Date(), h = S.c.holidays === 'on' ? holidayToday(d) : '', n = S.c.namedays === 'on' ? nameday(d) : '', ev = calendarEvents(), many = FC && FC.list && FC.list().length > 1;
     if (h) rows.push('<span class="cap-row cap-holiday"><span class="cap-mark" aria-hidden="true"></span>' + esc(h) + '</span>');
     if (n) rows.push('<span class="cap-row cap-nameday" aria-label="' + esc(T('Name day: {0}', n)) + '">' + esc(n) + '</span>');
-    if (ev.list.length && ev.tomorrow) rows.push('<span class="cap-row cap-when">' + esc(T('Tomorrow')) + '</span>');
-    ev.list.forEach(function (e, i) {
-      rows.push('<span class="cap-row cap-cal">' + (many ? '<span class="cap-cal-dot" style="background:' + CAL_COLOURS[e.calIndex % CAL_COLOURS.length] + '"></span><span class="cap-cal-who">' + esc(calName(e)) + '</span>' : (i === 0 ? icon('calendar') : '<span class="cap-cal-gap"></span>'))
+    var first = true;
+    function eventRow(e) {
+      rows.push('<span class="cap-row cap-cal">' + (many ? '<span class="cap-cal-dot" style="background:' + calColour(e.calColour, e.calIndex) + '"></span><span class="cap-cal-who">' + esc(calName(e)) + '</span>' : (first ? icon('calendar') : '<span class="cap-cal-gap"></span>'))
         + (e.allDay ? '' : '<b>' + fmtHM(e.start) + '</b>') + '<span class="cap-cal-title">' + esc(e.title || T('Busy')) + '</span></span>');
-    });
+      first = false;
+    }
+    ev.today.forEach(eventRow);
+    if (ev.tomorrow.length) rows.push('<span class="cap-row cap-when">' + esc(T('Tomorrow')) + '</span>');
+    ev.tomorrow.forEach(eventRow);
     return rows.length ? '<span class="cap-panel">' + rows.join('') + '</span>' : '';
   }
   function calendarPoll(when) {
@@ -3721,6 +3747,7 @@
           + '<span class="alexa-tick" aria-hidden="true">' + (r.lifted ? icon('updown') : r.colour ? keyBadge(r.colour) : r.add ? icon('plus') : r.ticked ? icon('check') : '') + '</span>'
           + (r.order ? '<span class="alexa-order" aria-hidden="true">' + r.order + '</span>' : '')
           + (r.icon ? '<span class="alexa-icon" aria-hidden="true">' + icon(r.icon === 'light' ? 'lamp' : r.icon) + '</span>' : '')
+          + (r.swatch ? '<span class="alexa-icon" aria-hidden="true"><span class="cal-swatch" style="background:' + r.swatch + '"></span></span>' : '')
           + '<span class="alexa-name">' + esc(r.label) + '</span><span class="alexa-value">' + esc(r.value || '') + '</span>' + (r.forward ? icon('right', 'alexa-forward') : '') + '</button>';
       }
       setHTML(el.list, html);
