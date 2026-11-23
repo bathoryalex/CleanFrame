@@ -45,7 +45,7 @@ def find_sdb():
     for candidate in (
         LOCAL / 'tizen-sdk/tools/sdb.exe',
         LOCAL / 'tizen-sdk/tools/sdb',
-        Path(os.environ.expandvars(r'%LOCALAPPDATA%\Samsung\tizen-studio\tools\sdb.exe')),
+        Path(os.path.expandvars(r'%LOCALAPPDATA%\Samsung\tizen-studio\tools\sdb.exe')),
         Path(r'C:\tizen-studio\tools\sdb.exe'),
         Path(r'C:\Samsung\tizen-studio\tools\sdb.exe'),
     ):
