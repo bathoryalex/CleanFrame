@@ -4,7 +4,7 @@
 
   /* ---------- Bundled data ---------- */
   var ASSETS = 'assets/', ICONS = ASSETS + 'icons/', WP = ASSETS + 'wallpapers/';
-  var APP_VERSION = '0.38.2';
+  var APP_VERSION = '0.38.3';
   var CAP = 9, SCRIM_Y = 560, DOCK_BOTTOM = 1032; // the Dock sits 48 px above the bottom edge; names and actions go above it
   var DOCK_MODES = { both: { tw: 288, th: 200, pitch: 296 }, text: { tw: 288, th: 104, pitch: 296 }, icons: { tw: 200, th: 156, pitch: 206 } }; // icons-only tiles leave room under the icon for the focused app's name
   var GRID_ROW = 240, GRID_COL = 344, COLS = 5;
@@ -1410,10 +1410,11 @@
     if (!alexaOn() || document.hidden || !alexaIds().length) return;
     alexa.timer = setTimeout(function () {
       alexa.timer = null;
+      var asked = alexaIds();
       alexa.asked = Date.now();
-      FA.read(alexaIds(), function (err, vals) {
+      FA.read(asked, function (err, vals) {
         alexa.answered = Date.now();
-        if (err) { alexa.err = err; alexa.lastErr = err; } else { alexa.err = ''; alexa.lastOk = alexa.answered; storeVals(vals); }
+        if (err) { alexa.err = err; alexa.lastErr = err; } else { alexa.err = ''; alexa.lastOk = alexa.answered; alexa.missing = asked.filter(function (id) { return !vals[id]; }); storeVals(vals); }
         /* The next read is scheduled before drawing, so an error while drawing cannot stop the polling. */
         if (!alexa.timer) alexaPoll(err === 'revoked' ? 10 * 60 * 1000 : undefined);
         render();
@@ -2227,11 +2228,16 @@
   }
   /* For Device details: how often Home reads Alexa and when it last got an answer, to tell a stalled
      read from Alexa reporting an old state. */
+  function alexaDeviceName(id) {
+    var d = (alexa.list || []).filter(function (x) { return x.id === id; })[0], r = S.c.alexaReadings.filter(function (x) { return x.id === id; })[0], w = S.c.alexaSwitches.filter(function (x) { return x.id === id; })[0];
+    return d ? d.name : r ? r.name : w ? w.name : id.replace(/^.*\./, '…');
+  }
   function alexaPollStatus() {
     var every = liveTargets().length || legendRows().length ? ALEXA_SWITCH_POLL : ALEXA_POLL, ago = function (t) { return Math.max(0, Math.round((Date.now() - t) / 1000)); };
     var text = T('Home reads Alexa every {0} s.', Math.round(every / 1000));
     text += ' ' + (alexa.lastOk ? T('Last answer {0} s ago.', ago(alexa.lastOk)) : T('No answer yet.'));
     if (alexa.lastErr && alexa.answered && alexa.answered > (alexa.lastOk || 0)) text += ' ' + T('Last read failed: {0}', alexaErrText(alexa.lastErr));
+    if (alexa.missing && alexa.missing.length) text += ' ' + T('No answer for: {0}', alexa.missing.map(alexaDeviceName).join(', '));
     if (drawErr.text) text += ' ' + T('Drawing error {0} s ago: {1}', ago(drawErr.at), drawErr.text);
     return text;
   }

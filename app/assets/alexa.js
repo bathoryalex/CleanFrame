@@ -153,15 +153,31 @@
     return d;
   }
   /* Current values for the given endpoint ids: done(err, { id: description }). */
+  /* done(err, { id: device }) for the ids asked. Alexa may answer a batch with no endpoints at all, and no
+     error, when one id in it is no longer known (a device removed, or added again under a new id): one
+     bad id would then freeze every value on Home. So when a batch of several ids comes back empty, each id
+     is asked on its own, and an id that gets no answer on its own either is left out for ten minutes. */
+  var dead = {}, DEAD_MS = 10 * 60 * 1000;
   function read(ids, done) {
-    var out = {}, batches = [], i;
-    for (i = 0; i < ids.length; i += 25) batches.push(ids.slice(i, i + 25));
+    var out = {}, batches = [], now = Date.now(), live = ids.filter(function (id) { return !(dead[id] && now - dead[id] < DEAD_MS); }), i;
+    for (i = 0; i < live.length; i += 25) batches.push(live.slice(i, i + 25));
+    function ask(list, cb) {
+      graph([{ operationName: 'getEndpointFeatures', variables: { endpointIds: list }, query: FEATURES_QUERY }], function (err, data) {
+        var n = 0;
+        if (!err) ((data.listEndpoints || {}).endpoints || []).forEach(function (e) { if (e && typeof e.endpointId === 'string') { out[e.endpointId] = describe(e); delete dead[e.endpointId]; n++; } });
+        cb(err, n);
+      });
+    }
     (function nextBatch(b) {
       if (b >= batches.length) { done(null, out); return; }
-      graph([{ operationName: 'getEndpointFeatures', variables: { endpointIds: batches[b] }, query: FEATURES_QUERY }], function (err, data) {
-        if (err) { done(err); return; }
-        ((data.listEndpoints || {}).endpoints || []).forEach(function (e) { out[e.endpointId] = describe(e); });
-        nextBatch(b + 1);
+      ask(batches[b], function (err, n) {
+        /* 'no data': Alexa answered, but with errors only, which a bad id can also cause. */
+        if (err && !(err === 'no data' && batches[b].length > 1)) { done(err); return; }
+        if (n || batches[b].length < 2) { nextBatch(b + 1); return; }
+        (function one(k) {
+          if (k >= batches[b].length) { nextBatch(b + 1); return; }
+          ask([batches[b][k]], function (err2, n2) { if (!n2 && (!err2 || err2 === 'no data')) dead[batches[b][k]] = Date.now(); one(k + 1); });
+        }(0));
       });
     }(0));
   }

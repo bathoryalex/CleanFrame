@@ -38,6 +38,7 @@ window.CleanFrameI18n = {
     'Home reads Alexa every {0} s.': 'A Kezdőlap {0} másodpercenként olvassa az Alexát.',
     'Last answer {0} s ago.': 'Utolsó válasz {0} másodperce.',
     'No answer yet.': 'Még nincs válasz.',
+    'No answer for: {0}': 'Nem válaszolt: {0}',
     'Drawing error {0} s ago: {1}': 'Rajzolási hiba {0} másodperce: {1}',
     'Last read failed: {0}': 'Az utolsó olvasás nem sikerült: {0}',
     'Added to Liked Songs': 'Hozzáadva a Kedvelt dalokhoz',
