@@ -7,8 +7,8 @@ This records what is known about the TV this fork is built for. Other models, fi
 | Item | This setup |
 | --- | --- |
 | TV | Samsung UE75U8072 |
-| OS | Tizen 9 |
-| Firmware | Not recorded yet; note it here before any native Home work |
+| OS | Tizen 9 until November 2026, then a Samsung update to Tizen 10 (One UI Tizen) |
+| Firmware | 1300 (Tizen 9, recorded 23 November 2026); updating to 6500 (Tizen 10) the same day. Frame Home and the native Home assignment have not been checked on 6500 yet |
 | Web engine | Exact Chromium/WebKit version has not been recorded; keep runtime JavaScript ES5-compatible |
 
 Developer Mode, signing material, the TV's network address and recovery files are private local configuration in ignored `.local/`.
