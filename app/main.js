@@ -4,7 +4,7 @@
 
   /* ---------- Bundled data ---------- */
   var ASSETS = 'assets/', ICONS = ASSETS + 'icons/', WP = ASSETS + 'wallpapers/';
-  var APP_VERSION = '0.36.0';
+  var APP_VERSION = '0.36.1';
   var CAP = 9, SCRIM_Y = 560, DOCK_BOTTOM = 1032; // the Dock sits 48 px above the bottom edge; names and actions go above it
   var DOCK_MODES = { both: { tw: 288, th: 200, pitch: 296 }, text: { tw: 288, th: 104, pitch: 296 }, icons: { tw: 200, th: 156, pitch: 206 } }; // icons-only tiles leave room under the icon for the focused app's name
   var GRID_ROW = 240, GRID_COL = 344, COLS = 5;
@@ -1673,6 +1673,21 @@
       FF.lookup({ id: key, title: n.title, artist: n.mainArtist }, function (info) { if (facts.key === key) { facts.info = info; render(); } });
     }
     return facts.info;
+  }
+  /* A long title first gets smaller (68 → 60 → 52 → 48 px) to stay on one line, which leaves room for
+     the fact; only if it still does not fit does it wrap onto two lines at 52 px. */
+  var TITLE_SIZES = ['', 'is-s1', 'is-s2', 'is-s3'];
+  function fitTitle(el, lyrics) {
+    var key = el.textContent + '|' + !!lyrics + '|' + S.c.font, i;
+    if (el._fit === key) return;
+    el._fit = key;
+    el.className = 'np-title';
+    if (lyrics) return;
+    for (i = 0; i < TITLE_SIZES.length; i++) {
+      el.className = 'np-title is-measure ' + TITLE_SIZES[i];
+      if (el.scrollWidth <= el.clientWidth + 1) { el.className = 'np-title ' + TITLE_SIZES[i]; return; }
+    }
+    el.className = 'np-title is-s2';
   }
   /* Two lines at most; one if the title wraps; none if even that would push the buttons off the cover. */
   function fitFact(el) {
@@ -3524,6 +3539,7 @@
       el.device.className = 'np-device' + (t.f.row === 'device' && !t.dev ? ' is-focus' : '');
       growDevices(el.devices, t);
       setHTML(el.title, t.lyrics && n ? mq(n.title) : esc(n ? n.title : T('Nothing is playing on Spotify.')));
+      fitTitle(el.title, t.lyrics);
       setHTML(el.artist, t.lyrics && n ? mq(n.artist) : esc(n ? n.artist : ''));
       var info = !t.lyrics ? songFacts(n) : null, year = info && info.year || (n && n.albumType !== 'compilation' ? n.albumYear : 0);
       setHTML(el.album, esc(n ? n.album + (year ? ' · ' + year : '') : ''));

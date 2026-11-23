@@ -674,6 +674,11 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000}
 .np-copy{flex:1;min-width:0;display:flex;flex-direction:column}
 .np-device{margin:0 0 18px;font-size:26px;line-height:32px;color:var(--mute);letter-spacing:.2px}
 .np-title{margin:0;font-size:68px;line-height:78px;font-weight:600;letter-spacing:-1.6px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+/* Long titles shrink to stay on one line (main.js fitTitle); is-measure is only set while measuring. */
+.np-title.is-s1{font-size:60px;line-height:70px;letter-spacing:-1.4px}
+.np-title.is-s2{font-size:52px;line-height:62px;letter-spacing:-1.1px}
+.np-title.is-s3{font-size:48px;line-height:58px;letter-spacing:-1px}
+.np-title.is-measure{display:block;white-space:nowrap}
 .np-artist{margin:14px 0 0;font-size:40px;line-height:50px;font-weight:500;letter-spacing:-.6px;opacity:.85;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .np-album{margin:6px 0 0;font-size:28px;line-height:36px;color:var(--mute);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .np-progress .music-progress{margin-top:0;font-size:24px;line-height:30px;gap:20px;opacity:.9}

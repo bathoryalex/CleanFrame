@@ -262,3 +262,7 @@ With lyrics open the buttons are two rows, both centred under the progress bar: 
 - **Matching** (search `<title> <artist> song` on en.wikipedia.org, 6 results with intro extracts): the article title without its parenthetical must equal the cleaned song title (" - Remastered …", "(feat. …)", "(Live)" and similar removed), a parenthetical must say song or single, the introduction must contain the main artist and the word song/single/track, and disambiguation pages are skipped. No match → year only.
 - **Sentence choice** from the full plain text: a "story" sentence (inspired, wrote, idea, originally, recorded in, shower, dream, …) in a Background / Writing / Composition / Recording / Inspiration / History section; else such a sentence in the introduction after its first one; else the first sentence of such a section; never from Charts, Track listing, Personnel and similar. 40–240 characters. Nothing is generated or paraphrased.
 - The Now playing rows no longer shrink to make room (a shrinking line was cut in half); the space above the buttons reserved for the progress hint is 44 px.
+
+## 0.36.1
+
+Long titles on the large Now playing screen first get smaller to stay on one line (68 → 60 → 52 → 48 px, measured against the 944 px text column); only a title that does not fit at 48 px wraps onto two lines, at 52 px. Before, a long title such as "I'll Be There for You - Theme From "Friends"" wrapped at 68 px and left no room for the song fact, which was then hidden.

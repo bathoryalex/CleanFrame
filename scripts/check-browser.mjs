@@ -795,6 +795,17 @@ try {
     check('The search asked for the cleaned title and the artist', W().calls.some(c => /gsrsearch=Song\+A\+Artist\+A\+song|gsrsearch=Song%20A%20Artist%20A%20song/.test(c)), W().calls);
     await nav('right', 'right', 'ok'); await current.waitForTimeout(500);
     check('With lyrics open the fact is hidden', await current.evaluate(() => getComputedStyle(document.querySelector('.np-fact')).display === 'none'));
+    // A long title like Spotify's "I'll Be There for You - Theme From "Friends"" shrinks onto one line, so the fact still fits.
+    W().search = [{ pageid: 4, title: "I'll Be There for You (The Rembrandts song)", extract: '"I\'ll Be There for You" is a song by American rock duo the Rembrandts, best known as the theme song of the sitcom Friends.', pageprops: {} }];
+    W().full = { 4: 'x\n== Background ==\nThe theme was originally recorded as a short piece for the opening titles, and the band only recorded a full-length version after radio stations started playing it on a loop.\n' };
+    current.__spotify.title = 'I\'ll Be There for You - Theme From "Friends"'; current.__spotify.artists = [{ name: 'The Rembrandts' }];
+    await current.reload(); await ready(); await current.waitForFunction(() => document.querySelector('.cap-music'));
+    await nav('up', 'left', 'ok'); await current.waitForFunction(() => ShoreQA.where().view === 'nowplaying');
+    await current.waitForFunction(() => document.querySelector('.np-fact').textContent.length > 0); await current.waitForTimeout(300);
+    const fr = await current.evaluate(() => { const r = e => document.querySelector(e).getBoundingClientRect(), f = document.querySelector('.np-fact'), t = document.querySelector('.np-title');
+      return { size: parseFloat(getComputedStyle(t).fontSize), titleH: Math.round(r('.np-title').height), factShown: getComputedStyle(f).display !== 'none' && r('.np-fact').height > 20, row: r('.np-ctl-row').bottom, art: r('.np-art-wrap').bottom }; });
+    check('A long title shrinks onto one line and the Wikipedia fact still shows', fr.size < 68 && fr.titleH < 90 && fr.factShown && Math.abs(fr.row - fr.art) <= 2, fr);
+    current.__spotify.artists = null;
     // A title on two lines leaves room for one line of the fact at most; the buttons stay on the cover's bottom edge.
     const longTitle = 'A Very Long Song Title That Certainly Wraps Onto Two Lines';
     W().search = [{ pageid: 3, title: longTitle, extract: '"' + longTitle + '" is a song by Artist A.', pageprops: {} }];
@@ -803,7 +814,7 @@ try {
     await current.reload(); await ready(); await current.waitForFunction(() => document.querySelector('.cap-music'));
     await nav('up', 'left', 'ok'); await current.waitForFunction(() => ShoreQA.where().view === 'nowplaying');
     await current.waitForFunction(() => document.querySelector('.np-fact').textContent.length > 0); await current.waitForTimeout(300);
-    const lt = await current.evaluate(() => { const r = e => document.querySelector(e).getBoundingClientRect(), f = document.querySelector('.np-fact'); return { titleLines: Math.round(r('.np-title').height / 78), factH: getComputedStyle(f).display === 'none' ? 0 : Math.round(r('.np-fact').height), row: r('.np-ctl-row').bottom, art: r('.np-art-wrap').bottom }; });
+    const lt = await current.evaluate(() => { const r = e => document.querySelector(e).getBoundingClientRect(), f = document.querySelector('.np-fact'); return { titleLines: Math.round(r('.np-title').height / parseFloat(getComputedStyle(document.querySelector('.np-title')).lineHeight)), factH: getComputedStyle(f).display === 'none' ? 0 : Math.round(r('.np-fact').height), row: r('.np-ctl-row').bottom, art: r('.np-art-wrap').bottom }; });
     check('With a two-line title the fact shrinks to one line or hides, and the buttons stay on the cover bottom', lt.titleLines === 2 && lt.factH <= 40 && Math.abs(lt.row - lt.art) <= 2, lt);
     // No article about this song: only the album year, nothing invented.
     W().search = [{ pageid: 2, title: 'Song A (film)', extract: 'Song A is a 2003 film.' }]; W().full = {}; W().claims = {};
