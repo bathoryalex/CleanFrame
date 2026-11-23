@@ -680,12 +680,19 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000}
 /* Without lyrics the text column is exactly as tall as the cover: the device line at its top edge,
    the buttons at its bottom edge, the progress bar just above them. */
 .np:not(.is-lyrics) .np-copy{height:560px}
+.np:not(.is-lyrics) .np-copy>*{flex-shrink:0}
 .np-progress{margin-top:auto;padding-top:24px}
+/* A short fact about the song from Wikipedia, between the album line and the progress bar (two lines at most). */
+.np-fact{margin:12px 0 0;font-size:23px;line-height:30px;color:rgba(246,241,231,.78);overflow:hidden;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2}
+.np-fact:empty,.np-fact.is-hidden{display:none}
+.np-fact.is-one{-webkit-line-clamp:1}
+.np-fact-tag{margin-right:12px;font-size:17px;font-weight:600;letter-spacing:1.2px;text-transform:uppercase;color:rgba(246,241,231,.5)}
+.np.is-lyrics .np-fact{display:none}
 .np-progress .music-bar{height:6px;border-radius:3px}
 .np-controls{display:flex;align-items:center;gap:28px}
 /* The buttons and the volume share one row; the space above it is where the progress hint appears,
    so focusing the bar never moves anything. */
-.np-ctl-row{display:flex;align-items:center;gap:40px;margin-top:52px}
+.np-ctl-row{display:flex;align-items:center;gap:40px;margin-top:44px}
 .np-btn{display:flex;align-items:center;justify-content:center;width:96px;height:96px;border-radius:50%;color:var(--ink);background:rgba(255,255,255,.08);transition:transform 160ms var(--ease),background-color 140ms linear,color 140ms linear}
 .np-btn .ico{width:40px;height:40px;stroke-width:2;fill:currentColor}
 .np-main{width:128px;height:128px}

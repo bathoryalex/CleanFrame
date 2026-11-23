@@ -79,7 +79,8 @@
         artist: (item.artists || []).map(function (a) { return a.name; }).join(', ') || item.show && item.show.name || '',
         mainArtist: item.artists && item.artists[0] ? item.artists[0].name : '', episode: !item.artists,
         art: artUrl(item.album ? item.album.images : item.images, 64), artBig: artUrl(item.album ? item.album.images : item.images, 600),
-        album: item.album && item.album.name || '', device: j.device && j.device.name || '', deviceId: j.device && j.device.id || '',
+        album: item.album && item.album.name || '', albumType: item.album && item.album.album_type || '',
+        albumYear: item.album && /^\d{4}/.test(item.album.release_date || '') ? +item.album.release_date.slice(0, 4) : 0, device: j.device && j.device.name || '', deviceId: j.device && j.device.id || '',
         volume: j.device && typeof j.device.volume_percent === 'number' ? j.device.volume_percent : null,
         supportsVolume: !!(j.device && j.device.supports_volume !== false && typeof j.device.volume_percent === 'number'),
         progress: typeof j.progress_ms === 'number' ? j.progress_ms : 0, duration: item.duration_ms || 0, at: Date.now()

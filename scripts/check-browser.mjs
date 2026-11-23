@@ -168,13 +168,21 @@ async function page(options = {}) {
       { id: 'dev-car', is_active: false, is_restricted: true, name: 'Car', type: 'Automobile' }, { id: null, name: 'Ghost', type: 'Speaker' }]
       .concat(Q.many ? Array.from({ length: 11 }, (_, i) => ({ id: 'dev-x' + i, is_active: false, is_restricted: false, name: 'Echo ' + (i + 1), type: 'Speaker' })) : []) }) });
     if (r.method() === 'GET') return route.fulfill({ headers: sp, contentType: 'application/json', body: JSON.stringify({ is_playing: Q.playing, device: { name: Q.device || 'Echo Dot Max', volume_percent: Q.volume == null ? 40 : Q.volume, supports_volume: Q.supportsVolume !== false },
-      progress_ms: 61000, item: { id: 't1', name: Q.title || 'Song A', duration_ms: 210000, artists: Q.artists || [{ name: 'Artist A' }, { name: 'Guest B' }], album: { name: 'Album A', images: [{ url: 'https://i.scdn.co/image/big', width: 640 }, { url: 'https://i.scdn.co/image/small', width: 64 }] } } }) });
+      progress_ms: 61000, item: { id: 't1', name: Q.title || 'Song A', duration_ms: 210000, artists: Q.artists || [{ name: 'Artist A' }, { name: 'Guest B' }], album: { name: 'Album A', release_date: Q.releaseDate || '2001-05-01', album_type: Q.albumType || 'album', images: [{ url: 'https://i.scdn.co/image/big', width: 640 }, { url: 'https://i.scdn.co/image/small', width: 64 }] } } }) });
     Q.calls.push(r.method() + ' ' + path); if (/seek/.test(path)) Q.seekUrl = r.url(); if (/volume/.test(path)) { Q.volumeUrl = r.url(); Q.volume = Number(new URL(r.url()).searchParams.get('volume_percent')); }
     if (r.method() === 'PUT' && path === '/v1/me/player') { Q.transfer = JSON.parse(r.postData() || '{}'); Q.device = 'Desk PC'; return route.fulfill({ status: 204, headers: sp, body: '' }); }
     if (Q.refuse) return route.fulfill({ status: 403, headers: sp, contentType: 'application/json', body: JSON.stringify({ error: { status: 403, message: 'Player command failed: Premium required', reason: Q.refuse } }) });
     if (path.endsWith('/pause')) Q.playing = false; if (path.endsWith('/play')) Q.playing = true;
     return route.fulfill({ status: 204, headers: sp, body: '' });
   });
+  // Song facts: English Wikipedia search + full text, and Wikidata's publication date. Empty unless a check fills them.
+  current.__wiki = { search: [], full: {}, claims: {}, calls: [] };
+  await current.route('https://en.wikipedia.org/**', route => { const u = new URL(route.request().url()), W = current.__wiki, ok = b => route.fulfill({ headers: { 'Access-Control-Allow-Origin': '*' }, contentType: 'application/json', body: JSON.stringify(b) });
+    W.calls.push(u.search);
+    if (u.searchParams.get('gsrsearch')) { const pages = {}; W.search.forEach((p, i) => { pages[p.pageid] = Object.assign({ index: i + 1 }, p); }); return ok(W.search.length ? { query: { pages } } : { batchcomplete: '' }); }
+    const id = u.searchParams.get('pageids'); return ok({ query: { pages: { [id]: { pageid: +id, extract: W.full[id] || '' } } } }); });
+  await current.route('https://www.wikidata.org/**', route => { const u = new URL(route.request().url()), t = current.__wiki.claims[u.searchParams.get('entity')];
+    return route.fulfill({ headers: { 'Access-Control-Allow-Origin': '*' }, contentType: 'application/json', body: JSON.stringify({ claims: t ? { P577: [{ mainsnak: { datavalue: { value: { time: t } } } }] } : {} }) }); });
   current.__lyrics = [];
   await current.route('https://lrclib.net/**', route => { current.__lyrics.push(route.request().url()); return route.fulfill({ headers: { 'Access-Control-Allow-Origin': '*' }, contentType: 'application/json',
     body: JSON.stringify({ trackName: 'Song A', duration: 210, instrumental: false, plainLyrics: 'First line\nSecond line\nThird line', syncedLyrics: '[00:50.00] First line\n[01:00.00] Second line\n[01:50.00] Third line' }) }); });
@@ -757,6 +765,58 @@ try {
     await nav('right', 'right', 'right');
     check('Without volume support the volume is hidden and Right stops at Lyrics', await current.evaluate(() => !!document.querySelector('.np-volume.is-off') && !!document.querySelector('.np-lyrics-btn.is-focus')));
     current.__spotify.supportsVolume = true;
+  });
+  await run('Spotify: song facts from Wikipedia on Now playing', async () => {
+    const W = () => current.__wiki;
+    await page();
+    await current.evaluate(() => localStorage.setItem('cleanframe.spotify.v1', JSON.stringify({ refresh: 'AQtest', access: 'BQtest', until: Date.now() + 3600000 })));
+    const unit = await current.evaluate(() => ({
+      clean: [FrameSongFacts._cleanTitle('Bohemian Rhapsody - Remastered 2011'), FrameSongFacts._cleanTitle('Song A (feat. B)'), FrameSongFacts._cleanTitle('Song A (Live)')],
+      film: FrameSongFacts._matches({ title: 'Song A (film)', extract: 'Song A is a song by Artist A.' }, 'Song A', 'Artist A'),
+      other: FrameSongFacts._matches({ title: 'Song A (Other Band song)', extract: '"Song A" is a song by Other Band.' }, 'Song A', 'Artist A'),
+      right: FrameSongFacts._matches({ title: 'Song A (Artist A song)', extract: '"Song A" is a song by American band Artist A.' }, 'Song A', 'Artist A'),
+      pick: FrameSongFacts._pick('"Song A" is a song by Artist A. It was released in 1999 as a single.\n\n== Charts ==\nIt was written in ten minutes in a hotel.\n\n== Background ==\nThe band toured Europe in 1998. The idea for the song came to the singer in the shower one morning.\n'),
+      none: FrameSongFacts._pick('"Song A" is a song by Artist A. It reached number five.\n\n== Charts ==\nWeekly charts.\n')
+    }));
+    check('Song titles are cleaned of remaster, featuring and live tags', unit.clean.join('|') === 'Bohemian Rhapsody|Song A|Song A', unit.clean);
+    check('Only the article about this song by this artist matches', !unit.film && !unit.other && unit.right, unit);
+    check('The fact is a story sentence from Background, not from the charts or the opening line', unit.pick === 'The idea for the song came to the singer in the shower one morning.' && unit.none === '', unit);
+    W().search = [{ pageid: 2, title: 'Song A (film)', extract: 'Song A is a 2003 film.', pageprops: { wikibase_item: 'Q2' } },
+      { pageid: 1, title: 'Song A (Artist A song)', extract: '"Song A" is a song by American band Artist A, released in 1999.', pageprops: { wikibase_item: 'Q1' } }];
+    W().full = { 1: '"Song A" is a song by Artist A.\n\n== Background ==\nThe idea for the song came to the singer in the shower in 1998, during a long winter tour of small Scandinavian towns with the band.\n' };
+    W().claims = { Q1: '+1999-03-02T00:00:00Z' };
+    current.__spotify.title = 'Song A - Remastered 2011'; current.__spotify.releaseDate = '2011-05-01';
+    await current.reload(); await ready(); await current.waitForFunction(() => document.querySelector('.cap-music'));
+    await nav('up', 'left', 'ok'); await current.waitForFunction(() => ShoreQA.where().view === 'nowplaying');
+    await current.waitForFunction(() => document.querySelector('.np-fact') && document.querySelector('.np-fact').textContent.length > 0);
+    const shown = await current.evaluate(() => { const r = e => document.querySelector(e).getBoundingClientRect(); return { album: document.querySelector('.np-album').textContent, fact: document.querySelector('.np-fact').textContent, row: r('.np-ctl-row').bottom, art: r('.np-art-wrap').bottom, factBottom: r('.np-fact').bottom, bar: r('.np-progress').top, visible: getComputedStyle(document.querySelector('.np-fact')).display !== 'none' && r('.np-fact').height > 20, lines: Math.round(r('.np-fact').height / 30) }; });
+    check('The album line shows the song\'s own year from Wikidata, not the remaster album year', shown.album === 'Album A · 1999', shown);
+    check('A short Wikipedia fact is shown, labelled, between the album line and the progress bar', /^From Wikipedia/.test(shown.fact) && /shower/.test(shown.fact) && shown.visible && shown.lines === 2 && shown.factBottom <= shown.bar && Math.abs(shown.row - shown.art) <= 2, shown);
+    check('The search asked for the cleaned title and the artist', W().calls.some(c => /gsrsearch=Song\+A\+Artist\+A\+song|gsrsearch=Song%20A%20Artist%20A%20song/.test(c)), W().calls);
+    await nav('right', 'right', 'ok'); await current.waitForTimeout(500);
+    check('With lyrics open the fact is hidden', await current.evaluate(() => getComputedStyle(document.querySelector('.np-fact')).display === 'none'));
+    // A title on two lines leaves room for one line of the fact at most; the buttons stay on the cover's bottom edge.
+    const longTitle = 'A Very Long Song Title That Certainly Wraps Onto Two Lines';
+    W().search = [{ pageid: 3, title: longTitle, extract: '"' + longTitle + '" is a song by Artist A.', pageprops: {} }];
+    W().full = { 3: 'x\n== Background ==\nThe idea for the song came to the singer in the shower in 1998, during a long winter tour of small Scandinavian towns with the band.\n' };
+    current.__spotify.title = longTitle;
+    await current.reload(); await ready(); await current.waitForFunction(() => document.querySelector('.cap-music'));
+    await nav('up', 'left', 'ok'); await current.waitForFunction(() => ShoreQA.where().view === 'nowplaying');
+    await current.waitForFunction(() => document.querySelector('.np-fact').textContent.length > 0); await current.waitForTimeout(300);
+    const lt = await current.evaluate(() => { const r = e => document.querySelector(e).getBoundingClientRect(), f = document.querySelector('.np-fact'); return { titleLines: Math.round(r('.np-title').height / 78), factH: getComputedStyle(f).display === 'none' ? 0 : Math.round(r('.np-fact').height), row: r('.np-ctl-row').bottom, art: r('.np-art-wrap').bottom }; });
+    check('With a two-line title the fact shrinks to one line or hides, and the buttons stay on the cover bottom', lt.titleLines === 2 && lt.factH <= 40 && Math.abs(lt.row - lt.art) <= 2, lt);
+    // No article about this song: only the album year, nothing invented.
+    W().search = [{ pageid: 2, title: 'Song A (film)', extract: 'Song A is a 2003 film.' }]; W().full = {}; W().claims = {};
+    current.__spotify.title = 'Song A'; current.__spotify.releaseDate = '2001-05-01';
+    await current.reload(); await ready(); await current.waitForFunction(() => document.querySelector('.cap-music'));
+    await nav('up', 'left', 'ok'); await current.waitForFunction(() => ShoreQA.where().view === 'nowplaying'); await current.waitForTimeout(600);
+    check('Without a matching article only the album year shows', await current.evaluate(() => document.querySelector('.np-album').textContent === 'Album A · 2001' && document.querySelector('.np-fact').textContent === ''));
+    // A compilation's year is not the song's.
+    current.__spotify.albumType = 'compilation';
+    await current.reload(); await ready(); await current.waitForFunction(() => document.querySelector('.cap-music'));
+    await nav('up', 'left', 'ok'); await current.waitForFunction(() => ShoreQA.where().view === 'nowplaying'); await current.waitForTimeout(600);
+    check('A compilation album shows no year', await current.evaluate(() => document.querySelector('.np-album').textContent === 'Album A'));
+    current.__spotify.albumType = ''; current.__spotify.title = ''; current.__spotify.releaseDate = '';
   });
   await run('Spotify phone page sends the code back to the TV', async () => {
     const phone = await preview.browser.newPage({ viewport: { width: 390, height: 844 } }), posts = [];

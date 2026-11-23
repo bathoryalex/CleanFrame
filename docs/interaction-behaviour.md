@@ -253,3 +253,12 @@ The volume row now looks like the progress bar above it: the same 6 px bar with 
 ## 0.35.4
 
 With lyrics open the buttons are two rows, both centred under the progress bar: previous, play/pause and next; then Lyrics with the volume pill beside it. Down from the first row goes to Lyrics, Up from the second row returns to the button you came from (play/pause by default); Right from Lyrics reaches −, Left from − returns to Lyrics. Down from the progress bar lands in the first row. Without lyrics nothing changes.
+
+## 0.36
+
+- **Song facts** (`app/assets/songfacts.js`, `window.FrameSongFacts`) on the large Now playing screen without lyrics. Looked up once per song (cached for the session; a failed request is retried next time).
+- **Year**: on the album line ("Album · 1987"). Wikidata's earliest publication date (P577) of the matched article's item; otherwise Spotify's album `release_date` year, left out when `album_type` is `compilation`.
+- **Fact**: one sentence from English Wikipedia, between the album line and the progress bar, prefixed by a small "From Wikipedia" label, two lines at most (one if the title wraps, hidden if even that would push the buttons off the cover's bottom edge; measured on layout boxes, since a focused button's scale would count as overflow). Hidden with lyrics open.
+- **Matching** (search `<title> <artist> song` on en.wikipedia.org, 6 results with intro extracts): the article title without its parenthetical must equal the cleaned song title (" - Remastered …", "(feat. …)", "(Live)" and similar removed), a parenthetical must say song or single, the introduction must contain the main artist and the word song/single/track, and disambiguation pages are skipped. No match → year only.
+- **Sentence choice** from the full plain text: a "story" sentence (inspired, wrote, idea, originally, recorded in, shower, dream, …) in a Background / Writing / Composition / Recording / Inspiration / History section; else such a sentence in the introduction after its first one; else the first sentence of such a section; never from Charts, Track listing, Personnel and similar. 40–240 characters. Nothing is generated or paraphrased.
+- The Now playing rows no longer shrink to make room (a shrinking line was cut in half); the space above the buttons reserved for the progress hint is 44 px.

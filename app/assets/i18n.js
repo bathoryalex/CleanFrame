@@ -32,6 +32,7 @@ window.CleanFrameI18n = {
     'Leave Frame Home': 'Kilépés a Frame Home-ból',
     'Volume': 'Hangerő',
     'Muted': 'Némítva',
+    'From Wikipedia': 'Wikipédiából',
     'Volume up': 'Hangerő fel',
     'Volume down': 'Hangerő le',
     'System': 'Rendszer',

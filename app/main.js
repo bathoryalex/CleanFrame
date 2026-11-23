@@ -4,7 +4,7 @@
 
   /* ---------- Bundled data ---------- */
   var ASSETS = 'assets/', ICONS = ASSETS + 'icons/', WP = ASSETS + 'wallpapers/';
-  var APP_VERSION = '0.35.4';
+  var APP_VERSION = '0.36.0';
   var CAP = 9, SCRIM_Y = 560, DOCK_BOTTOM = 1032; // the Dock sits 48 px above the bottom edge; names and actions go above it
   var DOCK_MODES = { both: { tw: 288, th: 200, pitch: 296 }, text: { tw: 288, th: 104, pitch: 296 }, icons: { tw: 200, th: 156, pitch: 206 } }; // icons-only tiles leave room under the icon for the focused app's name
   var GRID_ROW = 240, GRID_COL = 344, COLS = 5;
@@ -1662,6 +1662,29 @@
 
   /* Not a sheet: like the Wi‑Fi QR code it fades in over Home on the pre-blurred panel image,
      and fades out again on Back, so opening and closing move instead of cutting. */
+  /* Song facts (assets/songfacts.js): looked up once per song while the large Now playing screen shows
+     without lyrics; the year joins the album line and one Wikipedia sentence sits above the progress bar. */
+  var FF = window.FrameSongFacts || null, facts = { key: '', info: null };
+  function songFacts(n) {
+    if (!FF || !n || n.episode || !n.title) return null;
+    var key = n.id || n.title + '|' + n.mainArtist;
+    if (facts.key !== key) {
+      facts.key = key; facts.info = null;
+      FF.lookup({ id: key, title: n.title, artist: n.mainArtist }, function (info) { if (facts.key === key) { facts.info = info; render(); } });
+    }
+    return facts.info;
+  }
+  /* Two lines at most; one if the title wraps; none if even that would push the buttons off the cover. */
+  function fitFact(el) {
+    var copy = el && el.parentNode, row = copy && copy.querySelector('.np-ctl-row');
+    if (!row) return;
+    /* Layout boxes, not scrollHeight: a focused button is scaled up and would always count as overflow. */
+    function fits() { return row.getBoundingClientRect().bottom <= copy.getBoundingClientRect().bottom + 1; }
+    el.className = 'np-fact';
+    if (!el.textContent || fits()) return;
+    el.className = 'np-fact is-one';
+    if (!fits()) el.className = 'np-fact is-hidden';
+  }
   /* Fade the Now playing layout out, switch lyrics on or off, fade it back in. */
   function toggleLyrics(t) {
     if (t.switching) return;
@@ -3324,7 +3347,7 @@
     },
     nowplaying: function () {
       return '<div class="np" data-slot="np"><div class="np-art-wrap" data-slot="artwrap"><img class="np-art" data-slot="art" alt=""></div>'
-        + '<div class="np-copy"><p class="np-device" data-slot="device" data-z="npdev" data-i="0"></p><h2 class="np-title" data-slot="title"></h2><p class="np-artist" data-slot="artist"></p><p class="np-album" data-slot="album"></p>'
+        + '<div class="np-copy"><p class="np-device" data-slot="device" data-z="npdev" data-i="0"></p><h2 class="np-title" data-slot="title"></h2><p class="np-artist" data-slot="artist"></p><p class="np-album" data-slot="album"></p><p class="np-fact" data-slot="fact"></p>'
         + '<div class="np-progress" data-slot="progress"></div><div class="np-ctl-row"><div class="np-controls" data-slot="controls"></div><div class="np-volume" data-slot="volume"></div></div></div>'
         + '<div class="np-lyrics" data-slot="lyrics" aria-live="off"></div><div class="np-devices" data-slot="devices" role="dialog"></div></div>';
     },
@@ -3502,7 +3525,9 @@
       growDevices(el.devices, t);
       setHTML(el.title, t.lyrics && n ? mq(n.title) : esc(n ? n.title : T('Nothing is playing on Spotify.')));
       setHTML(el.artist, t.lyrics && n ? mq(n.artist) : esc(n ? n.artist : ''));
-      setHTML(el.album, esc(n ? n.album : ''));
+      var info = !t.lyrics ? songFacts(n) : null, year = info && info.year || (n && n.albumType !== 'compilation' ? n.albumYear : 0);
+      setHTML(el.album, esc(n ? n.album + (year ? ' · ' + year : '') : ''));
+      setHTML(el.fact, info && info.text ? '<span class="np-fact-tag">' + esc(T('From Wikipedia')) + '</span>' + esc(info.text) : '');
       setHTML(el.progress, n ? progressHtml(n) : ''); paintProgress();
       el.progress.className = 'np-progress' + (t.f.row === 'bar' ? ' is-focus' : '') + (seek.at !== null ? ' is-seeking' : '');
       el.progress.setAttribute('data-z', 'npbar'); el.progress.setAttribute('data-i', '0');
@@ -3521,7 +3546,7 @@
         };
         setHTML(el.volume, vbtn(0) + '<span class="np-vol-val" aria-label="' + esc(T('Volume') + ' ' + vpct + '%') + '">' + icon(vmuted ? 'mute' : 'volume') + '<span class="np-vol-pct">' + vpct + '%</span></span>' + vbtn(1));
       } else setHTML(el.volume, '');
-      placeLyrics();
+      placeLyrics(); fitFact(el.fact);
     },
     alexalist: function (t, el) {
       var rows = alexaRows(t), words = alexaListText(t), html = '', i, r, sub;
