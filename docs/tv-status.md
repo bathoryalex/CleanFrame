@@ -31,6 +31,8 @@ Developer Mode, signing material, the TV's network address and recovery files ar
 
 The app is signed with my own author and distributor certificates. Keep this identity stable: the native Home assignment and the app's self-filter in `app/fork.js` depend on it.
 
+Signing with Apps2Samsung on this TV: use **Level = Automatic** (which resolves to the **Public** certificate, since Frame Home needs no restricted privilege). An in-place update only works when the new package is signed with the **same** certificate as the installed copy, and Public and Partner are different certificates — forcing **Partner** makes the TV refuse the update and offer only remove-and-install (which erases the app's settings and sign-ins). Keep "Always create a new certificate" off and "Install over installed version" on. Observed 23 November 2026: the 0.34 update was refused on Partner and succeeded in place on Automatic/Public with no data loss.
+
 ## Known on this TV
 
 - Frame Home installs and opens from the app list.
