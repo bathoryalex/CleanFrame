@@ -138,6 +138,7 @@ async function page(options = {}) {
     const wrap = data => route.fulfill({ headers: amazon, contentType: 'application/json', body: JSON.stringify(Array.isArray(body) ? [{ data }] : { data }) });
     if (op.operationName === 'getDevicesBaseData') return wrap({ listEndpoints: { endpoints: A.devices.map(d => ({ endpointId: d.id, friendlyNameObject: { value: { text: d.name } } })) } });
     // Like Alexa when an asked id is no longer known: no endpoints at all for the whole batch, and no error.
+    if (op.operationName === 'getEndpointFeatures') A.asked = (A.asked || []).concat(op.variables.endpointIds);
     if (op.operationName === 'getEndpointFeatures' && A.strict && op.variables.endpointIds.some(id => !A.devices.some(d => d.id === id))) return wrap({ listEndpoints: { endpoints: [] } });
     if (op.operationName === 'getEndpointFeatures') return wrap({ listEndpoints: { endpoints: A.devices.filter(d => op.variables.endpointIds.includes(d.id)).map(d => ({ endpointId: d.id, features: [].concat(
       d.temp !== undefined ? [{ name: 'temperatureSensor', properties: [{ __typename: 'TemperatureSensor', name: 'temperature', value: { value: d.temp, scale: 'CELSIUS' } }] }] : [],
@@ -981,6 +982,18 @@ try {
     await group('connections'); await act('conn.alexa'); await current.waitForFunction(() => ShoreQA.state().settingsGroup === 'alexa'); await act('alexa.list.details');
     await current.waitForFunction(() => /No answer for: Old sensor/.test(document.querySelector('.alexa-pick .s-sub').textContent), null, { timeout: 12000 });
     check('Device details name the device Alexa did not answer for', true);
+    current.__alexa.strict = false; lamp.power = 'OFF';
+  });
+  await run('Alexa: a remote button set to the Home screen is not asked from Alexa', async () => {
+    await page({ seed: baseline({ alexaSwitches: [{ id: 'amzn1.alexa.endpoint.lamp-1', name: 'Left lamp' }], alexaKeys: { red: { id: 'frame:home', name: '' }, green: { id: 'spotify:next', name: '' } } }) });
+    await current.evaluate(() => localStorage.setItem('cleanframe.alexa.v1', JSON.stringify({ serial: 'X', domain: 'com', site: 'com', refresh: 'Atzr|test', access: 'Atza|test', at: Date.now() })));
+    current.__alexa.strict = true; current.__alexa.asked = [];
+    const lamp = current.__alexa.devices.find(d => d.id.endsWith('lamp-1'));
+    lamp.power = 'OFF';
+    await current.reload(); await ready(); await current.waitForTimeout(1500);
+    lamp.power = 'ON';
+    await current.waitForFunction(() => document.querySelector('.u-lamp') && document.querySelector('.u-lamp').classList.contains('is-lit'), null, { timeout: 9000 });
+    check('Only Alexa devices are read: not the Home screen or Spotify buttons', current.__alexa.asked.length > 0 && current.__alexa.asked.every(id => /^amzn1\.alexa\.endpoint\./.test(id)), [...new Set(current.__alexa.asked)]);
     current.__alexa.strict = false; lamp.power = 'OFF';
   });
   await run('Spotify phone page sends the code back to the TV', async () => {

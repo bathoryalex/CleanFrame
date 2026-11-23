@@ -4,7 +4,7 @@
 
   /* ---------- Bundled data ---------- */
   var ASSETS = 'assets/', ICONS = ASSETS + 'icons/', WP = ASSETS + 'wallpapers/';
-  var APP_VERSION = '0.38.3';
+  var APP_VERSION = '0.38.4';
   var CAP = 9, SCRIM_Y = 560, DOCK_BOTTOM = 1032; // the Dock sits 48 px above the bottom edge; names and actions go above it
   var DOCK_MODES = { both: { tw: 288, th: 200, pitch: 296 }, text: { tw: 288, th: 104, pitch: 296 }, icons: { tw: 200, th: 156, pitch: 206 } }; // icons-only tiles leave room under the icon for the focused app's name
   var GRID_ROW = 240, GRID_COL = 344, COLS = 5;
@@ -1369,7 +1369,9 @@
   }
   /* The name Alexa (or the group) gives, without the name chosen for Home. */
   function originalName(t) { var keep = S.c.alexaNames, n; S.c.alexaNames = null; n = targetName(t); S.c.alexaNames = keep; return n; }
-  function targetMembers(id) { var g; if (/^(spotify|app):/.test(id)) return []; if (!isGroup(id)) return [id]; g = groupOf(id); return g ? g.members.map(function (m) { return m.id; }) : []; }
+  /* Alexa devices behind a Home switch or remote button. Spotify, apps and Frame Home's own Home screen
+     are not Alexa devices: asked for as one, Alexa answered the whole read with nothing (0.38.3). */
+  function targetMembers(id) { var g; if (/^(spotify|app|frame):/.test(id)) return []; if (!isGroup(id)) return [id]; g = groupOf(id); return g ? g.members.map(function (m) { return m.id; }) : []; }
   /* On when any member is on; null while nothing is known yet. */
   /* A light is on when Alexa says so; a group only when every one of its lights is on. */
   function targetPower(id) {
