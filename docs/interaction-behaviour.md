@@ -239,3 +239,9 @@ The Light background is removed with its styles; Photo and Dark remain.
 ## 0.35.1
 
 The volume row now looks like the progress bar above it: the same 6 px bar with the same left and right ends, the same focus (the bar grows to 12 px with a white fill and a light ring, and the hint appears underneath), a speaker-with-waves icon (a crossed speaker when muted) and the level on the right where the song length is.
+
+## 0.35.2
+
+- **Volume beside Lyrics**: the volume is a short bar (340 px) in the same row as the buttons, after Lyrics. Right from Lyrics focuses it; Left/Right step 5 %, OK mutes and restores, Back returns to Lyrics (it no longer closes Now playing from there), Up goes to the progress bar. With lyrics open the column is 400 px wide, so the volume sits under the buttons at the cover's width.
+- **Cover height**: without lyrics the text column is exactly as tall as the 560 px cover: "Playing on" at its top edge, the buttons and volume at its bottom edge, the progress bar just above them; the title block stays at the top.
+- **No jump on focus**: the progress hint and the volume hint are drawn in reserved space (absolutely positioned), so focusing the progress bar or the volume moves nothing. The volume hint is right-aligned under the row (under the buttons with lyrics open).

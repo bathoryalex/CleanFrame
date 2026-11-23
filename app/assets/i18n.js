@@ -32,7 +32,7 @@ window.CleanFrameI18n = {
     'Leave Frame Home': 'Kilépés a Frame Home-ból',
     'Volume': 'Hangerő',
     'Muted': 'Némítva',
-    'Left and Right change the volume · OK mutes': 'Balra/Jobbra a hangerő · OK némít',
+    'Left and Right: volume · OK: mute · Back: buttons': 'Balra/Jobbra: hangerő · OK: némítás · Vissza: gombok',
     'System': 'Rendszer',
     'Backup, Samsung Home': 'Mentés, Samsung Kezdőlap',
     'Open system settings': 'Rendszerbeállítások megnyitása',

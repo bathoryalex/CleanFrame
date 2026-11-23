@@ -712,8 +712,17 @@ try {
     await current.waitForFunction(() => document.querySelector('.cap-music'));
     await nav('up', 'left', 'ok');
     await current.waitForFunction(() => ShoreQA.where().view === 'nowplaying');
-    await nav('down');
-    check('Down from the controls focuses the volume row at the device volume', await current.evaluate(() => !!document.querySelector('.np-volume.is-focus') && /40%/.test(document.querySelector('.np-vol-pct').textContent)));
+    const geo = () => current.evaluate(() => { const r = e => document.querySelector(e).getBoundingClientRect(); return { art: r('.np-art-wrap'), dev: r('.np-device'), row: r('.np-ctl-row'), vol: r('.np-volume'), lyr: r('.np-lyrics-btn'), title: r('.np-title').top }; });
+    const g0 = await geo();
+    check('Without lyrics the text column fits the cover height: device line at its top, buttons at its bottom', Math.abs(g0.dev.top - g0.art.top) <= 2 && Math.abs(g0.row.bottom - g0.art.bottom) <= 2, g0);
+    check('The volume sits beside the Lyrics button, shorter than the progress bar', Math.abs((g0.vol.top + g0.vol.bottom) / 2 - (g0.lyr.top + g0.lyr.bottom) / 2) <= 2 && g0.vol.left > g0.lyr.right && g0.vol.width <= 360, g0);
+    await nav('up');
+    const g1 = await geo();
+    check('Focusing the progress bar shows its hint without moving anything', g1.title === g0.title && g1.row.top === g0.row.top && g1.dev.top === g0.dev.top && await current.evaluate(() => !!document.querySelector('.np-progress.is-focus')), { g0, g1 });
+    await nav('down', 'right', 'right', 'right');
+    check('Right from Lyrics focuses the volume at the device volume', await current.evaluate(() => !!document.querySelector('.np-volume.is-focus') && /40%/.test(document.querySelector('.np-vol-pct').textContent)));
+    const g2 = await geo();
+    check('Focusing the volume moves nothing either', g2.title === g0.title && g2.row.top === g0.row.top, { g0, g2 });
     await nav('right', 'right');
     check('Right raises the volume and shows it at once', await current.evaluate(() => /50%/.test(document.querySelector('.np-vol-pct').textContent)));
     await current.waitForTimeout(600);
@@ -724,16 +733,20 @@ try {
     check('Mute sends volume 0', /volume_percent=0$/.test(current.__spotify.volumeUrl || ''), current.__spotify.volumeUrl);
     await nav('ok');
     check('OK again restores the previous volume', await current.evaluate(() => /50%/.test(document.querySelector('.np-vol-pct').textContent)));
-    await nav('up');
-    check('Up returns to the controls', await current.evaluate(() => !!document.querySelector('.np-controls .is-focus') && !document.querySelector('.np-volume.is-focus')));
+    await nav('back');
+    check('Back returns to the Lyrics button and stays on Now playing', (await current.evaluate(() => ShoreQA.where().view)) === 'nowplaying' && await current.evaluate(() => !!document.querySelector('.np-lyrics-btn.is-focus') && !document.querySelector('.np-volume.is-focus')));
+    await nav('ok'); await current.waitForTimeout(400);
+    const gl = await current.evaluate(() => { const r = e => document.querySelector(e).getBoundingClientRect(); return { ctl: r('.np-controls'), vol: r('.np-volume'), art: r('.np-art-wrap') }; });
+    check('With lyrics open the volume goes under the buttons, as wide as the cover', gl.vol.top >= gl.ctl.bottom && Math.abs(gl.vol.width - gl.art.width) <= 2, gl);
+    await nav('ok'); await current.waitForTimeout(400);
     // A device that cannot set volume through the API hides the row.
     current.__spotify.supportsVolume = false;
     await current.reload(); await ready();
     await current.waitForFunction(() => document.querySelector('.cap-music'));
     await nav('up', 'left', 'ok');
     await current.waitForFunction(() => ShoreQA.where().view === 'nowplaying');
-    await nav('down');
-    check('Without volume support the row is hidden and Down stays on the controls', await current.evaluate(() => !!document.querySelector('.np-volume.is-off') && !!document.querySelector('.np-controls .is-focus')));
+    await nav('right', 'right', 'right');
+    check('Without volume support the volume is hidden and Right stops at Lyrics', await current.evaluate(() => !!document.querySelector('.np-volume.is-off') && !!document.querySelector('.np-lyrics-btn.is-focus')));
     current.__spotify.supportsVolume = true;
   });
   await run('Spotify phone page sends the code back to the TV', async () => {

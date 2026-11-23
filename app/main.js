@@ -4,7 +4,7 @@
 
   /* ---------- Bundled data ---------- */
   var ASSETS = 'assets/', ICONS = ASSETS + 'icons/', WP = ASSETS + 'wallpapers/';
-  var APP_VERSION = '0.35.1';
+  var APP_VERSION = '0.35.2';
   var CAP = 9, SCRIM_Y = 560, DOCK_BOTTOM = 1032; // the Dock sits 48 px above the bottom edge; names and actions go above it
   var DOCK_MODES = { both: { tw: 288, th: 200, pitch: 296 }, text: { tw: 288, th: 104, pitch: 296 }, icons: { tw: 200, th: 156, pitch: 206 } }; // icons-only tiles leave room under the icon for the focused app's name
   var GRID_ROW = 240, GRID_COL = 344, COLS = 5;
@@ -1684,9 +1684,9 @@
         return;
       }
       if (t.f.row === 'volume') {
-        /* Volume on the playing device: Left/Right step 5 %, OK mutes and restores. */
-        if (k === 'back') pop();
-        else if (k === 'up') t.f.row = 'controls';
+        /* Volume beside Lyrics: Left/Right step 5 %, OK mutes and restores, Back returns to the buttons. */
+        if (k === 'back') { t.f.row = 'controls'; t.f.b = 3; }
+        else if (k === 'up') t.f.row = n && n.duration ? 'bar' : 'device';
         else if (k === 'left') setVolume((n && typeof n.volume === 'number' ? n.volume : 0) - 5);
         else if (k === 'right') setVolume((n && typeof n.volume === 'number' ? n.volume : 0) + 5);
         else if (k === 'ok') toggleMute();
@@ -1694,9 +1694,9 @@
       }
       if (k === 'back') pop();
       else if (k === 'up') t.f.row = n && n.duration ? 'bar' : 'device';
-      else if (k === 'down' && volumeAvailable(n)) t.f.row = 'volume';
       else if (k === 'left' && t.f.b > 0) t.f.b--;
       else if (k === 'right' && t.f.b < 3) t.f.b++;
+      else if (k === 'right' && volumeAvailable(n)) t.f.row = 'volume';
       else if (k === 'ok' && t.f.b === 3) {
         /* Fade the layout out, switch it, fade it back in. */
         if (t.switching) return;
@@ -3308,7 +3308,7 @@
     nowplaying: function () {
       return '<div class="np" data-slot="np"><div class="np-art-wrap" data-slot="artwrap"><img class="np-art" data-slot="art" alt=""></div>'
         + '<div class="np-copy"><p class="np-device" data-slot="device" data-z="npdev" data-i="0"></p><h2 class="np-title" data-slot="title"></h2><p class="np-artist" data-slot="artist"></p><p class="np-album" data-slot="album"></p>'
-        + '<div class="np-progress" data-slot="progress"></div><div class="np-controls" data-slot="controls"></div><div class="np-volume" data-slot="volume"></div></div>'
+        + '<div class="np-progress" data-slot="progress"></div><div class="np-ctl-row"><div class="np-controls" data-slot="controls"></div><div class="np-volume" data-slot="volume"></div></div></div>'
         + '<div class="np-lyrics" data-slot="lyrics" aria-live="off"></div><div class="np-devices" data-slot="devices" role="dialog"></div></div>';
     },
     alexalist: function () {
@@ -3500,7 +3500,7 @@
       el.volume.className = 'np-volume' + (volOn ? '' : ' is-off') + (t.f.row === 'volume' ? ' is-focus' : '');
       if (volOn) {
         el.volume.setAttribute('data-z', 'npvol'); el.volume.setAttribute('data-i', '0');
-        el.volume.setAttribute('data-hint', T('Left and Right change the volume · OK mutes'));
+        el.volume.setAttribute('data-hint', T('Left and Right: volume · OK: mute · Back: buttons'));
         el.volume.setAttribute('aria-label', T('Volume') + ' ' + (vmuted ? T('Muted') : vpct + '%'));
         setHTML(el.volume, '<span class="music-progress">' + icon(vmuted ? 'mute' : 'volume', 'np-vol-icon') + '<span class="music-bar"><i style="width:' + vpct + '%"></i></span><span class="music-time np-vol-pct">' + (vmuted ? T('Muted') : vpct + '%') + '</span></span>');
       } else { el.volume.removeAttribute('data-z'); el.volume.removeAttribute('data-hint'); setHTML(el.volume, ''); }
