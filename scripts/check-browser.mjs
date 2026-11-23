@@ -517,9 +517,9 @@ try {
     await page(); await scene('settings');
     const cards = await current.evaluate(() => [...document.querySelectorAll('.settings-card')].map(e => { return { id: e.getAttribute('data-id'), left: e.offsetLeft, top: e.offsetTop, bottom: e.offsetTop + e.offsetHeight + e.offsetParent.getBoundingClientRect().top }; }));
     const cardGroups = await current.evaluate(() => [...document.querySelectorAll('.settings-group')].map(g => [...g.querySelectorAll('.settings-card')].map(e => e.getAttribute('data-id'))));
-    check('Settings shows equal cards in three framed groups, Connections before Samsung Home', cardGroups.length === 3 && cardGroups[0].join() === 'background,layout,typography' && cardGroups[1].join() === 'editor,wifiqr' && cardGroups[2].join() === 'region,lang,connections,samsung' && await current.evaluate(() => new Set([...document.querySelectorAll('.settings-card')].map(e => e.offsetWidth + 'x' + e.offsetHeight)).size === 1) && cards.every(c => c.bottom <= 1000), cardGroups);
-    await nav('down', 'down', 'right', 'right', 'right');
-    check('Arrows move along the grouped rows, across groups', await current.evaluate(() => document.querySelector('.settings-card.is-focus').getAttribute('data-id')) === 'samsung');
+    check('Settings shows three equal columns of three equal cards, Connections before Samsung Home', cardGroups.length === 3 && cardGroups[0].join() === 'background,layout,typography' && cardGroups[1].join() === 'editor,wifiqr,region' && cardGroups[2].join() === 'lang,connections,samsung' && await current.evaluate(() => new Set([...document.querySelectorAll('.settings-card')].map(e => e.offsetWidth + 'x' + e.offsetHeight)).size === 1 && new Set([...document.querySelectorAll('.settings-group')].map(e => e.offsetWidth + 'x' + e.offsetHeight)).size === 1) && cards.every(c => c.bottom <= 1000), cardGroups);
+    await nav('down', 'down', 'right', 'right');
+    check('Arrows move down a column and across to the same place in the next', await current.evaluate(() => document.querySelector('.settings-card.is-focus').getAttribute('data-id')) === 'samsung');
     await act('settings.group.connections'); await current.waitForFunction(() => ShoreQA.state().settingsGroup === 'connections');
     await act('conn.alexa'); await current.waitForFunction(() => ShoreQA.state().settingsGroup === 'alexa');
     await act('alexa.connect');
@@ -722,14 +722,14 @@ try {
   });
   await run('Clock styles, seconds and the Tiles layout', async () => {
     await page({ seed: baseline({ clockPos: 'center', seconds: 'on', clockStyle: 'flip' }) });
-    check('Flip shows six cards with seconds', await current.evaluate(() => document.querySelectorAll('.caption .flip').length === 6));
+    check('Flip shows a card per digit, seconds included', await current.evaluate(() => document.querySelectorAll('.caption .flip').length === (new Date().getHours() < 10 ? 5 : 6)));
     const before = await current.evaluate(() => document.querySelector('.caption .clock').textContent);
     await current.waitForTimeout(2200);
     check('Seconds tick without re-rendering the caption', await current.evaluate(() => document.querySelector('.caption .clock').textContent) !== before);
     await group('typography'); await act('choice.clockStyle.led'); await scene('home');
-    check('LED draws seven segments per digit', await current.evaluate(() => document.querySelectorAll('.caption .clock-led .clock-glyph').length === 6 && document.querySelectorAll('.caption .clock-led .clock-glyph polygon').length === 42));
+    check('LED draws seven segments per digit', await current.evaluate(() => (n => document.querySelectorAll('.caption .clock-led .clock-glyph').length === n && document.querySelectorAll('.caption .clock-led .clock-glyph polygon').length === n * 7)(new Date().getHours() < 10 ? 5 : 6)));
     await group('typography'); await act('choice.clockStyle.thin'); await scene('home');
-    check('Thin draws stroked digits', await current.evaluate(() => document.querySelectorAll('.caption .clock-thin .clock-glyph').length === 6));
+    check('Thin draws stroked digits', await current.evaluate(() => document.querySelectorAll('.caption .clock-thin .clock-glyph').length === (new Date().getHours() < 10 ? 5 : 6)));
     await group('layout'); await act('choice.layoutView.tiles');
     await current.waitForFunction(() => ShoreQA.ready && ShoreQA.ready());
     check('Layout offers Dock, Tiles and Modern dock', same(await current.evaluate(() => [...document.querySelectorAll('[data-action^="choice.layoutView."]')].map(e => e.getAttribute('data-action'))), ['choice.layoutView.dock', 'choice.layoutView.tiles', 'choice.layoutView.modern']));
@@ -775,9 +775,28 @@ try {
     await current.waitForFunction(() => document.querySelector('.cap-holiday'));
     const line = await current.evaluate(() => document.querySelector('.cap-date').textContent);
     const nd = await current.evaluate(() => { const d = new Date(); return (window.FrameNamedaysHU[d.getMonth()][d.getDate() - 1] || [])[0] || ''; });
-    const pill = await current.evaluate(() => { const p = document.querySelector('.cap-pills .cap-nameday'); return p ? p.textContent : ''; });
-    check('The date line has the holiday; the name days sit on their own card without a label', /Próbaünnep/.test(line) && !/Name day|Névnap/.test(line + pill) && (!nd || pill.includes(nd)), { line, pill });
-    check('The calendar card comes after the name days', await current.evaluate(() => { const p = [...document.querySelectorAll('.cap-pills > .cap-pill')].map(e => e.className); return p.length === (document.querySelector('.cap-nameday') ? 2 : 1) && /cap-cal/.test(p[p.length - 1]); }));
+    const panel = await current.evaluate(() => [...document.querySelectorAll('.cap-panel > .cap-row')].map(e => e.className.replace('cap-row ', '') + ':' + e.textContent));
+    check('One panel under the date: the holiday, then the name days without a label, then the calendar', /^cap-holiday:.*Próbaünnep/.test(panel[0]) && (!nd || panel.some(r => /^cap-nameday:/.test(r) && r.includes(nd))) && /^cap-cal:/.test(panel[panel.length - 1]) && !/Name day|Névnap/.test(panel.join()) && !/Próbaünnep/.test(line), { line, panel });
+  });
+  await run('Two calendars, each named and marked on Home', async () => {
+    await page({ seed: baseline({ date: 'on' }) });
+    await current.evaluate(() => localStorage.setItem('cleanframe.calendar.v1', JSON.stringify({ url: 'https://calendar.google.com/calendar/ical/a/private-1/basic.ics' })));
+    await current.reload(); await ready(); await current.waitForFunction(() => document.querySelector('.cap-cal'));
+    check('A 0.22 calendar carries over as the first one', await current.evaluate(() => FrameCalendar.list().length === 1 && !document.querySelector('.cap-cal-who')));
+    await current.evaluate(() => localStorage.setItem('cleanframe.calendar.v1', JSON.stringify({ cals: [{ id: 'c1', url: 'https://calendar.google.com/calendar/ical/a/private-1/basic.ics', name: '' }, { id: 'c2', url: 'https://calendar.google.com/calendar/ical/b/private-2/basic.ics', name: 'Ági' }] })));
+    await current.reload(); await ready(); await current.waitForFunction(() => document.querySelectorAll('.cap-cal').length === 2);
+    const rows = await current.evaluate(() => [...document.querySelectorAll('.cap-cal')].map(e => [e.querySelector('.cap-cal-who') && e.querySelector('.cap-cal-who').textContent, e.querySelector('.cap-cal-dot') && getComputedStyle(e.querySelector('.cap-cal-dot')).backgroundColor]));
+    check('With two calendars each event shows its calendar by name and colour', rows.length === 2 && rows.some(r => r[0] === 'Ági') && rows.some(r => /Calendar 1|1\. naptár/.test(r[0])) && rows[0][1] !== rows[1][1], rows);
+    await group('region'); await act('region.dateinfo');
+    check('Date details lists the calendars and offers another', await current.evaluate(() => !!document.querySelector('[data-action="calendar.item.c1"]') && !!document.querySelector('[data-action="calendar.item.c2"]') && !!document.querySelector('[data-action="calendar.connect"]')));
+    await act('calendar.item.c1'); await act('alexa.row.0');
+    for (let i = 0; i < 4; i++) await act('wifi.act.0');
+    const typed = async ch => { const a = await current.evaluate(c => { const e = [...document.querySelectorAll('[data-action^="wifi.char."]')].find(x => x.textContent === c); return e && e.getAttribute('data-action'); }, ch); await act(a); };
+    for (const ch of 'Alex') await typed(ch);
+    await act('wifi.act.1');
+    check('The first calendar can be named', await current.evaluate(() => FrameCalendar.list()[0].name === 'Alex'));
+    await scene('home');
+    check('Home shows both names', await current.evaluate(() => [...document.querySelectorAll('.cap-cal-who')].map(e => e.textContent).sort().join() === 'Alex,Ági'));
   });
   await run('Remote buttons can open apps and use CH and Guide', async () => {
     await page({ seed: baseline({ alexaKeys: { chup: { id: 'app:9Ur5IzDKqV.TizenYouTube', name: 'YouTube' } } }) });

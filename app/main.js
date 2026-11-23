@@ -4,7 +4,7 @@
 
   /* ---------- Bundled data ---------- */
   var ASSETS = 'assets/', ICONS = ASSETS + 'icons/', WP = ASSETS + 'wallpapers/';
-  var APP_VERSION = '0.32.0';
+  var APP_VERSION = '0.33.0';
   var CAP = 9, SCRIM_Y = 560, DOCK_BOTTOM = 1032; // the Dock sits 48 px above the bottom edge; names and actions go above it
   var DOCK_MODES = { both: { tw: 288, th: 200, pitch: 296 }, text: { tw: 288, th: 104, pitch: 296 }, icons: { tw: 200, th: 156, pitch: 206 } }; // icons-only tiles leave room under the icon for the focused app's name
   var GRID_ROW = 240, GRID_COL = 344, COLS = 5;
@@ -1058,38 +1058,28 @@
       { id: 'samsung', icon: 'home', label: T('Samsung Home'), value: T('Leave Frame Home'), direct: true }]);
   }
   function settingsIds() { return settingsRows().map(function (r) { return r.id; }); }
-  var SETTINGS_GROUPS = [{ id: 'personal', label: 'Personalization', row: 0, ids: ['background', 'layout', 'typography'] },
-    { id: 'home', label: 'Home', row: 0, ids: ['editor', 'wifiqr'] },
-    { id: 'system', label: 'Connections and system', row: 1, ids: ['region', 'lang', 'connections', 'samsung'] }];
+  /* Three columns of three equal cards. */
+  var SETTINGS_GROUPS = [{ id: 'personal', label: 'Personalization', ids: ['background', 'layout', 'typography'] },
+    { id: 'home', label: 'Home and time', ids: ['editor', 'wifiqr', 'region'] },
+    { id: 'system', label: 'System', ids: ['lang', 'connections', 'samsung'] }];
   function settingsGroups() {
     var have = settingsIds();
-    return SETTINGS_GROUPS.map(function (g) { return { id: g.id, label: g.label, row: g.row, ids: g.ids.filter(function (id) { return have.indexOf(id) >= 0; }) }; }).filter(function (g) { return g.ids.length; });
+    return SETTINGS_GROUPS.map(function (g) { return { id: g.id, label: g.label, ids: g.ids.filter(function (id) { return have.indexOf(id) >= 0; }) }; }).filter(function (g) { return g.ids.length; });
   }
-  function settingsLayout() { var rows = [[], []]; settingsGroups().forEach(function (g) { rows[g.row] = rows[g.row].concat(g.ids); }); return rows.filter(function (r) { return r.length; }); }
-  /* A card's horizontal centre on screen, or its share of the row before the first render. */
-  function cardCentre(id, share) {
-    var el = sheetEl && sheetEl.querySelector('.settings-card[data-id="' + id + '"]'), r;
-    if (el) { r = el.getBoundingClientRect(); if (r.width) return r.left + r.width / 2; }
-    return share * 10000;
-  }
+  function settingsLayout() { return settingsGroups().map(function (g) { return g.ids; }); }
   var SETTINGS_COLS = 4;
   function settingsCols() { return settingsIds().length > 8 ? 3 : SETTINGS_COLS; }
   V.settings = {
     sheet: true,
     norm: function (t) { var ids = settingsIds(); if (ids.indexOf(t.f.id) < 0) t.f.id = ids[0]; },
     key: function (t, k) {
-      /* Two rows of grouped cards: Personalization above; Home and clock beside Connections and system
-         below. Left/Right move along a row (across groups); Up/Down go to the nearest card above or below. */
-      var rows = settingsLayout(), r = 0, c = 0, id = t.f.id, x;
-      rows.forEach(function (ids, ri) { var ci = ids.indexOf(id); if (ci >= 0) { r = ri; c = ci; } });
-      if (k === 'left' && c > 0) id = rows[r][c - 1];
-      else if (k === 'right' && c < rows[r].length - 1) id = rows[r][c + 1];
-      else if ((k === 'up' && r > 0) || (k === 'down' && r < rows.length - 1)) {
-        x = cardCentre(id, (c + .5) / rows[r].length);
-        var target = rows[r + (k === 'up' ? -1 : 1)], best = target[0], bd = Infinity;
-        target.forEach(function (o, oi) { var d = Math.abs(cardCentre(o, (oi + .5) / target.length) - x); if (d < bd) { bd = d; best = o; } });
-        id = best;
-      }
+      /* Three columns: Up/Down move within a column, Left/Right to the same place in the next one. */
+      var cols = settingsLayout(), c = 0, r = 0, id = t.f.id;
+      cols.forEach(function (ids, ci) { var ri = ids.indexOf(id); if (ri >= 0) { c = ci; r = ri; } });
+      if (k === 'up' && r > 0) id = cols[c][r - 1];
+      else if (k === 'down' && r < cols[c].length - 1) id = cols[c][r + 1];
+      else if (k === 'left' && c > 0) id = cols[c - 1][Math.min(r, cols[c - 1].length - 1)];
+      else if (k === 'right' && c < cols.length - 1) id = cols[c + 1][Math.min(r, cols[c + 1].length - 1)];
       else if (k === 'back') { pop(); return; }
       t.f.id = id; S.settingsFocus = id;
       if (k === 'ok') settingsOk(id);
@@ -1237,6 +1227,7 @@
     else if (item.action === 'region.dateinfo') openAppearance('dateinfo');
     else if (item.action === 'calendar.connect') openPair('calendar');
     else if (item.action === 'calendar.signout') openMessage('calendarOut');
+    else if (/^calendar\.item\./.test(item.action)) openAlexaList('calendar', { cal: item.action.slice(14) });
     else if (item.action === 'conn.spotify') openAppearance('spotify');
     else if (/^alexa\.list\./.test(item.action)) openAlexaList(item.action.slice(11));
     else if (item.action === 'alexa.signout') alexaSignOut();
@@ -1860,8 +1851,8 @@
     if (!(top().id === 'pair' && top().mode === svc)) push({ id: 'pair', mode: svc, f: {} });
     function onUrl(url) { st.url = url; render(); }
     function onCode() { st.phase = 'registering'; render(); }
-    function done(err) {
-      st.pair = null; st.phase = err ? 'failed' : 'done'; st.detail = err || ''; st.err = '';
+    function done(err, id) {
+      st.pair = null; st.phase = err ? 'failed' : 'done'; st.detail = err || ''; st.err = ''; st.added = err ? null : id || null;
       if (svc === 'alexa') alexa.list = null; else if (svc === 'calendar') { if (!err) calendarPoll(15 * 60 * 1000); } else if (!err) spotifyPoll(true);
       render();
     }
@@ -1872,7 +1863,8 @@
     sheet: true,
     key: function (t, k) {
       if (k === 'ok' && pairInfo(t.mode).st.phase === 'failed') { openPair(t.mode); return; }
-      if (k === 'back' || k === 'ok') closePair(t.mode);
+      var st = pairInfo(t.mode).st, added = t.mode === 'calendar' && st.phase === 'done' ? st.added : null;
+      if (k === 'back' || k === 'ok') { closePair(t.mode); st.added = null; if (added && FC.list().length > 1 && !(calById(added) || {}).name) openCalName(added); }
     },
     point: function (t, z) { if (z === 'act') this.key(t, 'ok'); }
   };
@@ -1912,6 +1904,9 @@
             ticked: S.c.alexaReadings.some(function (x) { return x.id === d.id && x.key === r.key; }) });
         });
       });
+    } else if (t.mode === 'calendar') {
+      var cc = calById(t.cal);
+      if (cc) rows = [{ id: 'rename', label: T('Name'), value: cc.name || T('Not set'), forward: true }, { id: 'forget', label: T('Disconnect this calendar'), value: '' }];
     } else if (t.mode === 'icons') rows = liveTargets().map(function (x) { return { id: x.id, label: targetName(x), value: (S.c.alexaNames[x.id] ? originalName(x) + ' · ' : '') + T(SWITCH_ICON_NAMES[switchIcon(x.id)]), forward: true, icon: switchIcon(x.id) }; });
     else if (t.mode === 'icon') {
       var tg = S.c.alexaSwitches.filter(function (x) { return x.id === t.target; })[0] || { id: t.target };
@@ -1966,6 +1961,7 @@
     return {
       readings: [T('Readings'), T('Choose up to {0} values to show beside the clock.', MAX_READINGS)],
       switches: [T('Switches'), T('Choose up to {0} devices or groups for the Home controls.', maxSwitches()) + (S.c.topStyle === 'bar' ? '' : ' ' + T('Up to {0} with the top Dock bar.', MAX_SWITCHES)) + ' ' + T('Right on a chosen one moves it with Up and Down.')],
+      calendar: [(calById(t.cal) || {}).name || T('Calendar {0}', ((calById(t.cal) || {}).index || 0) + 1), T('The name shows beside its events on Home, so you can tell whose they are.')],
       icons: [T('Switch names and icons'), T('Give a switch a short name for Home (for example AC) and choose its icon.')],
       icon: [t.tname || T('Switch names and icons'), T('Name and icon of this switch on Home.')],
       keys: [T('Remote buttons'), T('The colour buttons, CH +, CH − and Guide can each switch a light or group, control Spotify or open an app. CH and Guide keep their usual job until you assign them.')],
@@ -2024,6 +2020,8 @@
       saveAlexa({ alexaGroups: S.c.alexaGroups.map(function (x) { return x.id === g.id ? { id: x.id, name: x.name, members: next } : x; }) }, 'Alexa group lights');
     } else if (t.mode === 'details') openAlexaList('detail', { dev: row.id, devName: row.label });
     else if (t.mode === 'icons') openAlexaList('icon', { target: row.id, tname: row.label });
+    else if (t.mode === 'calendar' && row.id === 'rename') openCalName(t.cal);
+    else if (t.mode === 'calendar' && row.id === 'forget') { S.forgetCal = t.cal; openMessage('calendarOut'); }
     else if (t.mode === 'icon' && row.id === 'rename') openSwitchName(t.target);
     else if (t.mode === 'icon' && row.id === 'unname') { next = {}; Object.keys(S.c.alexaNames).forEach(function (k) { if (k !== t.target) next[k] = S.c.alexaNames[k]; }); saveAlexa({ alexaNames: next }, 'Switch name'); }
     else if (t.mode === 'icon') {
@@ -2350,6 +2348,7 @@
         if (f.ai === 0) t.draft = t.draft.slice(0, -1);
         else if (f.ai === 1 && t.field === 'group') { if (saveGroupName(t) === true) pop(); }
         else if (f.ai === 1 && t.field === 'swname') { if (saveSwitchName(t)) pop(); }
+        else if (f.ai === 1 && t.field === 'calname') { FC.rename(t.target, t.draft); pop(); }
         else if (f.ai === 1) { if (saveWifiDraft(t.field, t.draft)) pop(); }
         else pop();
       }
@@ -2493,6 +2492,7 @@
     if (t.field === 'pass') return t.draft ? Array(t.draft.length + 1).join('•') : T('No password');
     if (t.field === 'group') return t.draft || T('Group name');
     if (t.field === 'swname') return t.draft || T('Name on Home');
+    if (t.field === 'calname') return t.draft || T('For example: Ági');
     return t.draft || T('Network name');
   }
 
@@ -2645,27 +2645,35 @@
   }
   /* The date line: the date (when on), today's holiday and today's name days. */
   function dateLineHtml() {
-    var d = new Date(), parts = [], h = S.c.holidays === 'on' ? holidayToday(d) : '';
+    var parts = [];
     if (S.c.date === 'on') parts.push(esc(dateText()));
-    if (h) parts.push('<span class="cap-holiday">' + esc(h) + '</span>');
     return parts.length ? '<span class="cap-date">' + parts.join('<span class="cap-dot"> · </span>') + '</span>' : '';
   }
-  /* Today's name days: a small card of their own under the date line, without a label. */
-  function namedayLineHtml() {
-    var n = S.c.namedays === 'on' ? nameday(new Date()) : '';
-    return n ? '<span class="cap-pill cap-nameday" aria-label="' + esc(T('Name day: {0}', n)) + '">' + esc(n) + '</span>' : '';
-  }
   function fmtHM(t) { var d = new Date(t), h = d.getHours(), m = d.getMinutes(); if (S.c.clock === '12') h = h % 12 || 12; return h + ':' + (m < 10 ? '0' : '') + m; }
-  /* Calendar line: what is on now and next today (up to two); otherwise tomorrow's first event. */
-  function calendarLineHtml() {
-    var now = Date.now(), day = new Date(), end, list, items, tomorrow = false;
-    if (!FC || !FC.connected() || S.c.calShow === 'off') return '';
+  /* Under the date and weather, one soft glass panel holds what today brings, each on its own line:
+     the Hungarian holiday, the name days, then the calendar events (now and next today, otherwise
+     tomorrow's first). With more than one calendar each event carries its calendar's colour and name.
+     The panel is only as tall as its lines and is not drawn when there is nothing to show. */
+  var CAL_COLOURS = ['#8ab4f8', '#f4a7c3', '#9fdcb2'];
+  function calendarEvents() {
+    var now = Date.now(), day = new Date(), end, list, tomorrow = false;
+    if (!FC || !FC.connected() || S.c.calShow === 'off') return { list: [] };
     end = new Date(day.getFullYear(), day.getMonth(), day.getDate() + 1).getTime();
     list = FC.upcoming(now, end).filter(function (e) { return e.end > now || e.allDay; });
     if (!list.length) { list = FC.upcoming(end, end + 86400000).filter(function (e) { return e.start >= end || e.allDay; }); tomorrow = true; }
-    if (!list.length) return '';
-    items = list.slice(0, 2).map(function (e) { return (e.allDay ? '' : '<b>' + fmtHM(e.start) + '</b> ') + esc(e.title || T('Busy')); });
-    return '<span class="cap-pill cap-cal">' + icon('calendar') + (tomorrow ? '<span class="cap-cal-when">' + esc(T('Tomorrow')) + '</span>' : '') + items.join('<span class="cap-dot"> · </span>') + '</span>';
+    return { list: list.slice(0, 3), tomorrow: tomorrow };
+  }
+  function calName(e) { return e.calName || T('Calendar {0}', e.calIndex + 1); }
+  function dayPanelHtml() {
+    var rows = [], d = new Date(), h = S.c.holidays === 'on' ? holidayToday(d) : '', n = S.c.namedays === 'on' ? nameday(d) : '', ev = calendarEvents(), many = FC && FC.list && FC.list().length > 1;
+    if (h) rows.push('<span class="cap-row cap-holiday"><span class="cap-mark" aria-hidden="true"></span>' + esc(h) + '</span>');
+    if (n) rows.push('<span class="cap-row cap-nameday" aria-label="' + esc(T('Name day: {0}', n)) + '">' + esc(n) + '</span>');
+    if (ev.list.length && ev.tomorrow) rows.push('<span class="cap-row cap-when">' + esc(T('Tomorrow')) + '</span>');
+    ev.list.forEach(function (e, i) {
+      rows.push('<span class="cap-row cap-cal">' + (many ? '<span class="cap-cal-dot" style="background:' + CAL_COLOURS[e.calIndex % CAL_COLOURS.length] + '"></span><span class="cap-cal-who">' + esc(calName(e)) + '</span>' : (i === 0 ? icon('calendar') : '<span class="cap-cal-gap"></span>'))
+        + (e.allDay ? '' : '<b>' + fmtHM(e.start) + '</b>') + '<span class="cap-cal-title">' + esc(e.title || T('Busy')) + '</span></span>');
+    });
+    return rows.length ? '<span class="cap-panel">' + rows.join('') + '</span>' : '';
   }
   function calendarPoll(when) {
     clearTimeout(cal.timer); cal.timer = null;
@@ -2688,7 +2696,9 @@
     if (!FC) return sections;
     if (!FC.connected()) sections.push({ id: 'calendar', title: T('Calendar'), items: [{ action: 'calendar.connect', label: T('Connect a calendar'), description: T('Google or Outlook, from your phone') }] });
     else sections.push({ id: 'calShow', title: T('Calendar on Home'), horizontal: true, items: options('calShow', PREF_VALUES.calShow) },
-      { id: 'calendar', title: '', items: [{ action: 'calendar.signout', label: T('Disconnect calendar'), description: cal.err ? T('Couldn’t read the calendar ({0}).', cal.err) : FC.loadedAt() ? T('Read at {0}', fmtHM(FC.loadedAt())) : T('Reading…') }] });
+      { id: 'calendars', title: T('Calendars'), items: FC.list().map(function (c) { return { action: 'calendar.item.' + c.id, label: c.name || T('Calendar {0}', c.index + 1), description: c.name ? '' : T('Give it a name') }; })
+        .concat(FC.list().length < FC.max ? [{ action: 'calendar.connect', label: T('Add another calendar') }] : []),
+        reason: cal.err ? T('Couldn’t read the calendar ({0}).', cal.err) : FC.loadedAt() ? T('Read at {0}', fmtHM(FC.loadedAt())) : T('Reading…') });
     return sections;
   }
   function dateInfoSummary() {
@@ -2696,7 +2706,13 @@
     if (S.c.holidays === 'on') on.push(T('Holidays')); if (S.c.namedays === 'on') on.push(T('Name days')); if (FC && FC.connected()) on.push(T('Calendar'));
     return on.length ? on.join(', ') : T('Off');
   }
-  function calendarForget() { FC.forget(); clearTimeout(cal.timer); cal.err = ''; render(); }
+  function calendarForget() { FC.forget(S.forgetCal || undefined); S.forgetCal = null; if (!FC.connected()) clearTimeout(cal.timer); cal.err = ''; if (top().id === 'alexalist' && top().mode === 'calendar') pop(); render(); }
+  function calById(id) { return FC ? FC.list().filter(function (c) { return c.id === id; })[0] : null; }
+  function openCalName(id) {
+    var c = calById(id);
+    if (!c) return;
+    push({ id: 'wifitype', field: 'calname', target: id, draft: c.name || '', chars: NAME_CHARS, max: 16, f: { zone: 'char', ci: 0, ai: 0 } });
+  }
   /* ---------- Clock styles: Classic (the font), Thin and LED (drawn as SVG), Flip (cards) ---------- */
   /* Thin numerals: single-stroke geometric digits in a 60 x 100 box, drawn with currentColor. */
   var THIN = {
@@ -2773,12 +2789,11 @@
   }
   function renderCaption(t, hs) {
     var ch = '';
-    var weatherHtml = weatherCaptionHtml() + readingsCaptionHtml(), date = dateLineHtml(), calLine = calendarLineHtml(), html;
+    var weatherHtml = weatherCaptionHtml() + readingsCaptionHtml(), date = dateLineHtml(), html;
     // Centred: date and weather share one smaller line under the clock. Corner: the date is a quiet second line.
     if (S.c.clockPos !== 'corner') html = '<span class="caption-head"><span class="clock">' + ch + '</span>' + (date || weatherHtml ? '<span class="caption-sub">' + date + weatherHtml + '</span>' : '') + '</span>';
     else html = '<span class="caption-head"><span class="clock">' + ch + '</span>' + weatherHtml + '</span>' + date;
-    var pills = namedayLineHtml() + calLine;
-    if (pills) html += '<span class="cap-pills">' + pills + '</span>';
+    html += dayPanelHtml();
     /* With the clock in the centre, the song sits alone in the top-left corner. */
     var musicInCorner = musicOnTop();
     if (musicInCorner) setHTML(musicEl, musicHtml(hs.zone === 'music'));
@@ -3293,13 +3308,11 @@
           + '<span class="card-visual">' + visual + '</span><span class="card-copy"><span class="card-name">' + esc(r.label) + '</span><span class="card-value">' + esc(r.value) + '</span></span>'
           + (r.direct ? '<span class="card-go">' + icon('right') + '</span>' : '') + '</button>';
       });
-      html = [0, 1].map(function (row) {
-        return '<div class="settings-group-row">' + settingsGroups().filter(function (g) { return g.row === row; }).map(function (g) {
-          return '<section class="settings-group group-' + g.id + '"><h3 class="settings-group-head">' + esc(T(g.label)) + '</h3><div class="settings-group-cards">' + g.ids.map(function (id) { return byId[id]; }).join('') + '</div></section>';
-        }).join('') + '</div>';
+      html = settingsGroups().map(function (g) {
+        return '<section class="settings-group group-' + g.id + '"><h3 class="settings-group-head">' + esc(T(g.label)) + '</h3><div class="settings-group-cards">' + g.ids.map(function (id) { return byId[id]; }).join('') + '</div></section>';
       }).join('');
       setHTML(el.list, html);
-      el.list.className = 'settings-grid is-grouped';
+      el.list.className = 'settings-grid is-columns';
       setHTML(el.hint, T(t.f.id === 'samsung' ? 'Open Samsung’s Home screen' : t.f.id === 'lang' ? 'Switch the language' : 'Open selected group'));
     },
     message: function (t, el) {
@@ -3384,7 +3397,7 @@
     },
     wifitype: function (t, el) {
       var f = t.f, chars = '', acts = [T('Delete last'), T('Save'), T('Cancel')], i;
-      setHTML(el.title, T(t.field === 'ssid' ? 'Network name' : t.field === 'group' ? 'Group name' : t.field === 'swname' ? 'Name on Home' : 'Password'));
+      setHTML(el.title, T(t.field === 'ssid' ? 'Network name' : t.field === 'group' ? 'Group name' : t.field === 'swname' ? 'Name on Home' : t.field === 'calname' ? 'Calendar name' : 'Password'));
       setHTML(el.value, esc(wifiDraftDisplay(t)));
       var set = t.chars || WIFI_CHARS;
       for (i = 0; i < set.length; i++) chars += '<button type="button" tabindex="-1" class="btn' + (f.zone === 'char' && f.ci === i ? ' is-focus' : '') + '" data-z="char" data-i="' + i + '" data-action="wifi.char.' + i + '"' + (set.charAt(i) === ' ' ? ' aria-label="' + T('Space') + '"' : '') + '>' + (set.charAt(i) === ' ' ? '␣' : esc(set.charAt(i))) + '</button>';

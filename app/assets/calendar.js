@@ -8,9 +8,14 @@
   'use strict';
   var P = window.FramePKCE, STORE = 'cleanframe.calendar.v1';
   if (!P) return;
-  var state = (function () { try { return JSON.parse(localStorage.getItem(STORE) || 'null'); } catch (e) { return null; } }());
-  if (!state || typeof state.url !== 'string' || !/^https:\/\//.test(state.url)) state = null;
-  function persist() { try { if (state) localStorage.setItem(STORE, JSON.stringify(state)); else localStorage.removeItem(STORE); return true; } catch (e) { return false; } }
+  /* Up to MAX calendars, each { id, url, name }; the 0.22 single { url } is read as the first. */
+  var MAX = 3, state = (function () { try { return JSON.parse(localStorage.getItem(STORE) || 'null'); } catch (e) { return null; } }());
+  function okUrl(u) { return typeof u === 'string' && /^https:\/\//.test(u); }
+  var cals = !state ? [] : Array.isArray(state.cals) ? state.cals : okUrl(state.url) ? [{ id: 'c1', url: state.url, name: '' }] : [];
+  cals = cals.filter(function (c) { return c && okUrl(c.url) && /^c[0-9a-z]{1,12}$/.test(c.id); }).slice(0, MAX)
+    .map(function (c) { return { id: c.id, url: c.url, name: typeof c.name === 'string' ? c.name.slice(0, 16) : '' }; });
+  function persist() { try { if (cals.length) localStorage.setItem(STORE, JSON.stringify({ cals: cals })); else localStorage.removeItem(STORE); return true; } catch (e) { return false; } }
+  function find(id) { for (var i = 0; i < cals.length; i++) if (cals[i].id === id) return cals[i]; return null; }
 
   /* ---------- decrypting what the phone sent ---------- */
   function fromB64url(s) {
@@ -44,22 +49,35 @@
       var url = cleanUrl(decrypt(key, msg));
       if (!url) return false;
       onCode();
-      state = { url: url }; persist();
-      fetchIcs(function (err) { done(err); });
+      var same = cals.filter(function (c) { return c.url === url; })[0], id = same ? same.id : 'c' + Date.now().toString(36);
+      if (!same) { if (cals.length >= MAX) cals.shift(); cals.push({ id: id, url: url, name: '' }); }
+      persist();
+      fetchOne(find(id), function (err) { done(err, id); });
       return true;
     });
   }
-  function forget() { state = null; cache = null; persist(); }
+  function forget(id) {
+    cals = id ? cals.filter(function (c) { return c.id !== id; }) : [];
+    if (id) delete caches[id]; else caches = {};
+    persist();
+  }
+  function rename(id, name) { var c = find(id); if (!c) return false; c.name = String(name || '').replace(/\s+/g, ' ').trim().slice(0, 16); return persist(); }
 
   /* ---------- ICS ---------- */
-  var cache = null;
-  function fetchIcs(done) {
-    if (!state) { done('signed out'); return; }
-    P.request({ url: state.url, timeout: 20000 }, function (r) {
+  var caches = {};
+  function fetchOne(c, done) {
+    if (!c) { done('signed out'); return; }
+    P.request({ url: c.url, timeout: 20000 }, function (r) {
       if (r.status !== 200 || !/BEGIN:VCALENDAR/.test(r.text || '')) { done(r.status ? 'HTTP ' + r.status : 'offline'); return; }
-      cache = parse(r.text); cache.at = Date.now();
+      caches[c.id] = parse(r.text); caches[c.id].at = Date.now();
       done(null);
     });
+  }
+  /* Reads every calendar; done(err) reports the last failure, if any. */
+  function fetchIcs(done) {
+    var left = cals.length, last = null;
+    if (!left) { done('signed out'); return; }
+    cals.slice().forEach(function (c) { fetchOne(c, function (err) { if (err) last = err; if (!--left) done(last); }); });
   }
   function unfold(text) { return text.replace(/\r\n[ \t]/g, '').replace(/\n[ \t]/g, '').split(/\r?\n/); }
   function unescapeText(v) { return v.replace(/\\n/gi, ' ').replace(/\\([,;\\])/g, '$1'); }
@@ -157,8 +175,12 @@
   }
   /* Events overlapping [from, to), sorted: { start, end, allDay, title }. */
   function upcoming(from, to) {
+    var list = [];
+    cals.forEach(function (c, n) { if (caches[c.id]) list = list.concat(upcomingIn(caches[c.id], from, to).map(function (e) { e.cal = c.id; e.calIndex = n; e.calName = c.name || ''; return e; })); });
+    return list.sort(function (a, b) { return a.allDay !== b.allDay ? (a.allDay ? -1 : 1) : a.start - b.start; });
+  }
+  function upcomingIn(cache, from, to) {
     var list = [], moved = {};
-    if (!cache) return list;
     cache.events.forEach(function (ev) { if (ev.recurrence && ev.uid) moved[ev.uid + '|' + ev.recurrence.t] = true; });
     cache.events.forEach(function (ev) {
       var len = ev.end ? ev.end.t - ev.start.t : ev.duration ? durationMs(ev.duration) : ev.start.allDay ? 86400000 : 0;
@@ -171,9 +193,11 @@
   }
 
   window.FrameCalendar = {
-    connected: function () { return !!state; },
-    pair: pair, forget: forget, refresh: fetchIcs, upcoming: upcoming,
-    loadedAt: function () { return cache ? cache.at : 0; },
-    _parse: function (text) { cache = parse(text); cache.at = Date.now(); }
+    connected: function () { return cals.length > 0; },
+    list: function () { return cals.map(function (c, n) { return { id: c.id, name: c.name, index: n }; }); },
+    max: MAX,
+    pair: pair, forget: forget, rename: rename, refresh: fetchIcs, upcoming: upcoming,
+    loadedAt: function () { var t = 0; Object.keys(caches).forEach(function (k) { t = Math.max(t, caches[k].at || 0); }); return t; },
+    _parse: function (text) { var id = cals[0] ? cals[0].id : 'c1'; caches[id] = parse(text); caches[id].at = Date.now(); }
   };
 }());

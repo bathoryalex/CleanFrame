@@ -1126,3 +1126,38 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000}
 .settings-grid.is-grouped .settings-card{flex:none;width:296px;height:262px}
 .settings-grid.is-grouped .card-name{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:30px;line-height:38px}
 .settings-grid.is-grouped .card-lang .card-type{font-size:30px;letter-spacing:.5px}
+/* Day panel (0.33): holiday, name days and calendar events in one soft glass panel under the date. */
+.cap-panel{display:flex;flex-direction:column;align-items:flex-start;gap:6px;align-self:flex-start;margin-top:12px;padding:12px 22px 13px;border-radius:20px;max-width:900px;color:#f6f1e7;background:linear-gradient(180deg,rgba(14,18,20,.44),rgba(14,18,20,.26));box-shadow:inset 0 1px 0 rgba(255,255,255,.10),inset 0 0 0 1px rgba(255,255,255,.07),0 10px 30px rgba(4,8,10,.14);text-shadow:0 1px 2px rgba(0,0,0,.18)}
+.clock-big .cap-panel{align-self:center;align-items:center;margin:16px auto 0}
+.cap-row{display:flex;align-items:center;gap:10px;max-width:100%;font-size:26px;line-height:34px;font-weight:500;letter-spacing:-.2px;white-space:nowrap}
+.cap-row.cap-holiday{color:#f2d8ad;font-weight:600}
+.cap-mark{flex:none;width:10px;height:10px;border-radius:50%;background:currentColor;box-shadow:0 0 10px rgba(242,216,173,.6)}
+.cap-row.cap-nameday{font-size:24px;line-height:30px;opacity:.86}
+.cap-row.cap-when{font-size:20px;line-height:26px;font-weight:600;letter-spacing:1px;text-transform:uppercase;opacity:.6;margin-top:2px}
+.cap-row.cap-cal .ico{flex:none;width:24px;height:24px;stroke-width:1.8;opacity:.85}
+.cap-cal-gap{flex:none;width:24px}
+.cap-row.cap-cal b{font-weight:600;font-variant-numeric:tabular-nums}
+.cap-cal-title{min-width:0;overflow:hidden;text-overflow:ellipsis}
+.cap-cal-dot{flex:none;width:12px;height:12px;border-radius:50%;box-shadow:0 0 0 2px rgba(255,255,255,.18)}
+.cap-cal-who{flex:none;font-size:20px;line-height:26px;font-weight:600;padding:1px 9px;border-radius:9px;background:rgba(255,255,255,.10);opacity:.9}
+.clock-big .cap-row{font-size:28px;line-height:36px}
+.clock-big .cap-row.cap-nameday{font-size:26px;line-height:32px}
+.stage.bg-dark .cap-panel{background:linear-gradient(180deg,rgba(255,255,255,.07),rgba(255,255,255,.035))}
+/* Settings overview (0.33): three equal columns that fill the width, each a framed group of three
+   equal wide cards (picture or icon on the left, name and value on the right). */
+.settings-grid.is-columns{position:absolute;left:140px;top:176px;width:1640px;display:grid;grid-template-columns:repeat(3,1fr);gap:28px;align-items:stretch}
+.settings-grid.is-columns .settings-group{display:flex;flex-direction:column;padding:16px 18px 18px}
+.settings-grid.is-columns .settings-group-cards{display:flex;flex-direction:column;gap:16px;flex:1}
+.settings-grid.is-columns .settings-card{flex:none;width:auto;height:208px;flex-direction:row;align-items:center;justify-content:flex-start;gap:24px;padding:22px 26px;border-radius:24px}
+.settings-grid.is-columns .card-visual{flex:none;width:96px;display:flex;justify-content:center}
+.settings-grid.is-columns .card-chip{width:88px;height:88px;border-radius:24px}
+.settings-grid.is-columns .card-chip .ico{width:44px;height:44px}
+.settings-grid.is-columns .card-type{font-size:40px}
+.settings-grid.is-columns .card-photo{width:128px;height:88px;border-radius:16px}
+.settings-grid.is-columns .card-background .card-visual{width:128px}
+.settings-grid.is-columns .card-copy{flex:1;min-width:0}
+.settings-grid.is-columns .card-name{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:32px;line-height:40px}
+.settings-grid.is-columns .card-value{font-size:24px;line-height:30px}
+.settings-grid.is-columns .card-go{top:50%;right:22px;margin-top:-17px}
+.settings-grid.is-columns .settings-card.is-focus{transform:scale(1.03)}
+.settings-grid.is-columns{grid-auto-rows:auto}

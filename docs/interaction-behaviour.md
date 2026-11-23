@@ -216,3 +216,9 @@ The Light background is removed with its styles; Photo and Dark remain.
 - **Date and time** replaces Language and clock (time format, clock position, seconds, date, weather, Date details) and sits under Connections and system.
 - **Language** is a tile of its own: it shows EN or HU, and OK switches between English and Magyar at once, without a page.
 
+## 0.33
+
+- **Settings overview**: three equal columns that fill the width, each a framed group of three equal wide cards (picture or icon left, name and value right): Personalization (Background, Layout, Style), Home and time (Apps on Home, Wi‑Fi QR, Date and time), System (Language, Connections, Samsung Home). Up/Down move within a column; Left/Right go to the same place in the next column.
+- **Day panel** under the date and weather: one glass panel with a soft top-to-bottom gradient, as tall as its lines: the Hungarian holiday (warm, with a dot), the name days, a TOMORROW heading when the events are tomorrow's, then up to three events. It is not drawn when there is nothing to show. The holiday is no longer on the date line.
+- **More calendars**: up to three (stored as `{ cals: [{ id, url, name }] }`; a 0.22 single address is read as the first). Date details → Calendars lists them; OK on one opens Name (on-screen keyboard, up to 16 characters) and Disconnect this calendar; **Add another calendar** pairs one more from a phone, and when it is the second or third the name keyboard opens after Done. With more than one calendar each event row starts with a coloured dot (blue, pink, green) and the calendar's name; unnamed ones read "Calendar 2" and so on.
+
