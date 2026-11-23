@@ -1067,7 +1067,7 @@ try {
     await current.waitForFunction(() => document.querySelector('.cap-holiday'));
     const line = await current.evaluate(() => document.querySelector('.cap-date').textContent);
     const nd = await current.evaluate(() => { const d = new Date(); return (window.FrameNamedaysHU[d.getMonth()][d.getDate() - 1] || [])[0] || ''; });
-    const panel = await current.evaluate(() => [...document.querySelectorAll('.cap-panel > .cap-row')].map(e => e.className.replace('cap-row ', '') + ':' + e.textContent));
+    const panel = await current.evaluate(() => [...document.querySelectorAll('.cap-panel .cap-row')].map(e => e.className.replace('cap-row ', '') + ':' + e.textContent));
     check('One panel under the date: the holiday, then the name days without a label, then the calendar', /^cap-holiday:.*Próbaünnep/.test(panel[0]) && (!nd || panel.some(r => /^cap-nameday:/.test(r) && r.includes(nd))) && /^cap-cal:/.test(panel[panel.length - 1]) && !/Name day|Névnap/.test(panel.join()) && !/Próbaünnep/.test(line), { line, panel });
   });
   await run('Two calendars, each named and marked on Home', async () => {
@@ -1077,7 +1077,7 @@ try {
     check('A 0.22 calendar carries over as the first one', await current.evaluate(() => FrameCalendar.list().length === 1 && !document.querySelector('.cap-cal-who')));
     await current.evaluate(() => localStorage.setItem('cleanframe.calendar.v1', JSON.stringify({ cals: [{ id: 'c1', url: 'https://calendar.google.com/calendar/ical/a/private-1/basic.ics', name: '' }, { id: 'c2', url: 'https://calendar.google.com/calendar/ical/b/private-2/basic.ics', name: 'Ági' }] })));
     await current.reload(); await ready(); await current.waitForFunction(() => document.querySelectorAll('.cap-cal').length === 2);
-    const rows = await current.evaluate(() => [...document.querySelectorAll('.cap-cal')].map(e => [e.querySelector('.cap-cal-who') && e.querySelector('.cap-cal-who').textContent, e.querySelector('.cap-cal-dot') && getComputedStyle(e.querySelector('.cap-cal-dot')).backgroundColor]));
+    const rows = await current.evaluate(() => [...document.querySelectorAll('.cap-cal')].map(e => [e.querySelector('.cap-cal-who') && e.querySelector('.cap-cal-who').textContent, e.querySelector('.cap-cal-who') && getComputedStyle(e.querySelector('.cap-cal-who')).backgroundColor]));
     check('With two calendars each event shows its calendar by name and colour', rows.length === 2 && rows.some(r => r[0] === 'Ági') && rows.some(r => /Calendar 1|1\. naptár/.test(r[0])) && rows[0][1] !== rows[1][1], rows);
     await group('region'); await act('region.dateinfo');
     check('Date details lists the calendars and offers another', await current.evaluate(() => !!document.querySelector('[data-action="calendar.item.c1"]') && !!document.querySelector('[data-action="calendar.item.c2"]') && !!document.querySelector('[data-action="calendar.connect"]')));
@@ -1091,6 +1091,9 @@ try {
     check('Home shows both names', await current.evaluate(() => [...document.querySelectorAll('.cap-cal-who')].map(e => e.textContent).sort().join() === 'Alex,Ági'));
     const size = await current.evaluate(() => { const t = document.querySelector('.cap-cal-title'), w = document.querySelector('.cap-cal-who'); return [parseFloat(getComputedStyle(t).fontSize), parseFloat(getComputedStyle(w).fontSize)]; });
     check('An event is written as large as its calendar\'s name', size[0] === size[1], size);
+    const layout = await current.evaluate(() => { const p = document.querySelector('.cap-panel'), r = e => e.getBoundingClientRect(), whos = [...p.querySelectorAll('.cap-cal-who')], times = [...p.querySelectorAll('.cap-cal-time')], titles = [...p.querySelectorAll('.cap-cal-title')];
+      return { heads: [...p.querySelectorAll('.cap-when')].map(e => e.textContent), timeLefts: times.map(e => Math.round(r(e).left)), titleLefts: titles.map(e => Math.round(r(e).left)), whoLeft: whos.map(e => Math.round(r(e).left)), whoWidth: whos.map(e => Math.round(r(e).width)), whoInk: whos.length ? getComputedStyle(whos[0]).color : '', sepBetween: !!p.querySelector('.cap-day + .cap-sep + .cap-events') || !p.querySelector('.cap-day') }; });
+    check('Events sit under a TODAY heading with names, times and titles in aligned columns', layout.heads[0] === 'Today' && new Set(layout.timeLefts).size === 1 && new Set(layout.titleLefts).size === 1 && new Set(layout.whoLeft).size === 1 && new Set(layout.whoWidth).size === 1 && layout.whoInk !== 'rgb(17, 22, 26)' && layout.sepBetween, layout);
     // A colour of one's own for a calendar's dot.
     await group('region'); await act('region.dateinfo'); await act('calendar.item.c2');
     const swatches = await current.evaluate(() => [...document.querySelectorAll('.alexa-row .cal-swatch')].length);
@@ -1102,7 +1105,7 @@ try {
     await act(yellow);
     check('Choosing a colour keeps it with the calendar', await current.evaluate(() => FrameCalendar.list()[1].colour === 'yellow' && JSON.parse(localStorage.getItem('cleanframe.calendar.v1')).cals[1].colour === 'yellow'));
     await scene('home');
-    check('Home draws the calendar\'s dot in its colour', await current.evaluate(() => [...document.querySelectorAll('.cap-cal')].some(e => /Ági/.test(e.textContent) && getComputedStyle(e.querySelector('.cap-cal-dot')).backgroundColor === 'rgb(255, 213, 138)')));
+    check('Home draws the calendar\'s dot in its colour', await current.evaluate(() => [...document.querySelectorAll('.cap-cal')].some(e => /Ági/.test(e.textContent) && getComputedStyle(e.querySelector('.cap-cal-who')).backgroundColor === 'rgba(233, 211, 156, 0.36)')));
     // Tomorrow's events: from 18:00 under today's, otherwise only when today has nothing left.
     const evening = await current.evaluate(() => { const d = new Date(), at = h => new Date(d.getFullYear(), d.getMonth(), d.getDate(), h, 0).getTime(), ev = {};
       const real = FrameCalendar.upcoming, end = new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1).getTime();

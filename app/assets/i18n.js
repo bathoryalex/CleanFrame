@@ -269,6 +269,8 @@ window.CleanFrameI18n = {
     'Name day: {0}': 'Névnap: {0}',
     'Busy': 'Elfoglalt',
     'Tomorrow': 'Holnap',
+    'Today': 'Ma',
+    'All day': 'Egész nap',
     'Colour on Home': 'Szín a Kezdőlapon',
     'Pink': 'Rózsaszín', 'Orange': 'Narancs', 'Purple': 'Lila', 'Teal': 'Türkiz', 'White': 'Fehér',
     'Hungarian holidays': 'Magyar ünnepnapok',

@@ -329,3 +329,13 @@ Sentence choice for the song fact is now scored instead of taking the first matc
 
 The TOMORROW heading is a small label again: 15 px with spaced capitals and 8 px more room above it. With the centred clock it had taken the larger 28 px row size.
 
+## 0.40
+
+**Day panel layout.** Same glass background, new order and separation, left-aligned under the corner and the centred clock alike:
+1. The holiday (26 px, bold, warm yellow; the dot before it is gone) and the name days (24 px, semibold).
+2. A thin line.
+3. TODAY (small spaced capitals) and today's events.
+4. A thin line, TOMORROW and tomorrow's events (from 18:00, or when today has nothing left).
+
+Events are one grid, so names, times and titles line up in columns across both days. With several calendars each event starts with its calendar's name on a chip: all chips as wide as the widest, the name centred in the panel's light text, the chip tinted with the calendar's colour (36 % over the glass, a 55 % edge); the separate dot is gone. The nine calendar colours are soft pastels. All-day events say "All day" in the time column. Sections with nothing in them, and the lines around them, are left out. The single-calendar icon is gone; the headings say what the rows are.
+

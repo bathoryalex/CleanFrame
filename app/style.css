@@ -1193,19 +1193,6 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000}
    the panel and no mask or live blur is needed. */
 .cap-panel{display:flex;flex-direction:column;align-items:flex-start;gap:6px;align-self:flex-start;margin-top:12px;padding:12px 22px 13px;border-radius:18px 18px 0 0;max-width:900px;color:#f6f1e7;background:rgba(14,18,20,.34);box-shadow:0 48px 24px 24px rgba(14,18,20,.34);text-shadow:0 1px 2px rgba(0,0,0,.18)}
 .clock-big .cap-panel{align-self:center;align-items:center;margin:16px auto 0}
-.cap-row{display:flex;align-items:center;gap:10px;max-width:100%;font-size:26px;line-height:34px;font-weight:500;letter-spacing:-.2px;white-space:nowrap}
-.cap-row.cap-holiday{color:#f2d8ad;font-weight:600}
-.cap-mark{flex:none;width:10px;height:10px;border-radius:50%;background:currentColor;box-shadow:0 0 10px rgba(242,216,173,.6)}
-.cap-row.cap-nameday{font-size:24px;line-height:30px;opacity:.86}
-.cap-row.cap-when{font-size:20px;line-height:26px;font-weight:600;letter-spacing:1px;text-transform:uppercase;opacity:.6;margin-top:2px}
-.cap-row.cap-cal .ico{flex:none;width:24px;height:24px;stroke-width:1.8;opacity:.85}
-.cap-cal-gap{flex:none;width:24px}
-.cap-row.cap-cal b{font-weight:600;font-variant-numeric:tabular-nums}
-.cap-cal-title{min-width:0;overflow:hidden;text-overflow:ellipsis}
-.cap-cal-dot{flex:none;width:12px;height:12px;border-radius:50%;box-shadow:0 0 0 2px rgba(255,255,255,.18)}
-.cap-cal-who{flex:none;font-size:20px;line-height:26px;font-weight:600;padding:1px 9px;border-radius:9px;background:rgba(255,255,255,.10);opacity:.9}
-.clock-big .cap-row{font-size:28px;line-height:36px}
-.clock-big .cap-row.cap-nameday{font-size:26px;line-height:32px}
 .stage.bg-dark .cap-panel{background:rgba(255,255,255,.05);box-shadow:0 48px 24px 24px rgba(255,255,255,.05)}
 /* Settings overview (0.33): three equal columns that fill the width, each a framed group of three
    equal wide cards (picture or icon on the left, name and value on the right). */
@@ -1225,14 +1212,24 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000}
 .settings-grid.is-columns .card-go{top:50%;right:22px;margin-top:-17px}
 .settings-grid.is-columns .settings-card.is-focus{transform:scale(1.03)}
 .settings-grid.is-columns{grid-auto-rows:auto}
-/* 0.39: calendar events are as large as the calendar's name chip, smaller than the name days above them. */
-.cap-row.cap-cal,.clock-big .cap-row.cap-cal{font-size:20px;line-height:28px;font-weight:500}
-.cap-row.cap-cal .ico{width:20px;height:20px}
-.cap-cal-gap{width:20px}
-.cap-row.cap-cal b{font-weight:600}
 /* Colour choices for a calendar's dot (Date details → a calendar). */
 .cal-swatch{display:block;width:26px;height:26px;border-radius:50%;box-shadow:0 0 0 2px rgba(255,255,255,.25)}
+/* Day panel (0.40): sections split by thin lines, everything left-aligned (also under the centred clock). */
+.cap-panel,.clock-big .cap-panel{align-items:stretch;gap:0;padding:16px 26px 16px;min-width:340px;text-align:left}
+.cap-day{display:flex;flex-direction:column;gap:2px}
+.cap-panel .cap-row{display:flex;align-items:center;max-width:100%;white-space:nowrap;letter-spacing:-.2px}
+.cap-panel .cap-holiday{font-size:26px;line-height:34px;font-weight:700;color:#f6c766}
+.cap-panel .cap-nameday{font-size:24px;line-height:32px;font-weight:600;opacity:.95}
+.cap-sep{display:block;height:1px;margin:12px 0;background:rgba(255,255,255,.2)}
+.cap-events{display:grid;grid-template-columns:auto minmax(0,1fr);column-gap:16px;row-gap:8px;align-items:center}
+.cap-events.has-who{grid-template-columns:auto auto minmax(0,1fr)}
+.cap-events .cap-sep{grid-column:1/-1;margin:6px 0 4px}
+/* Each event is a row of the grid: the row itself only groups its cells. */
+.cap-panel .cap-cal{display:contents}
+.cap-panel .cap-when{grid-column:1/-1;font-size:15px;line-height:20px;font-weight:700;letter-spacing:1.4px;text-transform:uppercase;opacity:.62}
+/* Every chip as wide as the widest (the grid column), the name centred, in the panel's own light text. */
+.cap-cal-who{justify-self:stretch;text-align:center;font-size:20px;line-height:28px;font-weight:600;padding:0 12px;border-radius:14px;color:#f6f1e7}
+.cap-cal-time{font-size:20px;line-height:28px;font-weight:600;font-variant-numeric:tabular-nums}
+.cap-cal-time.is-allday{font-size:16px;font-weight:500;opacity:.7}
+.cap-cal-title{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:20px;line-height:28px;font-weight:500}
 
-/* The Tomorrow heading: a small label (the centred clock's larger rows no longer apply to it), with a
-   little more room above it than between the events. */
-.cap-row.cap-when,.clock-big .cap-row.cap-when{font-size:15px;line-height:20px;letter-spacing:1.2px;margin-top:8px}

@@ -4,7 +4,7 @@
 
   /* ---------- Bundled data ---------- */
   var ASSETS = 'assets/', ICONS = ASSETS + 'icons/', WP = ASSETS + 'wallpapers/';
-  var APP_VERSION = '0.39.1';
+  var APP_VERSION = '0.40.0';
   var CAP = 9, SCRIM_Y = 560, DOCK_BOTTOM = 1032; // the Dock sits 48 px above the bottom edge; names and actions go above it
   var DOCK_MODES = { both: { tw: 288, th: 200, pitch: 296 }, text: { tw: 288, th: 104, pitch: 296 }, icons: { tw: 200, th: 156, pitch: 206 } }; // icons-only tiles leave room under the icon for the focused app's name
   var GRID_ROW = 240, GRID_COL = 344, COLS = 5;
@@ -2940,8 +2940,10 @@
      The panel is only as tall as its lines and is not drawn when there is nothing to show. */
   /* Dot colours a calendar can have (Date details → the calendar → Colour); by default the first
      calendar is blue, the second pink, the third green. */
-  var CAL_PALETTE = [['blue', '#8ab4f8', 'Blue'], ['pink', '#f4a7c3', 'Pink'], ['green', '#9fdcb2', 'Green'], ['yellow', '#ffd58a', 'Yellow'],
-    ['orange', '#f6ae7b', 'Orange'], ['red', '#f28b82', 'Red'], ['purple', '#c9a7f5', 'Purple'], ['teal', '#7fd6d6', 'Teal'], ['white', '#f6f1e7', 'White']];
+  /* Soft pastels: on Home they only tint the name chip (36 % over the glass), with the panel's light text on it. */
+  var CAL_PALETTE = [['blue', '#9db8e8', 'Blue'], ['pink', '#e7b3c8', 'Pink'], ['green', '#a9d3b8', 'Green'], ['yellow', '#e9d39c', 'Yellow'],
+    ['orange', '#e8b896', 'Orange'], ['red', '#e3a3a0', 'Red'], ['purple', '#c4b2e6', 'Purple'], ['teal', '#9fd0cf', 'Teal'], ['white', '#e9e4da', 'White']];
+  function calTint(hex, alpha) { var n = parseInt(hex.slice(1), 16); return 'rgba(' + (n >> 16 & 255) + ', ' + (n >> 8 & 255) + ', ' + (n & 255) + ', ' + alpha + ')'; }
   function calColour(name, index) {
     var i, hit = null;
     for (i = 0; i < CAL_PALETTE.length; i++) if (CAL_PALETTE[i][0] === name) hit = CAL_PALETTE[i];
@@ -2968,20 +2970,26 @@
   }
   QA.calendarEvents = function (at) { var ev = calendarEvents(at); return { today: ev.today.map(function (e) { return e.title; }), tomorrow: ev.tomorrow.map(function (e) { return e.title; }) }; };
   function calName(e) { return e.calName || T('Calendar {0}', e.calIndex + 1); }
+  /* The day panel, in sections split by thin lines: the holiday (warm) and the name days; then TODAY
+     and, when there are any, TOMORROW, each with its events. Events sit in one grid so the calendar
+     names, times and titles line up in columns; with several calendars each event starts with its
+     calendar's name on a chip in the calendar's colour. All-day events say so in the time column.
+     Sections with nothing in them are left out. */
   function dayPanelHtml() {
-    var rows = [], d = new Date(), h = S.c.holidays === 'on' ? holidayToday(d) : '', n = S.c.namedays === 'on' ? nameday(d) : '', ev = calendarEvents(), many = FC && FC.list && FC.list().length > 1;
-    if (h) rows.push('<span class="cap-row cap-holiday"><span class="cap-mark" aria-hidden="true"></span>' + esc(h) + '</span>');
-    if (n) rows.push('<span class="cap-row cap-nameday" aria-label="' + esc(T('Name day: {0}', n)) + '">' + esc(n) + '</span>');
-    var first = true;
+    var d = new Date(), h = S.c.holidays === 'on' ? holidayToday(d) : '', n = S.c.namedays === 'on' ? nameday(d) : '', ev = calendarEvents(), many = FC && FC.list && FC.list().length > 1;
+    var top = '', cells = '';
+    if (h) top += '<span class="cap-row cap-holiday">' + esc(h) + '</span>';
+    if (n) top += '<span class="cap-row cap-nameday" aria-label="' + esc(T('Name day: {0}', n)) + '">' + esc(n) + '</span>';
     function eventRow(e) {
-      rows.push('<span class="cap-row cap-cal">' + (many ? '<span class="cap-cal-dot" style="background:' + calColour(e.calColour, e.calIndex) + '"></span><span class="cap-cal-who">' + esc(calName(e)) + '</span>' : (first ? icon('calendar') : '<span class="cap-cal-gap"></span>'))
-        + (e.allDay ? '' : '<b>' + fmtHM(e.start) + '</b>') + '<span class="cap-cal-title">' + esc(e.title || T('Busy')) + '</span></span>');
-      first = false;
+      return '<span class="cap-row cap-cal">' + (many ? '<span class="cap-cal-who" style="background:' + calTint(calColour(e.calColour, e.calIndex), 0.36) + ';box-shadow:inset 0 0 0 1px ' + calTint(calColour(e.calColour, e.calIndex), 0.55) + '">' + esc(calName(e)) + '</span>' : '')
+        + (e.allDay ? '<span class="cap-cal-time is-allday">' + esc(T('All day')) + '</span>' : '<b class="cap-cal-time">' + fmtHM(e.start) + '</b>') + '<span class="cap-cal-title">' + esc(e.title || T('Busy')) + '</span></span>';
     }
-    ev.today.forEach(eventRow);
-    if (ev.tomorrow.length) rows.push('<span class="cap-row cap-when">' + esc(T('Tomorrow')) + '</span>');
-    ev.tomorrow.forEach(eventRow);
-    return rows.length ? '<span class="cap-panel">' + rows.join('') + '</span>' : '';
+    function section(label, list) { return list.length ? (cells ? '<span class="cap-sep" aria-hidden="true"></span>' : '') + '<span class="cap-row cap-when">' + esc(T(label)) + '</span>' + list.map(eventRow).join('') : ''; }
+    cells += section('Today', ev.today);
+    cells += section('Tomorrow', ev.tomorrow);
+    if (!top && !cells) return '';
+    return '<span class="cap-panel">' + (top ? '<span class="cap-day">' + top + '</span>' : '') + (top && cells ? '<span class="cap-sep" aria-hidden="true"></span>' : '')
+      + (cells ? '<span class="cap-events' + (many ? ' has-who' : '') + '">' + cells + '</span>' : '') + '</span>';
   }
   function calendarPoll(when) {
     clearTimeout(cal.timer); cal.timer = null;
