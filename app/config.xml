@@ -1,6 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <widget xmlns="http://www.w3.org/ns/widgets" xmlns:tizen="http://tizen.org/ns/widgets" id="https://local.frame-home/app" version="0.34.0" viewmodes="maximized">
   <tizen:application id="AlexFrmH01.FrameHome" package="AlexFrmH01" required_version="6.5"/>
+  <tizen:service id="AlexFrmH01.HomeWatcher" on-boot="true" auto-restart="true">
+    <tizen:content src="service/home-watcher.js"/>
+    <tizen:name>Frame Home Watcher</tizen:name>
+    <tizen:description>Returns to Frame Home after Samsung Home becomes visible</tizen:description>
+  </tizen:service>
   <content src="index.html"/>
   <access origin="https://api.open-meteo.com" subdomains="true"/>
   <access origin="https://ntfy.sh" subdomains="true"/>
