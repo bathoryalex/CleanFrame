@@ -9,6 +9,12 @@ This records what is known about the TV this fork is built for. Other models, fi
 | TV | Samsung UE75U8072 |
 | OS | Tizen 9 until November 2026, then a Samsung update to Tizen 10 (One UI Tizen) |
 | Firmware | 1300 (Tizen 9, recorded 23 November 2026); updating to 6500 (Tizen 10) the same day. Frame Home and the native Home assignment have not been checked on 6500 yet |
+
+## Firmware 6500 (Tizen 10), 23 November 2026
+
+- Right after the update, opening Frame Home showed Samsung's system message "The server is down for maintenance. Please try again later. (1544007)". The app was never reached; the text is not from Frame Home.
+- Shortly afterwards both sideloaded apps, Frame Home and Nuvio Legacy, were gone from the TV. The cause is not known (Developer Mode state after the update was not recorded). They need to be installed again; their stored preferences and sign-ins are assumed lost.
+- The native Home assignment has not been checked on 6500. Do not restore it from a Tizen 9 `original.json` without a fresh query first.
 | Web engine | Exact Chromium/WebKit version has not been recorded; keep runtime JavaScript ES5-compatible |
 
 Developer Mode, signing material, the TV's network address and recovery files are private local configuration in ignored `.local/`.
