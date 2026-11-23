@@ -55,3 +55,7 @@ Public holidays come at run time from the [Nager.Date](https://date.nager.at) AP
 ## aioamazondevices (reference only)
 
 `app/assets/alexa.js` and `tools/alexa-check/` follow the sign-in flow, request parameters and GraphQL queries of [aioamazondevices](https://github.com/chemelli74/aioamazondevices) (Apache License 2.0). No code is copied; the queries are shortened to the fields Frame Home reads.
+
+## Wikipedia and Wikidata
+
+Song facts on the Now playing screen are fetched at run time from English Wikipedia (text under [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/)) and Wikidata (CC0), and the sentence is shown labelled "From Wikipedia". Nothing from them is bundled in the app. The test fixture `scripts/fixtures/wiki-ill-be-there-for-you.txt` is an excerpt of the English Wikipedia article ["I'll Be There for You (The Rembrandts song)"](https://en.wikipedia.org/wiki/I%27ll_Be_There_for_You_(The_Rembrandts_song)) by its contributors, CC BY-SA 4.0, shortened (references and tables removed).

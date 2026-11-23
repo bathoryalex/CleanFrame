@@ -55,4 +55,12 @@ for icon in ['nuvio', 'hbomax', 'browser', 'smartthings']:
 assert (app / 'fork.js').is_file(), 'Missing fork branding file'
 index_html = (app / 'index.html').read_text()
 assert 'fork.js' in index_html, 'index.html must load fork.js before device.js'
+# Every host the TV code talks to must be allowed in config.xml, or Tizen silently blocks the request
+# (a browser preview does not). The GitHub Pages host only appears in QR codes for the phone.
+allowed = set(re.findall(r'<access origin="https://([^"]+)"', (app / 'config.xml').read_text()))
+used = set()
+for js in list(app.glob('*.js')) + list((app / 'assets').glob('*.js')):
+    used |= set(re.findall(r"https://([a-z0-9-]+(?:\.[a-z0-9-]+)+)", js.read_text()))
+missing = sorted(h for h in used if h not in allowed and not h.endswith('.github.io') and not h.startswith('alexa.amazon'))
+assert not missing, 'Hosts used by the app but not allowed in config.xml: ' + ', '.join(missing)
 print('Widget identity, version and bundled resources are valid.')

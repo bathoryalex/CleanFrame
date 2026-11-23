@@ -674,16 +674,43 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000}
 .np-copy{flex:1;min-width:0;display:flex;flex-direction:column}
 .np-device{margin:0 0 18px;font-size:26px;line-height:32px;color:var(--mute);letter-spacing:.2px}
 .np-title{margin:0;font-size:68px;line-height:78px;font-weight:600;letter-spacing:-1.6px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+/* Long titles shrink to stay on one line (main.js fitTitle); is-measure is only set while measuring. */
+.np-title.is-s1{font-size:60px;line-height:70px;letter-spacing:-1.4px}
+.np-title.is-s2{font-size:52px;line-height:62px;letter-spacing:-1.1px}
+.np-title.is-s3{font-size:48px;line-height:58px;letter-spacing:-1px}
+.np-title.is-measure{display:block;white-space:nowrap}
 .np-artist{margin:14px 0 0;font-size:40px;line-height:50px;font-weight:500;letter-spacing:-.6px;opacity:.85;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .np-album{margin:6px 0 0;font-size:28px;line-height:36px;color:var(--mute);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.np-progress .music-progress{margin-top:48px;font-size:24px;line-height:30px;gap:20px;opacity:.9}
+.np-progress .music-progress{margin-top:0;font-size:24px;line-height:30px;gap:20px;opacity:.9}
+/* Without lyrics the text column is exactly as tall as the cover: the device line at its top edge,
+   the buttons at its bottom edge, the progress bar just above them. */
+.np:not(.is-lyrics) .np-copy{height:560px}
+.np:not(.is-lyrics) .np-copy>*{flex-shrink:0}
+.np-progress{margin-top:auto;padding-top:24px}
+/* A short fact about the song from Wikipedia, between the album line and the progress bar (two lines at most). */
+.np-fact{margin:12px 0 0;font-size:23px;line-height:30px;color:rgba(246,241,231,.78);overflow:hidden;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2}
+.np-fact:empty,.np-fact.is-hidden{display:none}
+.np-fact.is-one{-webkit-line-clamp:1}
+.np-fact-tag{margin-right:12px;font-size:17px;font-weight:600;letter-spacing:1.2px;text-transform:uppercase;color:rgba(246,241,231,.5)}
+.np.is-lyrics .np-fact{display:none}
 .np-progress .music-bar{height:6px;border-radius:3px}
-.np-controls{display:flex;align-items:center;gap:28px;margin-top:48px}
+.np-controls{display:flex;align-items:center;gap:28px}
+/* The buttons and the volume share one row; the space above it is where the progress hint appears,
+   so focusing the bar never moves anything. */
+.np-ctl-row{display:flex;align-items:center;gap:40px;margin-top:44px}
 .np-btn{display:flex;align-items:center;justify-content:center;width:96px;height:96px;border-radius:50%;color:var(--ink);background:rgba(255,255,255,.08);transition:transform 160ms var(--ease),background-color 140ms linear,color 140ms linear}
 .np-btn .ico{width:40px;height:40px;stroke-width:2;fill:currentColor}
 .np-main{width:128px;height:128px}
 .np-main .ico{width:52px;height:52px}
 .np-btn.is-focus{background:var(--solid);color:var(--solid-ink);transform:scale(1.08)}
+/* Volume of the playing device: a pill like Lyrics with − and + buttons and the level between them. */
+.np-volume{display:flex;align-items:center;gap:4px;height:96px;padding:0 8px;border-radius:48px;background:rgba(255,255,255,.08)}
+.np-volume.is-off{display:none}
+.np-vol-btn{display:flex;align-items:center;justify-content:center;width:80px;height:80px;border-radius:50%;color:var(--ink);transition:transform 160ms var(--ease),background-color 140ms linear,color 140ms linear}
+.np-vol-btn .ico{width:34px;height:34px;stroke-width:2.2}
+.np-vol-btn.is-focus{background:var(--solid);color:var(--solid-ink)}
+.np-vol-val{display:flex;align-items:center;justify-content:center;gap:10px;min-width:132px;font-size:28px;font-weight:500;font-variant-numeric:tabular-nums}
+.np-vol-val .ico{width:32px;height:32px;stroke-width:1.8}
 /* Lyrics: the cover and controls move left, the lines take the right; the current line is bright. */
 .np-btn.np-lyrics-btn{width:auto;padding:0 30px 0 24px;border-radius:48px;gap:12px;font-size:28px;font-weight:500}
 .np-btn.np-lyrics-btn .ico{fill:none;width:34px;height:34px}
@@ -696,8 +723,23 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000}
 .np.is-lyrics .np-device{margin-bottom:8px;font-size:22px;line-height:28px}
 .np.is-lyrics .np-title{font-size:40px;line-height:48px;letter-spacing:-.8px;-webkit-line-clamp:1}
 .np.is-lyrics .np-artist{font-size:28px;line-height:36px;margin-top:6px}
-.np.is-lyrics .np-progress .music-progress{margin-top:20px;font-size:20px}
-.np.is-lyrics .np-controls{margin-top:24px;gap:14px}
+.np.is-lyrics .np-progress{margin-top:0;padding-top:20px}
+.np.is-lyrics .np-progress .music-progress{font-size:20px}
+/* With lyrics the column is 400 px wide: the volume goes under the buttons. */
+/* With lyrics open: previous, play/pause, next in one centred row under the progress bar, Lyrics and the
+   volume in a second centred row (the zero-height ::before breaks the line). */
+.np.is-lyrics .np-ctl-row{flex-wrap:wrap;justify-content:center;column-gap:14px;row-gap:10px;width:400px;margin-top:46px}
+.np.is-lyrics .np-ctl-row::before{content:"";order:2;flex-basis:100%;height:0}
+.np.is-lyrics .np-controls{display:contents}
+.np.is-lyrics .np-btn{order:1}
+.np.is-lyrics .np-btn.np-lyrics-btn{order:3}
+.np.is-lyrics .np-volume{order:4}
+.np.is-lyrics .np-volume{height:72px;padding:0 6px}
+.np.is-lyrics .np-vol-btn{width:60px;height:60px}
+.np.is-lyrics .np-vol-btn .ico{width:28px;height:28px}
+.np.is-lyrics .np-vol-val{min-width:112px;font-size:24px}
+.np.is-lyrics .np-vol-val .ico{width:26px;height:26px}
+.np.is-lyrics .np-controls{gap:14px}
 .np.is-lyrics .np-btn{width:72px;height:72px}
 .np.is-lyrics .np-main{width:88px;height:88px}
 .np.is-lyrics .np-btn .ico{width:30px;height:30px}
@@ -765,7 +807,8 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000}
 .np-progress{border-radius:18px;transition:background-color 140ms linear}
 .np-progress .music-bar{transition:height 160ms linear}
 .np-progress.is-focus .music-bar{height:12px;border-radius:6px;box-shadow:0 0 0 2px rgba(255,255,255,.35)}
-.np-progress.is-focus::after{content:attr(data-hint);display:block;margin-top:12px;font-size:22px;line-height:28px;color:rgba(246,241,231,.66)}
+.np-progress{position:relative}
+.np-progress.is-focus::after{content:attr(data-hint);position:absolute;left:0;top:100%;margin-top:10px;white-space:nowrap;font-size:22px;line-height:28px;color:rgba(246,241,231,.66)}
 .np-progress.is-focus .music-bar i{background:#f6f1e7;box-shadow:0 0 0 1px rgba(255,255,255,.4)}
 .np-progress.is-focus .music-progress{opacity:1}
 .np-progress.is-seeking [data-music-pos]{color:#ffd58a}
@@ -1127,7 +1170,10 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000}
 .settings-grid.is-grouped .card-name{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:30px;line-height:38px}
 .settings-grid.is-grouped .card-lang .card-type{font-size:30px;letter-spacing:.5px}
 /* Day panel (0.33): holiday, name days and calendar events in one soft glass panel under the date. */
-.cap-panel{display:flex;flex-direction:column;align-items:flex-start;gap:6px;align-self:flex-start;margin-top:12px;padding:12px 22px 13px;border-radius:20px;max-width:900px;color:#f6f1e7;background:linear-gradient(180deg,rgba(14,18,20,.44),rgba(14,18,20,.26));box-shadow:inset 0 1px 0 rgba(255,255,255,.10),inset 0 0 0 1px rgba(255,255,255,.07),0 10px 30px rgba(4,8,10,.14);text-shadow:0 1px 2px rgba(0,0,0,.18)}
+/* The day panel has no frame: the glass fades out to the left, right and bottom like the docks; its
+   top edge stays. The fade is a shadow of the same colour pushed down by its blur, so nothing shows above
+   the panel and no mask or live blur is needed. */
+.cap-panel{display:flex;flex-direction:column;align-items:flex-start;gap:6px;align-self:flex-start;margin-top:12px;padding:12px 22px 13px;border-radius:18px 18px 0 0;max-width:900px;color:#f6f1e7;background:rgba(14,18,20,.34);box-shadow:0 48px 24px 24px rgba(14,18,20,.34);text-shadow:0 1px 2px rgba(0,0,0,.18)}
 .clock-big .cap-panel{align-self:center;align-items:center;margin:16px auto 0}
 .cap-row{display:flex;align-items:center;gap:10px;max-width:100%;font-size:26px;line-height:34px;font-weight:500;letter-spacing:-.2px;white-space:nowrap}
 .cap-row.cap-holiday{color:#f2d8ad;font-weight:600}
@@ -1142,7 +1188,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000}
 .cap-cal-who{flex:none;font-size:20px;line-height:26px;font-weight:600;padding:1px 9px;border-radius:9px;background:rgba(255,255,255,.10);opacity:.9}
 .clock-big .cap-row{font-size:28px;line-height:36px}
 .clock-big .cap-row.cap-nameday{font-size:26px;line-height:32px}
-.stage.bg-dark .cap-panel{background:linear-gradient(180deg,rgba(255,255,255,.07),rgba(255,255,255,.035))}
+.stage.bg-dark .cap-panel{background:rgba(255,255,255,.05);box-shadow:0 48px 24px 24px rgba(255,255,255,.05)}
 /* Settings overview (0.33): three equal columns that fill the width, each a framed group of three
    equal wide cards (picture or icon on the left, name and value on the right). */
 .settings-grid.is-columns{position:absolute;left:140px;top:176px;width:1640px;display:grid;grid-template-columns:repeat(3,1fr);gap:28px;align-items:stretch}

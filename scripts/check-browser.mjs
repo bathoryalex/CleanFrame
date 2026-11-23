@@ -167,14 +167,22 @@ async function page(options = {}) {
       { id: 'dev-echo', is_active: true, is_restricted: false, name: 'Echo Dot Max', type: 'Speaker' }, { id: 'dev-pc', is_active: false, is_restricted: false, name: 'Desk PC', type: 'Computer' },
       { id: 'dev-car', is_active: false, is_restricted: true, name: 'Car', type: 'Automobile' }, { id: null, name: 'Ghost', type: 'Speaker' }]
       .concat(Q.many ? Array.from({ length: 11 }, (_, i) => ({ id: 'dev-x' + i, is_active: false, is_restricted: false, name: 'Echo ' + (i + 1), type: 'Speaker' })) : []) }) });
-    if (r.method() === 'GET') return route.fulfill({ headers: sp, contentType: 'application/json', body: JSON.stringify({ is_playing: Q.playing, device: { name: Q.device || 'Echo Dot Max' },
-      progress_ms: 61000, item: { id: 't1', name: Q.title || 'Song A', duration_ms: 210000, artists: Q.artists || [{ name: 'Artist A' }, { name: 'Guest B' }], album: { name: 'Album A', images: [{ url: 'https://i.scdn.co/image/big', width: 640 }, { url: 'https://i.scdn.co/image/small', width: 64 }] } } }) });
-    Q.calls.push(r.method() + ' ' + path); if (/seek/.test(path)) Q.seekUrl = r.url();
+    if (r.method() === 'GET') return route.fulfill({ headers: sp, contentType: 'application/json', body: JSON.stringify({ is_playing: Q.playing, device: { name: Q.device || 'Echo Dot Max', volume_percent: Q.volume == null ? 40 : Q.volume, supports_volume: Q.supportsVolume !== false },
+      progress_ms: 61000, item: { id: 't1', name: Q.title || 'Song A', duration_ms: 210000, artists: Q.artists || [{ name: 'Artist A' }, { name: 'Guest B' }], album: { name: 'Album A', release_date: Q.releaseDate || '2001-05-01', album_type: Q.albumType || 'album', images: [{ url: 'https://i.scdn.co/image/big', width: 640 }, { url: 'https://i.scdn.co/image/small', width: 64 }] } } }) });
+    Q.calls.push(r.method() + ' ' + path); if (/seek/.test(path)) Q.seekUrl = r.url(); if (/volume/.test(path)) { Q.volumeUrl = r.url(); Q.volume = Number(new URL(r.url()).searchParams.get('volume_percent')); }
     if (r.method() === 'PUT' && path === '/v1/me/player') { Q.transfer = JSON.parse(r.postData() || '{}'); Q.device = 'Desk PC'; return route.fulfill({ status: 204, headers: sp, body: '' }); }
     if (Q.refuse) return route.fulfill({ status: 403, headers: sp, contentType: 'application/json', body: JSON.stringify({ error: { status: 403, message: 'Player command failed: Premium required', reason: Q.refuse } }) });
     if (path.endsWith('/pause')) Q.playing = false; if (path.endsWith('/play')) Q.playing = true;
     return route.fulfill({ status: 204, headers: sp, body: '' });
   });
+  // Song facts: English Wikipedia search + full text, and Wikidata's publication date. Empty unless a check fills them.
+  current.__wiki = { search: [], full: {}, claims: {}, calls: [] };
+  await current.route('https://en.wikipedia.org/**', route => { const u = new URL(route.request().url()), W = current.__wiki, ok = b => route.fulfill({ headers: { 'Access-Control-Allow-Origin': '*' }, contentType: 'application/json', body: JSON.stringify(b) });
+    W.calls.push(u.search);
+    if (u.searchParams.get('gsrsearch')) { const pages = {}; W.search.forEach((p, i) => { pages[p.pageid] = Object.assign({ index: i + 1 }, p); }); return ok(W.search.length ? { query: { pages } } : { batchcomplete: '' }); }
+    const id = u.searchParams.get('pageids'); return ok({ query: { pages: { [id]: { pageid: +id, extract: W.full[id] || '' } } } }); });
+  await current.route('https://www.wikidata.org/**', route => { const u = new URL(route.request().url()), t = current.__wiki.claims[u.searchParams.get('entity')];
+    return route.fulfill({ headers: { 'Access-Control-Allow-Origin': '*' }, contentType: 'application/json', body: JSON.stringify({ claims: t ? { P577: [{ mainsnak: { datavalue: { value: { time: t } } } }] } : {} }) }); });
   current.__lyrics = [];
   await current.route('https://lrclib.net/**', route => { current.__lyrics.push(route.request().url()); return route.fulfill({ headers: { 'Access-Control-Allow-Origin': '*' }, contentType: 'application/json',
     body: JSON.stringify({ trackName: 'Song A', duration: 210, instrumental: false, plainLyrics: 'First line\nSecond line\nThird line', syncedLyrics: '[00:50.00] First line\n[01:00.00] Second line\n[01:50.00] Third line' }) }); });
@@ -703,6 +711,140 @@ try {
     current.__spotify.many = false;
     await nav('back');
     check('Back closes the list and keeps Now playing', (await current.evaluate(() => ShoreQA.where().view)) === 'nowplaying' && await current.evaluate(() => !document.querySelector('.np-devices.is-open')));
+  });
+  await run('Spotify: volume on the big Now playing screen', async () => {
+    await page();
+    await current.evaluate(() => localStorage.setItem('cleanframe.spotify.v1', JSON.stringify({ refresh: 'AQtest', access: 'BQtest', until: Date.now() + 3600000 })));
+    current.__spotify.volume = 40; current.__spotify.supportsVolume = true;
+    await current.reload(); await ready();
+    await current.waitForFunction(() => document.querySelector('.cap-music'));
+    await nav('up', 'left', 'ok');
+    await current.waitForFunction(() => ShoreQA.where().view === 'nowplaying');
+    const pct = () => current.evaluate(() => document.querySelector('.np-vol-pct').textContent);
+    const focused = () => current.evaluate(() => { const f = document.querySelector('.np-vol-btn.is-focus'); return f ? f.getAttribute('data-i') : null; });
+    const geo = () => current.evaluate(() => { const r = e => document.querySelector(e).getBoundingClientRect(); return { art: r('.np-art-wrap'), dev: r('.np-device'), row: r('.np-ctl-row'), vol: r('.np-volume'), lyr: r('.np-lyrics-btn'), title: r('.np-title').top }; });
+    const g0 = await geo();
+    check('Without lyrics the text column fits the cover height: device line at its top, buttons at its bottom', Math.abs(g0.dev.top - g0.art.top) <= 2 && Math.abs(g0.row.bottom - g0.art.bottom) <= 2, g0);
+    check('The volume is a pill beside Lyrics, as tall as it, with the level on it', Math.abs(g0.vol.height - g0.lyr.height) <= 2 && Math.abs(g0.vol.top - g0.lyr.top) <= 2 && g0.vol.left > g0.lyr.right && g0.vol.width <= 360 && (await pct()) === '40%', g0);
+    await nav('up');
+    const g1 = await geo();
+    check('Focusing the progress bar shows its hint without moving anything', g1.title === g0.title && g1.row.top === g0.row.top && g1.dev.top === g0.dev.top && await current.evaluate(() => !!document.querySelector('.np-progress.is-focus')), { g0, g1 });
+    await nav('down', 'right', 'right', 'right');
+    check('Right from Lyrics focuses the minus button of the volume', (await focused()) === '0');
+    const g2 = await geo();
+    check('Focusing the volume moves nothing', g2.title === g0.title && g2.row.top === g0.row.top, { g0, g2 });
+    await nav('ok');
+    check('OK on minus lowers the volume by 5 %', (await pct()) === '35%');
+    await nav('right', 'ok', 'ok', 'ok');
+    check('Right moves to plus; OK raises the volume by 5 % each time', (await focused()) === '1' && (await pct()) === '50%');
+    await current.waitForTimeout(600);
+    check('The new volume is sent to Spotify', /\/me\/player\/volume\?volume_percent=50/.test(current.__spotify.volumeUrl || ''), current.__spotify.volumeUrl);
+    await nav('left', 'left');
+    check('Left from minus goes back to Lyrics', await current.evaluate(() => !!document.querySelector('.np-lyrics-btn.is-focus') && !document.querySelector('.np-vol-btn.is-focus')));
+    await nav('ok'); await current.waitForTimeout(400);
+    const gl = await current.evaluate(() => { const r = e => document.querySelector(e).getBoundingClientRect(), mid = b => (b.left + b.right) / 2;
+      const bar = r('.np-progress .music-bar'), prev = r('.np-btn[data-i="0"]'), next = r('.np-btn[data-i="2"]'), lyr = r('.np-lyrics-btn'), vol = r('.np-volume'), play = r('.np-main');
+      return { bar: mid(bar), row1: (prev.left + next.right) / 2, row2: (lyr.left + vol.right) / 2, row1Top: play.top, row1Bottom: play.bottom, lyrTop: lyr.top, volTop: vol.top, lyrMid: (lyr.top + lyr.bottom) / 2, volMid: (vol.top + vol.bottom) / 2 }; });
+    check('With lyrics open: previous, play and next in one row, Lyrics and the volume in a row below, both centred under the progress bar',
+      Math.abs(gl.row1 - gl.bar) <= 3 && Math.abs(gl.row2 - gl.bar) <= 3 && gl.lyrTop >= gl.row1Bottom && Math.abs(gl.lyrMid - gl.volMid) <= 2, gl);
+    check('Lyrics stays focused after opening', await current.evaluate(() => !!document.querySelector('.np-lyrics-btn.is-focus')));
+    await nav('right');
+    check('With lyrics open Right from Lyrics reaches the volume beside it', (await focused()) === '0');
+    await nav('left', 'up');
+    check('Up from the second row goes to play/pause', await current.evaluate(() => !!document.querySelector('.np-main.is-focus')));
+    await nav('right', 'down');
+    check('Down from the first row goes to Lyrics; Right stops at next in the first row', await current.evaluate(() => !!document.querySelector('.np-lyrics-btn.is-focus')));
+    await nav('up');
+    check('Up returns to the button you came from', await current.evaluate(() => document.querySelector('.np-btn.is-focus') && document.querySelector('.np-btn.is-focus').getAttribute('data-i') === '2'));
+    // A device that cannot set volume through the API hides the pill.
+    current.__spotify.supportsVolume = false;
+    await current.reload(); await ready();
+    await current.waitForFunction(() => document.querySelector('.cap-music'));
+    await nav('up', 'left', 'ok');
+    await current.waitForFunction(() => ShoreQA.where().view === 'nowplaying');
+    await nav('right', 'right', 'right');
+    check('Without volume support the volume is hidden and Right stops at Lyrics', await current.evaluate(() => !!document.querySelector('.np-volume.is-off') && !!document.querySelector('.np-lyrics-btn.is-focus')));
+    current.__spotify.supportsVolume = true;
+  });
+  await run('Spotify: song facts from Wikipedia on Now playing', async () => {
+    const W = () => current.__wiki;
+    await page();
+    await current.evaluate(() => localStorage.setItem('cleanframe.spotify.v1', JSON.stringify({ refresh: 'AQtest', access: 'BQtest', until: Date.now() + 3600000 })));
+    const unit = await current.evaluate(() => ({
+      clean: [FrameSongFacts._cleanTitle('Bohemian Rhapsody - Remastered 2011'), FrameSongFacts._cleanTitle('Song A (feat. B)'), FrameSongFacts._cleanTitle('Song A (Live)')],
+      film: FrameSongFacts._matches({ title: 'Song A (film)', extract: 'Song A is a song by Artist A.' }, 'Song A', 'Artist A'),
+      other: FrameSongFacts._matches({ title: 'Song A (Other Band song)', extract: '"Song A" is a song by Other Band.' }, 'Song A', 'Artist A'),
+      right: FrameSongFacts._matches({ title: 'Song A (Artist A song)', extract: '"Song A" is a song by American band Artist A.' }, 'Song A', 'Artist A'),
+      pick: FrameSongFacts._pick('"Song A" is a song by Artist A. It was released in 1999 as a single.\n\n== Charts ==\nIt was written in ten minutes in a hotel.\n\n== Background ==\nThe band toured Europe in 1998. The idea for the song came to the singer in the shower one morning.\n'),
+      none: FrameSongFacts._pick('"Song A" is a song by Artist A. It reached number five.\n\n== Charts ==\nWeekly charts.\n')
+    }));
+    check('Song titles are cleaned of remaster, featuring and live tags', unit.clean.join('|') === 'Bohemian Rhapsody|Song A|Song A', unit.clean);
+    check('Only the article about this song by this artist matches', !unit.film && !unit.other && unit.right, unit);
+    check('The fact is a story sentence from Background, not from the charts or the opening line', unit.pick === 'The idea for the song came to the singer in the shower one morning.' && unit.none === '', unit);
+    W().search = [{ pageid: 2, title: 'Song A (film)', extract: 'Song A is a 2003 film.', pageprops: { wikibase_item: 'Q2' } },
+      { pageid: 1, title: 'Song A (Artist A song)', extract: '"Song A" is a song by American band Artist A, released in 1999.', pageprops: { wikibase_item: 'Q1' } }];
+    W().full = { 1: '"Song A" is a song by Artist A.\n\n== Background ==\nThe idea for the song came to the singer in the shower in 1998, during a long winter tour of small Scandinavian towns with the band.\n' };
+    W().claims = { Q1: '+1999-03-02T00:00:00Z' };
+    current.__spotify.title = 'Song A - Remastered 2011'; current.__spotify.releaseDate = '2011-05-01';
+    await current.reload(); await ready(); await current.waitForFunction(() => document.querySelector('.cap-music'));
+    await nav('up', 'left', 'ok'); await current.waitForFunction(() => ShoreQA.where().view === 'nowplaying');
+    await current.waitForFunction(() => document.querySelector('.np-fact') && document.querySelector('.np-fact').textContent.length > 0);
+    const shown = await current.evaluate(() => { const r = e => document.querySelector(e).getBoundingClientRect(); return { album: document.querySelector('.np-album').textContent, fact: document.querySelector('.np-fact').textContent, row: r('.np-ctl-row').bottom, art: r('.np-art-wrap').bottom, factBottom: r('.np-fact').bottom, bar: r('.np-progress').top, visible: getComputedStyle(document.querySelector('.np-fact')).display !== 'none' && r('.np-fact').height > 20, lines: Math.round(r('.np-fact').height / 30) }; });
+    check('The album line shows the song\'s own year from Wikidata, not the remaster album year', shown.album === 'Album A · 1999', shown);
+    check('A short Wikipedia fact is shown, labelled, between the album line and the progress bar', /^From Wikipedia/.test(shown.fact) && /shower/.test(shown.fact) && shown.visible && shown.lines === 2 && shown.factBottom <= shown.bar && Math.abs(shown.row - shown.art) <= 2, shown);
+    check('The search asked for the cleaned title and the artist', W().calls.some(c => /gsrsearch=Song\+A\+Artist\+A\+song|gsrsearch=Song%20A%20Artist%20A%20song/.test(c)), W().calls);
+    await nav('right', 'right', 'ok'); await current.waitForTimeout(500);
+    check('With lyrics open the fact is hidden', await current.evaluate(() => getComputedStyle(document.querySelector('.np-fact')).display === 'none'));
+    // A long title like Spotify's "I'll Be There for You - Theme From "Friends"" shrinks onto one line, so the fact still fits.
+    W().search = [{ pageid: 4, title: "I'll Be There for You (The Rembrandts song)", extract: '"I\'ll Be There for You" is a song by American rock duo the Rembrandts, best known as the theme song of the sitcom Friends.', pageprops: {} }];
+    // Excerpt of the English Wikipedia article "I'll Be There for You (The Rembrandts song)", CC BY-SA 4.0, as the API's plain text.
+    W().full = { 4: readFileSync(root + 'scripts/fixtures/wiki-ill-be-there-for-you.txt', 'utf8') };
+    current.__spotify.title = 'I\'ll Be There for You - Theme From "Friends"'; current.__spotify.artists = [{ name: 'The Rembrandts' }];
+    await current.reload(); await ready(); await current.waitForFunction(() => document.querySelector('.cap-music'));
+    await nav('up', 'left', 'ok'); await current.waitForFunction(() => ShoreQA.where().view === 'nowplaying');
+    await current.waitForFunction(() => document.querySelector('.np-fact').textContent.length > 0); await current.waitForTimeout(300);
+    const fr = await current.evaluate(() => { const r = e => document.querySelector(e).getBoundingClientRect(), f = document.querySelector('.np-fact'), t = document.querySelector('.np-title');
+      return { size: parseFloat(getComputedStyle(t).fontSize), titleH: Math.round(r('.np-title').height), factShown: getComputedStyle(f).display !== 'none' && r('.np-fact').height > 20, whole: f.scrollHeight <= f.clientHeight + 1, text: f.textContent, row: r('.np-ctl-row').bottom, art: r('.np-art-wrap').bottom }; });
+    check('A long title shrinks onto one line and the Wikipedia fact still shows', fr.size < 68 && fr.titleH < 90 && fr.factShown && Math.abs(fr.row - fr.art) <= 2, fr);
+    check('From the real article it picks the story sentence about R.E.M. turning the theme down, shown whole', /R\.E\.M\. was originally asked .* turned the opportunity down\.$/.test(fr.text) && fr.whole, fr);
+    current.__spotify.artists = null;
+    // A title on two lines leaves room for one line of the fact at most; the buttons stay on the cover's bottom edge.
+    const longTitle = 'A Very Long Song Title That Certainly Wraps Onto Two Lines';
+    W().search = [{ pageid: 3, title: longTitle, extract: '"' + longTitle + '" is a song by Artist A.', pageprops: {} }];
+    W().full = { 3: 'x\n== Background ==\nThe idea for the song came to the singer in the shower in 1998, during a long winter tour of small Scandinavian towns with the band.\n' };
+    current.__spotify.title = longTitle;
+    await current.reload(); await ready(); await current.waitForFunction(() => document.querySelector('.cap-music'));
+    await nav('up', 'left', 'ok'); await current.waitForFunction(() => ShoreQA.where().view === 'nowplaying');
+    await current.waitForFunction(() => document.querySelector('.np-fact').textContent.length > 0); await current.waitForTimeout(300);
+    const lt = await current.evaluate(() => { const r = e => document.querySelector(e).getBoundingClientRect(), f = document.querySelector('.np-fact'); return { titleLines: Math.round(r('.np-title').height / parseFloat(getComputedStyle(document.querySelector('.np-title')).lineHeight)), factH: getComputedStyle(f).display === 'none' ? 0 : Math.round(r('.np-fact').height), row: r('.np-ctl-row').bottom, art: r('.np-art-wrap').bottom }; });
+    check('With a two-line title the fact shrinks to one line or hides, and the buttons stay on the cover bottom', lt.titleLines === 2 && lt.factH <= 40 && Math.abs(lt.row - lt.art) <= 2, lt);
+    // No article about this song: only the album year, nothing invented.
+    W().search = [{ pageid: 2, title: 'Song A (film)', extract: 'Song A is a 2003 film.' }]; W().full = {}; W().claims = {};
+    current.__spotify.title = 'Song A'; current.__spotify.releaseDate = '2001-05-01';
+    await current.reload(); await ready(); await current.waitForFunction(() => document.querySelector('.cap-music'));
+    await nav('up', 'left', 'ok'); await current.waitForFunction(() => ShoreQA.where().view === 'nowplaying'); await current.waitForTimeout(600);
+    check('Without a matching article only the album year shows', await current.evaluate(() => document.querySelector('.np-album').textContent === 'Album A · 2001' && document.querySelector('.np-fact').textContent === ''));
+    // A compilation's year is not the song's.
+    current.__spotify.albumType = 'compilation';
+    await current.reload(); await ready(); await current.waitForFunction(() => document.querySelector('.cap-music'));
+    await nav('up', 'left', 'ok'); await current.waitForFunction(() => ShoreQA.where().view === 'nowplaying'); await current.waitForTimeout(600);
+    check('A compilation album shows no year', await current.evaluate(() => document.querySelector('.np-album').textContent === 'Album A'));
+    current.__spotify.albumType = ''; current.__spotify.title = ''; current.__spotify.releaseDate = '';
+  });
+  await run('Alexa: a reading missing from one answer stays on Home', async () => {
+    await page({ seed: baseline({ alexaReadings: [{ id: 'amzn1.alexa.endpoint.temp-1', key: 'temp', name: 'Living room', label: 'Temperature' }], alexaSwitches: [{ id: 'amzn1.alexa.endpoint.lamp-1', name: 'Left lamp' }] }) });
+    await current.evaluate(() => localStorage.setItem('cleanframe.alexa.v1', JSON.stringify({ serial: 'X', domain: 'com', site: 'com', refresh: 'Atzr|test', access: 'Atza|test', at: Date.now() })));
+    await current.reload(); await ready();
+    await current.waitForFunction(() => /22\.4/.test((document.querySelector('.weather.indoor') || {}).textContent || ''));
+    const dev = current.__alexa.devices.find(d => d.id.endsWith('temp-1')), saved = dev.temp;
+    delete dev.temp; current.__alexa.reads = 0;
+    const before = await current.evaluate(() => ShoreQA.alexaReads ? ShoreQA.alexaReads() : 0);
+    await current.waitForTimeout(6500);
+    check('A sensor that answers without its value keeps showing its last temperature', await current.evaluate(() => /22\.4/.test((document.querySelector('.weather.indoor') || {}).textContent || '')), before);
+    dev.temp = 23.1;
+    await current.waitForTimeout(6000);
+    check('A fresh value replaces it on the next read', await current.evaluate(() => /23\.1/.test((document.querySelector('.weather.indoor') || {}).textContent || '')));
+    dev.temp = saved;
   });
   await run('Spotify phone page sends the code back to the TV', async () => {
     const phone = await preview.browser.newPage({ viewport: { width: 390, height: 844 } }), posts = [];

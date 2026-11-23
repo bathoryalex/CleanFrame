@@ -4,7 +4,7 @@
 
   /* ---------- Bundled data ---------- */
   var ASSETS = 'assets/', ICONS = ASSETS + 'icons/', WP = ASSETS + 'wallpapers/';
-  var APP_VERSION = '0.34.0';
+  var APP_VERSION = '0.36.3';
   var CAP = 9, SCRIM_Y = 560, DOCK_BOTTOM = 1032; // the Dock sits 48 px above the bottom edge; names and actions go above it
   var DOCK_MODES = { both: { tw: 288, th: 200, pitch: 296 }, text: { tw: 288, th: 104, pitch: 296 }, icons: { tw: 200, th: 156, pitch: 206 } }; // icons-only tiles leave room under the icon for the focused app's name
   var GRID_ROW = 240, GRID_COL = 344, COLS = 5;
@@ -103,6 +103,7 @@
     lyrics: '<path d="M4.5 6.5h11M4.5 11h8M4.5 15.5h6"/><path d="M17 18.2V9.5l3.5-1"/><circle cx="15.2" cy="18.3" r="1.9"/>',
     drop: '<path d="M12 3.6c-3.2 4-5.6 7.3-5.6 10.1a5.6 5.6 0 0 0 11.2 0c0-2.8-2.4-6.1-5.6-10.1Z"/>',
     plus: '<path d="M12 5v14M5 12h14"/>',
+    minus: '<path d="M5 12h14"/>',
     indoor: '<path d="M4 11 12 4.5l8 6.5v8a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1Z"/><path d="M12 10.5v5.2"/><circle cx="12" cy="16.6" r="1.4"/>',
     undo: '<path d="M9 6 5 10l4 4"/><path d="M5 10h9.5a4.5 4.5 0 0 1 0 9H11"/>',
     check: '<path d="m5.5 12.5 4 4 9-9"/>',
@@ -113,6 +114,8 @@
     updown: '<path d="m7.5 9.5 4.5-4.5 4.5 4.5M7.5 14.5l4.5 4.5 4.5-4.5"/>',
     tv: '<rect x="3" y="4.5" width="18" height="12" rx="2"/><path d="M8.5 20h7"/>',
     speaker: '<rect x="6" y="2.8" width="12" height="18.4" rx="2.4"/><circle cx="12" cy="14.5" r="3.2"/><circle cx="12" cy="7.2" r="1"/>',
+    volume: '<path d="M3.5 9.6h3.6L12 5.4v13.2l-4.9-4.2H3.5z"/><path d="M15.6 9.2a4 4 0 0 1 0 5.6"/><path d="M18.2 6.6a7.6 7.6 0 0 1 0 10.8"/>',
+    mute: '<path d="M3.5 9.6h3.6L12 5.4v13.2l-4.9-4.2H3.5z"/><path d="M16 9.5l5 5M21 9.5l-5 5"/>',
     computer: '<rect x="4" y="5" width="16" height="10.5" rx="1.6"/><path d="M2.5 19h19"/>',
     warn: '<path d="M12 4 2.8 19.5h18.4Z"/><path d="M12 10v4.5M12 17.3v.1"/>',
     phone: '<rect x="7" y="2.8" width="10" height="18.4" rx="2.2"/><path d="M10.8 18h2.4"/>',
@@ -1387,7 +1390,19 @@
     SLOTS.forEach(function (c) { var t = S.c.alexaKeys[c]; if (t) targetMembers(t.id).forEach(add); });
     return ids;
   }
-  function storeVals(vals) { var id; for (id in vals) if (vals.hasOwnProperty(id) && !alexa.busy[id]) alexa.vals[id] = vals[id]; }
+  /* Battery sensors often answer a read without their value (asleep, or between reports). A reading
+     missing from one answer keeps its last value for up to an hour instead of vanishing from Home. */
+  var KEEP_READING_MS = 60 * 60 * 1000;
+  function storeVals(vals) {
+    var id, now = Date.now();
+    for (id in vals) if (vals.hasOwnProperty(id) && !alexa.busy[id]) (function (prev, next) {
+      next.readings.forEach(function (r) { r.at = now; });
+      if (prev && prev.readings) prev.readings.forEach(function (r) {
+        if (!next.readings.some(function (x) { return x.key === r.key; }) && now - (r.at || 0) < KEEP_READING_MS) next.readings.push(r);
+      });
+      alexa.vals[id] = next;
+    }(alexa.vals[id], vals[id]));
+  }
   /* Schedules the next read: now (true), after ms (number) or after the regular interval. */
   function alexaPoll(when) {
     clearTimeout(alexa.timer); alexa.timer = null;
@@ -1505,7 +1520,7 @@
     spot.timer = setTimeout(function () {
       spot.timer = null;
       FS.nowPlaying(function (err, now) {
-        if (err) spot.err = err; else { spot.err = ''; spot.now = now; }
+        if (err) spot.err = err; else { spot.err = ''; if (now && volState.v !== null) now.volume = volState.v; spot.now = now; }
         render();
         if (!spot.timer) spotifyPoll(err === 'revoked' ? 10 * 60 * 1000 : err ? 60000 : now && now.playing ? 10000 : 30000);
       });
@@ -1659,8 +1674,53 @@
 
   /* Not a sheet: like the Wi‑Fi QR code it fades in over Home on the pre-blurred panel image,
      and fades out again on Back, so opening and closing move instead of cutting. */
+  /* Song facts (assets/songfacts.js): looked up once per song while the large Now playing screen shows
+     without lyrics; the year joins the album line and one Wikipedia sentence sits above the progress bar. */
+  var FF = window.FrameSongFacts || null, facts = { key: '', info: null };
+  function songFacts(n) {
+    if (!FF || !n || n.episode || !n.title) return null;
+    var key = n.id || n.title + '|' + n.mainArtist;
+    if (facts.key !== key) {
+      facts.key = key; facts.info = null;
+      FF.lookup({ id: key, title: n.title, artist: n.mainArtist }, function (info) { if (facts.key === key) { facts.info = info; render(); } });
+    }
+    return facts.info;
+  }
+  /* A long title first gets smaller (68 → 60 → 52 → 48 px) to stay on one line, which leaves room for
+     the fact; only if it still does not fit does it wrap onto two lines at 52 px. */
+  var TITLE_SIZES = ['', 'is-s1', 'is-s2', 'is-s3'];
+  function fitTitle(el, lyrics) {
+    var key = el.textContent + '|' + !!lyrics + '|' + S.c.font, i;
+    if (el._fit === key) return;
+    el._fit = key;
+    el.className = 'np-title';
+    if (lyrics) return;
+    for (i = 0; i < TITLE_SIZES.length; i++) {
+      el.className = 'np-title is-measure ' + TITLE_SIZES[i];
+      if (el.scrollWidth <= el.clientWidth + 1) { el.className = 'np-title ' + TITLE_SIZES[i]; return; }
+    }
+    el.className = 'np-title is-s2';
+  }
+  /* Two lines at most; one if the title wraps; none if even that would push the buttons off the cover. */
+  function fitFact(el) {
+    var copy = el && el.parentNode, row = copy && copy.querySelector('.np-ctl-row');
+    if (!row) return;
+    /* Layout boxes, not scrollHeight: a focused button is scaled up and would always count as overflow. */
+    function fits() { return row.getBoundingClientRect().bottom <= copy.getBoundingClientRect().bottom + 1; }
+    el.className = 'np-fact';
+    if (!el.textContent || fits()) return;
+    el.className = 'np-fact is-one';
+    if (!fits()) el.className = 'np-fact is-hidden';
+  }
+  /* Fade the Now playing layout out, switch lyrics on or off, fade it back in. */
+  function toggleLyrics(t) {
+    if (t.switching) return;
+    t.switching = true;
+    setTimeout(function () { t.lyrics = !t.lyrics; if (t.lyrics) loadLyrics(); t.switching = false; render(); }, 200);
+  }
   V.nowplaying = {
     sheet: false,
+    norm: function (t) { var n = spot.now; if (t.f.row === 'volume' && !volumeAvailable(n)) t.f.row = 'controls'; },
     key: function (t, k) {
       var n = spot.now;
       if (t.dev) { deviceKey(t, k); return; }
@@ -1675,27 +1735,52 @@
         /* The progress bar: Left/Right move 10 seconds, the song jumps there once you stop. */
         if (k === 'back') { seek.at = null; pop(); }
         else if (k === 'up') t.f.row = 'device';
-        else if (k === 'down' || !n || !n.duration) { t.f.row = 'controls'; }
+        else if (k === 'down' || !n || !n.duration) { t.f.row = 'controls'; if (t.lyrics && t.f.b === 3) t.f.b = typeof t.f.top === 'number' ? t.f.top : 1; }
         else if (k === 'left' || k === 'right') seekBy(n, k === 'left' ? -10000 : 10000);
         else if (k === 'ok') commitSeek();
+        return;
+      }
+      if (t.f.row === 'volume') {
+        /* The volume pill: − and + are buttons like the others; OK steps 5 %. Without lyrics it sits after
+           Lyrics in the button row; with lyrics it is the row under the buttons. */
+        if (k === 'back') pop();
+        else if (k === 'ok') setVolume((n && typeof n.volume === 'number' ? n.volume : 0) + (t.f.v ? 5 : -5));
+        else if (k === 'right' && !t.f.v) t.f.v = 1;
+        else if (k === 'left' && t.f.v) t.f.v = 0;
+        else if (k === 'left') { t.f.row = 'controls'; t.f.b = 3; }
+        else if (k === 'up') { if (t.lyrics) { t.f.row = 'controls'; t.f.b = typeof t.f.top === 'number' ? t.f.top : 1; } else t.f.row = n && n.duration ? 'bar' : 'device'; }
+        return;
+      }
+      if (t.lyrics) {
+        /* With lyrics open the buttons are two centred rows: previous, play/pause, next above;
+           Lyrics and the volume below. Up and Down move between the rows. */
+        if (k === 'back') pop();
+        else if (t.f.b < 3) {
+          if (k === 'up') t.f.row = n && n.duration ? 'bar' : 'device';
+          else if (k === 'left' && t.f.b > 0) t.f.b--;
+          else if (k === 'right' && t.f.b < 2) t.f.b++;
+          else if (k === 'down') { t.f.top = t.f.b; t.f.b = 3; }
+          else if (k === 'ok') spotifyKey(['prev', 'toggle', 'next'][t.f.b]);
+        } else {
+          if (k === 'up') t.f.b = typeof t.f.top === 'number' ? t.f.top : 1;
+          else if (k === 'right' && volumeAvailable(n)) { t.f.row = 'volume'; t.f.v = 0; }
+          else if (k === 'ok') toggleLyrics(t);
+        }
         return;
       }
       if (k === 'back') pop();
       else if (k === 'up') t.f.row = n && n.duration ? 'bar' : 'device';
       else if (k === 'left' && t.f.b > 0) t.f.b--;
       else if (k === 'right' && t.f.b < 3) t.f.b++;
-      else if (k === 'ok' && t.f.b === 3) {
-        /* Fade the layout out, switch it, fade it back in. */
-        if (t.switching) return;
-        t.switching = true;
-        setTimeout(function () { t.lyrics = !t.lyrics; if (t.lyrics) loadLyrics(); t.switching = false; render(); }, 200);
-      }
+      else if (k === 'right' && volumeAvailable(n)) { t.f.row = 'volume'; t.f.v = 0; }
+      else if (k === 'ok' && t.f.b === 3) toggleLyrics(t);
       else if (k === 'ok') spotifyKey(['prev', 'toggle', 'next'][t.f.b]);
     },
     point: function (t, z, i) {
       if (z === 'npdevrow' && t.dev) { t.dev.i = i; deviceKey(t, 'ok'); }
       else if (t.dev) return;
       else if (z === 'np') { t.f.row = 'controls'; t.f.b = i; this.key(t, 'ok'); } else if (z === 'npbar') t.f.row = 'bar';
+      else if (z === 'npvol') { t.f.row = 'volume'; t.f.v = i ? 1 : 0; this.key(t, 'ok'); }
       else if (z === 'npdev') { t.f.row = 'device'; openDevices(t); }
     }
   };
@@ -1794,6 +1879,22 @@
       else { n.progress = to; n.at = Date.now(); n.ended = false; lyr.line = -2; lyr.snap = true; }
       render(); spotifyPoll(1200);
     }, to);
+  }
+  /* Volume of the device the music plays on, set with the − and + of the volume pill. The change shows
+     at once and the PUT is sent shortly after, so repeated presses do not flood the API. */
+  var volState = { v: null, timer: null };
+  function volumeAvailable(n) { return !!(n && n.supportsVolume && typeof n.volume === 'number'); }
+  function setVolume(v) {
+    var n = spot.now; if (!n) return;
+    volState.v = Math.max(0, Math.min(100, Math.round(v)));
+    n.volume = volState.v;
+    clearTimeout(volState.timer); volState.timer = setTimeout(commitVolume, 350);
+    render();
+  }
+  function commitVolume() {
+    var to = volState.v; clearTimeout(volState.timer); volState.timer = null;
+    if (to === null) return;
+    FS.control('volume', function (err) { volState.v = null; if (err) showToast(spotifyErrText(err)); render(); spotifyPoll(1200); }, to);
   }
   /* Colour-button legend: bottom left, beside where the remote's colour picker appears. */
   /* The remote's on-screen colour picker does not reach the app (checked with the remote test), so the
@@ -3273,8 +3374,8 @@
     },
     nowplaying: function () {
       return '<div class="np" data-slot="np"><div class="np-art-wrap" data-slot="artwrap"><img class="np-art" data-slot="art" alt=""></div>'
-        + '<div class="np-copy"><p class="np-device" data-slot="device" data-z="npdev" data-i="0"></p><h2 class="np-title" data-slot="title"></h2><p class="np-artist" data-slot="artist"></p><p class="np-album" data-slot="album"></p>'
-        + '<div class="np-progress" data-slot="progress"></div><div class="np-controls" data-slot="controls"></div></div>'
+        + '<div class="np-copy"><p class="np-device" data-slot="device" data-z="npdev" data-i="0"></p><h2 class="np-title" data-slot="title"></h2><p class="np-artist" data-slot="artist"></p><p class="np-album" data-slot="album"></p><p class="np-fact" data-slot="fact"></p>'
+        + '<div class="np-progress" data-slot="progress"></div><div class="np-ctl-row"><div class="np-controls" data-slot="controls"></div><div class="np-volume" data-slot="volume"></div></div></div>'
         + '<div class="np-lyrics" data-slot="lyrics" aria-live="off"></div><div class="np-devices" data-slot="devices" role="dialog"></div></div>';
     },
     alexalist: function () {
@@ -3450,8 +3551,11 @@
       el.device.className = 'np-device' + (t.f.row === 'device' && !t.dev ? ' is-focus' : '');
       growDevices(el.devices, t);
       setHTML(el.title, t.lyrics && n ? mq(n.title) : esc(n ? n.title : T('Nothing is playing on Spotify.')));
+      fitTitle(el.title, t.lyrics);
       setHTML(el.artist, t.lyrics && n ? mq(n.artist) : esc(n ? n.artist : ''));
-      setHTML(el.album, esc(n ? n.album : ''));
+      var info = !t.lyrics ? songFacts(n) : null, year = info && info.year || (n && n.albumType !== 'compilation' ? n.albumYear : 0);
+      setHTML(el.album, esc(n ? n.album + (year ? ' · ' + year : '') : ''));
+      setHTML(el.fact, info && info.text ? '<span class="np-fact-tag">' + esc(T('From Wikipedia')) + '</span>' + esc(info.text) : '');
       setHTML(el.progress, n ? progressHtml(n) : ''); paintProgress();
       el.progress.className = 'np-progress' + (t.f.row === 'bar' ? ' is-focus' : '') + (seek.at !== null ? ' is-seeking' : '');
       el.progress.setAttribute('data-z', 'npbar'); el.progress.setAttribute('data-i', '0');
@@ -3462,7 +3566,15 @@
         return '<button type="button" tabindex="-1" class="np-btn' + (i === 1 ? ' np-main' : '') + (i === 3 ? ' np-lyrics-btn' + (t.lyrics ? ' is-active' : '') : '') + (t.f.row === 'controls' && !t.dev && t.f.b === i ? ' is-focus' : '') + '" data-z="np" data-i="' + i + '" data-action="np.' + ['prev', 'toggle', 'next', 'lyrics'][i] + '"'
           + (i === 3 ? ' aria-pressed="' + !!t.lyrics + '"' : '') + ' aria-label="' + esc(label) + '">' + icon(name) + (i === 3 ? '<span>' + esc(label) + '</span>' : '') + '</button>';
       }).join(''));
-      placeLyrics();
+      var volOn = volumeAvailable(n), vpct = volOn ? Math.max(0, Math.min(100, Math.round(n.volume))) : 0, vmuted = volOn && vpct === 0;
+      el.volume.className = 'np-volume' + (volOn ? '' : ' is-off') + (t.f.row === 'volume' && !t.dev ? ' is-focus' : '');
+      if (volOn) {
+        var vbtn = function (i) {
+          return '<button type="button" tabindex="-1" class="np-vol-btn' + (t.f.row === 'volume' && !t.dev && (t.f.v || 0) === i ? ' is-focus' : '') + '" data-z="npvol" data-i="' + i + '" data-action="np.vol' + (i ? 'up' : 'down') + '" aria-label="' + esc(T(i ? 'Volume up' : 'Volume down')) + '">' + icon(i ? 'plus' : 'minus') + '</button>';
+        };
+        setHTML(el.volume, vbtn(0) + '<span class="np-vol-val" aria-label="' + esc(T('Volume') + ' ' + vpct + '%') + '">' + icon(vmuted ? 'mute' : 'volume') + '<span class="np-vol-pct">' + vpct + '%</span></span>' + vbtn(1));
+      } else setHTML(el.volume, '');
+      placeLyrics(); fitFact(el.fact);
     },
     alexalist: function (t, el) {
       var rows = alexaRows(t), words = alexaListText(t), html = '', i, r, sub;

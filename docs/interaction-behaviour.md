@@ -231,3 +231,48 @@ The Light background is removed with its styles; Photo and Dark remain.
 - **Pass-phrase and encryption**: you type a pass-phrase on the TV. The file is `{ v, kdf:{salt,iters}, nonce, d, m }`: the key is stretched from the pass-phrase with repeated SHA-256 over a random salt (20000 rounds), the body is the project keystream = SHA-256(key | nonce | counter) XORed over the bytes (the same cipher as the calendar), and a 16-byte MAC over (key | plaintext) detects a wrong pass-phrase or a damaged file. All of it runs on the TV with the bundled SHA-256; the pass-phrase and the readable settings never leave the TV.
 - **Transfer**: the encrypted file moves through a private ntfy.sh channel (`framehome-bk-…`) in numbered parts of 1200 characters (`{id,i,n,code}`), since a channel message is short. Export: the TV publishes the parts (and re-publishes every 8 s so a late phone still catches them); the [backup page](docs/backup/index.html) collects them, rebuilds the file and offers it to **save or share** (Google Drive, Files, email — the phone's own share sheet). Restore: the page reads a chosen file and sends it back in the same parts; the TV joins them, asks for the pass-phrase, decrypts, writes the keys and reloads. The relay and the saved file only ever hold ciphertext.
 - **Screens**: Create a backup and Restore both use the QR + steps + status panel (the same frame as the sign-ins). The pass-phrase uses the on-screen keyboard (shown as dots). A wrong pass-phrase, a file from a newer version, or a file that is not a backup each say so and OK tries again.
+
+## 0.35
+
+- **Spotify volume** on the big Now playing screen: a focusable row under the transport controls. Down from the controls reaches it; Left/Right step it 5 %, OK mutes and restores the previous level. The change shows at once and the `PUT /me/player/volume` is sent after a short pause, so holding a key does not flood the API. It controls the Spotify playback volume on the device the music plays on, not the TV's own volume. Premium is required, like every playback control. The row is hidden when the active device reports `supports_volume: false` (and when nothing is playing); the mini Home widget has no volume control.
+
+## 0.35.1
+
+The volume row now looks like the progress bar above it: the same 6 px bar with the same left and right ends, the same focus (the bar grows to 12 px with a white fill and a light ring, and the hint appears underneath), a speaker-with-waves icon (a crossed speaker when muted) and the level on the right where the song length is.
+
+## 0.35.2
+
+- **Volume beside Lyrics**: the volume is a short bar (340 px) in the same row as the buttons, after Lyrics. Right from Lyrics focuses it; Left/Right step 5 %, OK mutes and restores, Back returns to Lyrics (it no longer closes Now playing from there), Up goes to the progress bar. With lyrics open the column is 400 px wide, so the volume sits under the buttons at the cover's width.
+- **Cover height**: without lyrics the text column is exactly as tall as the 560 px cover: "Playing on" at its top edge, the buttons and volume at its bottom edge, the progress bar just above them; the title block stays at the top.
+- **No jump on focus**: the progress hint and the volume hint are drawn in reserved space (absolutely positioned), so focusing the progress bar or the volume moves nothing. The volume hint is right-aligned under the row (under the buttons with lyrics open).
+
+## 0.35.3
+
+- **Volume pill**: the volume is a pill as tall as the Lyrics button, with a − button, the level (speaker icon and percentage; a crossed speaker at 0 %) and a + button. − and + are ordinary buttons: OK steps the volume by 5 %, there is no special mode and no hint. Without lyrics the pill follows Lyrics in the button row (Right from Lyrics reaches −, Left from − returns to Lyrics, Up goes to the progress bar). With lyrics open it is the row under the buttons (Down reaches it, Up returns; Right from Lyrics no longer jumps down to it). Back closes Now playing from the pill as from any other button. The OK-mute of 0.35–0.35.2 is gone: − down to 0 % mutes.
+
+## 0.35.4
+
+With lyrics open the buttons are two rows, both centred under the progress bar: previous, play/pause and next; then Lyrics with the volume pill beside it. Down from the first row goes to Lyrics, Up from the second row returns to the button you came from (play/pause by default); Right from Lyrics reaches −, Left from − returns to Lyrics. Down from the progress bar lands in the first row. Without lyrics nothing changes.
+
+## 0.36
+
+- **Song facts** (`app/assets/songfacts.js`, `window.FrameSongFacts`) on the large Now playing screen without lyrics. Looked up once per song (cached for the session; a failed request is retried next time).
+- **Year**: on the album line ("Album · 1987"). Wikidata's earliest publication date (P577) of the matched article's item; otherwise Spotify's album `release_date` year, left out when `album_type` is `compilation`.
+- **Fact**: one sentence from English Wikipedia, between the album line and the progress bar, prefixed by a small "From Wikipedia" label, two lines at most (one if the title wraps, hidden if even that would push the buttons off the cover's bottom edge; measured on layout boxes, since a focused button's scale would count as overflow). Hidden with lyrics open.
+- **Matching** (search `<title> <artist> song` on en.wikipedia.org, 6 results with intro extracts): the article title without its parenthetical must equal the cleaned song title (" - Remastered …", "(feat. …)", "(Live)" and similar removed), a parenthetical must say song or single, the introduction must contain the main artist and the word song/single/track, and disambiguation pages are skipped. No match → year only.
+- **Sentence choice** from the full plain text: a "story" sentence (inspired, wrote, idea, originally, recorded in, shower, dream, …) in a Background / Writing / Composition / Recording / Inspiration / History section; else such a sentence in the introduction after its first one; else the first sentence of such a section; never from Charts, Track listing, Personnel and similar. 40–240 characters. Nothing is generated or paraphrased.
+- The Now playing rows no longer shrink to make room (a shrinking line was cut in half); the space above the buttons reserved for the progress hint is 44 px.
+
+## 0.36.1
+
+Long titles on the large Now playing screen first get smaller to stay on one line (68 → 60 → 52 → 48 px, measured against the 944 px text column); only a title that does not fit at 48 px wraps onto two lines, at 52 px. Before, a long title such as "I'll Be There for You - Theme From "Friends"" wrapped at 68 px and left no room for the song fact, which was then hidden.
+
+## 0.36.2
+
+Sentence choice for the song fact is now scored instead of taking the first match: strong signs of a story (originally, initially, inspired, last-minute, turned down, rejected, by accident, shower, dream, looped, in N minutes …) count three, plain ones (wrote, written, idea, based on, demo, recorded in …) one; a sentence that starts with a pronoun loses one (it leans on the one before), and one longer than 160 characters loses one (two lines on screen). Candidates are the introduction (not its first sentence) and Background / Writing / Composition / Recording / Inspiration / History sections, up to 220 characters. "Bros.", "Mt.", "Corp." and similar no longer end a sentence. With the real "I'll Be There for You" article this picks "American rock band R.E.M. was originally asked to allow their song "Shiny Happy People" to be used for the Friends theme, but they turned the opportunity down." instead of a sentence that starts "When Stipe rejected the offer"; that article is a test fixture.
+
+## 0.36.3
+
+- **Song facts on the TV**: `en.wikipedia.org` and `www.wikidata.org` were missing from the `<access>` list in `config.xml`, so Tizen blocked every lookup (the browser preview does not enforce it) and only Spotify's album year showed. Both are allowed now, and `scripts/check.py` fails when a host used in the app's JavaScript is not allowed there (the GitHub Pages host is only in phone QR codes and is skipped).
+- **Alexa readings stay**: a reading missing from one Alexa answer (battery sensors often answer without their value) keeps its last value on Home for up to an hour instead of disappearing until the next full answer. Opening Readings had brought it back only because it reads again.
+- **Day panel without a frame**: the holiday / name day / calendar panel is one tone of glass that fades out to the left, right and bottom like the docks; its top edge stays (rounded top corners). The fade is a box-shadow of the same colour (24 px blur, 24 px spread, pushed 48 px down so nothing shows above the panel); no mask, no filter. The thin inset edge lines are gone.
