@@ -111,7 +111,7 @@
   }
 
   if (!TOPIC.test(frag.t || '') || !/^[A-Za-z0-9_-]{43}$/.test(frag.c || '') || !/^[0-9a-f]{32}$/.test(frag.i || '')) { document.body.className = 'no-channel'; return; }
-  var q = { response_type: 'code', client_id: frag.i, scope: frag.s || 'user-read-currently-playing user-read-playback-state user-modify-playback-state',
+  var q = { response_type: 'code', client_id: frag.i, scope: frag.s || 'user-read-currently-playing user-read-playback-state user-modify-playback-state user-library-read user-library-modify',
     redirect_uri: redirect, code_challenge_method: 'S256', code_challenge: frag.c, state: frag.t };
   document.getElementById('go').href = 'https://accounts.spotify.com/authorize?' + Object.keys(q).map(function (k) { return encodeURIComponent(k) + '=' + encodeURIComponent(q[k]); }).join('&');
 }());

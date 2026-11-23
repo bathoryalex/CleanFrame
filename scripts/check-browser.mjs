@@ -151,7 +151,7 @@ async function page(options = {}) {
   });
   // Spotify: token endpoint and the player API, answered locally.
   current.__spotify = { code: false, tokens: [], calls: [], playing: true, refuse: '' };
-  const sp = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'content-type, authorization', 'Access-Control-Allow-Methods': 'GET, POST, PUT' };
+  const sp = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'content-type, authorization', 'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE' };
   await current.route('https://accounts.spotify.com/**', route => {
     const r = route.request();
     if (r.method() === 'OPTIONS') return route.fulfill({ status: 204, headers: sp });
@@ -162,14 +162,24 @@ async function page(options = {}) {
     const r = route.request(), Q = current.__spotify, path = new URL(r.url()).pathname;
     if (r.method() === 'OPTIONS') return route.fulfill({ status: 204, headers: sp });
     if (r.headers()['authorization'] !== 'Bearer BQtest') return route.fulfill({ status: 401, headers: sp, contentType: 'application/json', body: '{"error":{"status":401}}' });
+    // Liked Songs: the 2026 /me/library endpoints, or only the old /me/tracks ones (Q.lib 'old'), or a sign-in without the library scope (Q.lib 'scope').
+    if (/^\/v1\/me\/(library|tracks)/.test(path)) {
+      const old = path.startsWith('/v1/me/tracks'), u = new URL(r.url());
+      Q.libCalls = (Q.libCalls || []).concat(r.method() + ' ' + path + u.search);
+      if (Q.lib === 'scope') return route.fulfill({ status: 403, headers: sp, contentType: 'application/json', body: JSON.stringify({ error: { status: 403, message: 'Insufficient client scope' } }) });
+      if ((Q.lib === 'old') !== old) return route.fulfill({ status: 404, headers: sp, contentType: 'application/json', body: JSON.stringify({ error: { status: 404, message: 'Not found.' } }) });
+      if (path.endsWith('/contains')) return route.fulfill({ headers: sp, contentType: 'application/json', body: JSON.stringify([!!Q.liked]) });
+      Q.liked = r.method() === 'PUT';
+      return route.fulfill({ status: 200, headers: sp, body: '' });
+    }
     if (r.method() === 'GET' && path.endsWith('/devices') && Q.slowDevices) { setTimeout(() => route.fulfill({ headers: sp, contentType: 'application/json', body: JSON.stringify({ devices: [{ id: 'dev-echo', is_active: true, is_restricted: false, name: 'Echo Dot Max', type: 'Speaker' }, { id: 'dev-pc', is_active: false, is_restricted: false, name: 'Desk PC', type: 'Computer' }, { id: 'dev-car', is_active: false, is_restricted: true, name: 'Car', type: 'Automobile' }] }) }), 900); return; }
     if (r.method() === 'GET' && path.endsWith('/devices')) return route.fulfill({ headers: sp, contentType: 'application/json', body: JSON.stringify({ devices: [
       { id: 'dev-echo', is_active: true, is_restricted: false, name: 'Echo Dot Max', type: 'Speaker' }, { id: 'dev-pc', is_active: false, is_restricted: false, name: 'Desk PC', type: 'Computer' },
       { id: 'dev-car', is_active: false, is_restricted: true, name: 'Car', type: 'Automobile' }, { id: null, name: 'Ghost', type: 'Speaker' }]
       .concat(Q.many ? Array.from({ length: 11 }, (_, i) => ({ id: 'dev-x' + i, is_active: false, is_restricted: false, name: 'Echo ' + (i + 1), type: 'Speaker' })) : []) }) });
     if (r.method() === 'GET') return route.fulfill({ headers: sp, contentType: 'application/json', body: JSON.stringify({ is_playing: Q.playing, device: { name: Q.device || 'Echo Dot Max', volume_percent: Q.volume == null ? 40 : Q.volume, supports_volume: Q.supportsVolume !== false },
-      progress_ms: 61000, item: { id: 't1', name: Q.title || 'Song A', duration_ms: 210000, artists: Q.artists || [{ name: 'Artist A' }, { name: 'Guest B' }], album: { name: 'Album A', release_date: Q.releaseDate || '2001-05-01', album_type: Q.albumType || 'album', images: [{ url: 'https://i.scdn.co/image/big', width: 640 }, { url: 'https://i.scdn.co/image/small', width: 64 }] } } }) });
-    Q.calls.push(r.method() + ' ' + path); if (/seek/.test(path)) Q.seekUrl = r.url(); if (/volume/.test(path)) { Q.volumeUrl = r.url(); Q.volume = Number(new URL(r.url()).searchParams.get('volume_percent')); }
+      progress_ms: 61000, item: { id: Q.id || '4uLU6hMCjMI75M1A2tKUQC', name: Q.title || 'Song A', duration_ms: 210000, artists: Q.artists || [{ name: 'Artist A' }, { name: 'Guest B' }], album: { name: 'Album A', release_date: Q.releaseDate || '2001-05-01', album_type: Q.albumType || 'album', images: [{ url: 'https://i.scdn.co/image/big', width: 640 }, { url: 'https://i.scdn.co/image/small', width: 64 }] } } }) });
+    Q.calls.push(r.method() + ' ' + path); if (/seek/.test(path)) Q.seekUrl = r.url(); if (/volume/.test(path)) { Q.volumeUrl = r.url(); if (!Q.volumeSticky) Q.volume = Number(new URL(r.url()).searchParams.get('volume_percent')); }
     if (r.method() === 'PUT' && path === '/v1/me/player') { Q.transfer = JSON.parse(r.postData() || '{}'); Q.device = 'Desk PC'; return route.fulfill({ status: 204, headers: sp, body: '' }); }
     if (Q.refuse) return route.fulfill({ status: 403, headers: sp, contentType: 'application/json', body: JSON.stringify({ error: { status: 403, message: 'Player command failed: Premium required', reason: Q.refuse } }) });
     if (path.endsWith('/pause')) Q.playing = false; if (path.endsWith('/play')) Q.playing = true;
@@ -625,7 +635,7 @@ try {
     check('Left from the first Home control focuses the song', (await current.evaluate(() => ShoreQA.where())).zone === 'music' && await current.evaluate(() => !!document.querySelector('.cap-music.is-focus')), await state());
     await nav('ok');
     await current.waitForFunction(() => ShoreQA.where().view === 'nowplaying');
-    check('OK opens Now playing with the large cover, three controls and Lyrics', await current.evaluate(() => /\/big$/.test(document.querySelector('.np-art').src) && /Song A/.test(document.querySelector('.np-title').textContent) && document.querySelectorAll('.np-btn').length === 4 && document.querySelector('.np-btn.is-focus').getAttribute('data-action') === 'np.toggle'));
+    check('OK opens Now playing with the large cover, three controls and Lyrics', await current.evaluate(() => /\/big$/.test(document.querySelector('.np-art').src) && /Song A/.test(document.querySelector('.np-title').textContent) && document.querySelectorAll('.np-controls .np-btn').length === 4 && document.querySelector('.np-btn.is-focus').getAttribute('data-action') === 'np.toggle'));
     await nav('right', 'ok');
     await current.waitForFunction(() => /Next track|Következő/.test(document.getElementById('alexaToast').textContent));
     check('Its controls drive Spotify', current.__spotify.calls[0] === 'POST /v1/me/player/next');
@@ -743,8 +753,8 @@ try {
     check('Left from minus goes back to Lyrics', await current.evaluate(() => !!document.querySelector('.np-lyrics-btn.is-focus') && !document.querySelector('.np-vol-btn.is-focus')));
     await nav('ok'); await current.waitForTimeout(400);
     const gl = await current.evaluate(() => { const r = e => document.querySelector(e).getBoundingClientRect(), mid = b => (b.left + b.right) / 2;
-      const bar = r('.np-progress .music-bar'), prev = r('.np-btn[data-i="0"]'), next = r('.np-btn[data-i="2"]'), lyr = r('.np-lyrics-btn'), vol = r('.np-volume'), play = r('.np-main');
-      return { bar: mid(bar), row1: (prev.left + next.right) / 2, row2: (lyr.left + vol.right) / 2, row1Top: play.top, row1Bottom: play.bottom, lyrTop: lyr.top, volTop: vol.top, lyrMid: (lyr.top + lyr.bottom) / 2, volMid: (vol.top + vol.bottom) / 2 }; });
+      const bar = r('.np-progress .music-bar'), prev = r('.np-btn[data-i="0"]'), next = r('.np-btn[data-i="2"]'), lyr = r('.np-lyrics-btn'), vol = r('.np-volume'), play = r('.np-main'), last = document.querySelector('.np-like') ? r('.np-like') : vol;
+      return { bar: mid(bar), row1: (prev.left + next.right) / 2, row2: (lyr.left + last.right) / 2, row1Top: play.top, row1Bottom: play.bottom, lyrTop: lyr.top, volTop: vol.top, lyrMid: (lyr.top + lyr.bottom) / 2, volMid: (vol.top + vol.bottom) / 2 }; });
     check('With lyrics open: previous, play and next in one row, Lyrics and the volume in a row below, both centred under the progress bar',
       Math.abs(gl.row1 - gl.bar) <= 3 && Math.abs(gl.row2 - gl.bar) <= 3 && gl.lyrTop >= gl.row1Bottom && Math.abs(gl.lyrMid - gl.volMid) <= 2, gl);
     check('Lyrics stays focused after opening', await current.evaluate(() => !!document.querySelector('.np-lyrics-btn.is-focus')));
@@ -763,8 +773,62 @@ try {
     await nav('up', 'left', 'ok');
     await current.waitForFunction(() => ShoreQA.where().view === 'nowplaying');
     await nav('right', 'right', 'right');
-    check('Without volume support the volume is hidden and Right stops at Lyrics', await current.evaluate(() => !!document.querySelector('.np-volume.is-off') && !!document.querySelector('.np-lyrics-btn.is-focus')));
+    check('Without volume support the volume is hidden and Right from Lyrics reaches the heart', await current.evaluate(() => !!document.querySelector('.np-volume.is-off') && !!document.querySelector('.np-like.is-focus')));
+    await nav('left');
+    check('Left from the heart goes back to Lyrics when there is no volume', await current.evaluate(() => !!document.querySelector('.np-lyrics-btn.is-focus')));
     current.__spotify.supportsVolume = true;
+  });
+  await run('Spotify: Liked Songs heart, and a volume the speaker ignores', async () => {
+    const Q = () => current.__spotify;
+    await page();
+    await current.evaluate(() => localStorage.setItem('cleanframe.spotify.v1', JSON.stringify({ refresh: 'AQtest', access: 'BQtest', until: Date.now() + 3600000 })));
+    Q().volume = 32; Q().supportsVolume = true; Q().liked = false; Q().lib = ''; Q().libCalls = [];
+    current.__expectedFailures.push('api.spotify.com/v1/me/library');
+    const open = async () => { await current.reload(); await ready(); await current.waitForFunction(() => document.querySelector('.cap-music')); await nav('up', 'left', 'ok'); await current.waitForFunction(() => ShoreQA.where().view === 'nowplaying'); await current.waitForFunction(() => document.querySelector('.np-like')); await current.waitForTimeout(300); };
+    await open();
+    const look = () => current.evaluate(() => { const b = document.querySelector('.np-like'), r = e => document.querySelector(e).getBoundingClientRect(), ico = getComputedStyle(b.querySelector('.ico'));
+      return { on: b.classList.contains('is-on'), focus: b.classList.contains('is-focus'), fill: ico.fill, stroke: ico.stroke, like: r('.np-like'), vol: r('.np-volume'), copy: r('.np-copy'), row: r('.np-ctl-row'), art: r('.np-art-wrap') }; });
+    const l0 = await look();
+    check('The heart sits after the volume pill, inside the text column, on the cover bottom edge', l0.like.left > l0.vol.right && l0.like.right <= l0.copy.right + 1 && Math.abs(l0.row.bottom - l0.art.bottom) <= 2, l0);
+    check('A song that is not in Liked Songs shows a white outline heart', !l0.on && l0.fill === 'none' && /255, 255, 255|246, 241, 231/.test(l0.stroke), l0);
+    check('Whether it is liked is asked with the 2026 library endpoint', Q().libCalls.some(c => c === 'GET /v1/me/library/contains?uris=spotify%3Atrack%3A4uLU6hMCjMI75M1A2tKUQC'), Q().libCalls);
+    await nav('right', 'right', 'right', 'right', 'right');
+    check('Right from plus on the volume reaches the heart', (await look()).focus);
+    await nav('ok'); await current.waitForTimeout(400);
+    const l1 = await look();
+    check('OK adds the song to Liked Songs and the heart turns green', Q().liked === true && l1.on && /30, 215, 96|19, 156, 69/.test(l1.fill) && Q().libCalls.some(c => /^PUT \/v1\/me\/library\?uris=spotify%3Atrack%3A/.test(c)), { l1, calls: Q().libCalls });
+    check('A toast says it was added', await current.evaluate(() => /Added to Liked Songs/.test(document.body.textContent)));
+    await nav('ok'); await current.waitForTimeout(400);
+    check('OK again removes it and the heart is white again', Q().liked === false && !(await look()).on && Q().libCalls.some(c => /^DELETE \/v1\/me\/library\?uris=/.test(c)));
+    await nav('left');
+    check('Left from the heart goes back to plus', await current.evaluate(() => { const f = document.querySelector('.np-vol-btn.is-focus'); return !!f && f.getAttribute('data-i') === '1'; }));
+    // Liked elsewhere (on the phone): green when the song comes up.
+    Q().liked = true; await open();
+    check('A song already in Liked Songs shows a green heart', (await look()).on);
+    // Only the old endpoints: the fallback still works.
+    Q().lib = 'old'; Q().liked = false; Q().libCalls = []; await open();
+    await nav('right', 'right', 'right', 'right', 'right', 'ok'); await current.waitForTimeout(400);
+    check('If Spotify has only the old /me/tracks endpoints the heart still works', Q().liked === true && (await look()).on && Q().libCalls.some(c => /^PUT \/v1\/me\/tracks\?ids=4uLU6hMCjMI75M1A2tKUQC/.test(c)), Q().libCalls);
+    // A sign-in from before 0.37 lacks the library permission: the heart says how to fix it instead of failing silently.
+    Q().lib = 'scope'; Q().liked = false; await open();
+    await nav('right', 'right', 'right', 'right', 'right', 'ok'); await current.waitForTimeout(400);
+    check('Without the library permission the heart stays white and asks you to connect again', !(await look()).on && await current.evaluate(() => /needs one more Spotify permission/.test(document.body.textContent)));
+    Q().lib = '';
+    // With lyrics open the heart is in the second row after the volume, and the row stays centred.
+    await open(); await nav('right', 'right', 'ok'); await current.waitForTimeout(500);
+    const g = await current.evaluate(() => { const r = e => document.querySelector(e).getBoundingClientRect(), bar = r('.np-progress .music-bar'), lyr = r('.np-lyrics-btn'), like = r('.np-like'), copy = r('.np-copy');
+      return { bar: (bar.left + bar.right) / 2, row2: (lyr.left + like.right) / 2, likeMid: (like.top + like.bottom) / 2, lyrMid: (lyr.top + lyr.bottom) / 2, left: lyr.left, right: like.right, copyL: copy.left, copyR: copy.right }; });
+    check('With lyrics open the heart follows the volume in the centred second row', Math.abs(g.row2 - g.bar) <= 3 && Math.abs(g.likeMid - g.lyrMid) <= 2 && g.left >= g.copyL - 1 && g.right <= g.copyR + 1, g);
+    await nav('right', 'right', 'right');
+    check('With lyrics open Right from plus reaches the heart', (await look()).focus);
+    // A speaker group that ignores the volume: the pill holds what you chose, then says so and shows the truth.
+    Q().volumeSticky = true; Q().volume = 32;
+    await open();
+    await nav('right', 'right', 'right', 'right', 'ok', 'ok'); await current.waitForTimeout(2500);
+    check('While Spotify has not confirmed it, the pill keeps showing the volume you chose', await current.evaluate(() => document.querySelector('.np-vol-pct').textContent) === '42%');
+    await current.waitForFunction(() => document.querySelector('.np-vol-pct').textContent === '32%', null, { timeout: 15000 });
+    check('When the speaker keeps its volume, the pill shows the real level and a toast explains', await current.evaluate(() => /kept its own volume \(32%\)/.test(document.body.textContent)));
+    Q().volumeSticky = false;
   });
   await run('Spotify: song facts from Wikipedia on Now playing', async () => {
     const W = () => current.__wiki;
@@ -776,8 +840,16 @@ try {
       other: FrameSongFacts._matches({ title: 'Song A (Other Band song)', extract: '"Song A" is a song by Other Band.' }, 'Song A', 'Artist A'),
       right: FrameSongFacts._matches({ title: 'Song A (Artist A song)', extract: '"Song A" is a song by American band Artist A.' }, 'Song A', 'Artist A'),
       pick: FrameSongFacts._pick('"Song A" is a song by Artist A. It was released in 1999 as a single.\n\n== Charts ==\nIt was written in ten minutes in a hotel.\n\n== Background ==\nThe band toured Europe in 1998. The idea for the song came to the singer in the shower one morning.\n'),
-      none: FrameSongFacts._pick('"Song A" is a song by Artist A. It reached number five.\n\n== Charts ==\nWeekly charts.\n')
+      none: FrameSongFacts._pick('"Song A" is a song by Artist A. It reached number five.\n\n== Charts ==\nWeekly charts.\n'),
+      // A cover: the article is about the original, and this artist only turns up later in it.
+      cover: FrameSongFacts._matches({ title: "Beggin'", extract: '"Beggin\'" is a song written by Bob Gaudio and Peggy Farina, originally recorded by the Four Seasons in 1967. Norwegian duo Artist A covered it in 2007.' }, 'Beggin', 'Artist A'),
+      // "Parker …" means nothing on its own; the sentence that names him in full is fine.
+      bare: FrameSongFacts._pickFull('"Song A" is a song by Artist A, the project of Kevin Parker.\n\n== Background ==\nParker originally wrote the song in a hotel room after a long breakup.\nThe chorus was written later. Kevin Parker originally sang it in falsetto on a whim one night.\n', 'Artist A'),
+      dull: FrameSongFacts._pick('"Song A" is a song by Artist A.\n\n== Background ==\nThe song was written by Nina Persson and Peter Svensson in Malmo.\n', 'Artist A')
     }));
+    check('A cover is not given the original\'s article', unit.cover === false, unit);
+    check('A sentence about someone named only by surname is skipped; the read-more text adds the sentences after it', unit.bare.text === 'Kevin Parker originally sang it in falsetto on a whim one night.' && unit.bare.more === unit.bare.text, unit.bare);
+    check('A sentence that only says who wrote the song is not worth showing', unit.dull === '', unit.dull);
     check('Song titles are cleaned of remaster, featuring and live tags', unit.clean.join('|') === 'Bohemian Rhapsody|Song A|Song A', unit.clean);
     check('Only the article about this song by this artist matches', !unit.film && !unit.other && unit.right, unit);
     check('The fact is a story sentence from Background, not from the charts or the opening line', unit.pick === 'The idea for the song came to the singer in the shower one morning.' && unit.none === '', unit);
@@ -792,6 +864,17 @@ try {
     const shown = await current.evaluate(() => { const r = e => document.querySelector(e).getBoundingClientRect(); return { album: document.querySelector('.np-album').textContent, fact: document.querySelector('.np-fact').textContent, row: r('.np-ctl-row').bottom, art: r('.np-art-wrap').bottom, factBottom: r('.np-fact').bottom, bar: r('.np-progress').top, visible: getComputedStyle(document.querySelector('.np-fact')).display !== 'none' && r('.np-fact').height > 20, lines: Math.round(r('.np-fact').height / 30) }; });
     check('The album line shows the song\'s own year from Wikidata, not the remaster album year', shown.album === 'Album A · 1999', shown);
     check('A short Wikipedia fact is shown, labelled, between the album line and the progress bar', /^From Wikipedia/.test(shown.fact) && /shower/.test(shown.fact) && shown.visible && shown.lines === 2 && shown.factBottom <= shown.bar && Math.abs(shown.row - shown.art) <= 2, shown);
+    await nav('up', 'up');
+    const ff = await current.evaluate(() => { const f = document.querySelector('.np-fact'), r = e => document.querySelector(e).getBoundingClientRect(); return { focus: f.classList.contains('is-focus'), bar: r('.np-progress').top, row: r('.np-ctl-row').bottom, art: r('.np-art-wrap').bottom }; });
+    check('Up from the progress bar focuses the fact, and nothing moves', ff.focus && Math.abs(ff.row - ff.art) <= 2 && ff.bar === shown.bar, { ff, shown });
+    await nav('ok'); await current.waitForTimeout(400);
+    const fp = await current.evaluate(() => { const p = document.querySelector('.np-factpanel'); return { open: p.classList.contains('is-open') && getComputedStyle(p).visibility === 'visible', text: p.textContent }; });
+    check('OK opens the whole fact in a panel, labelled From Wikipedia with the article title', fp.open && /From Wikipedia/.test(fp.text) && /Song A/.test(fp.text) && /Scandinavian/.test(fp.text) && /CC BY-SA/.test(fp.text), fp);
+    await nav('back'); await current.waitForTimeout(300);
+    check('Back closes the panel and stays on Now playing', await current.evaluate(() => !document.querySelector('.np-factpanel.is-open') && ShoreQA.where().view === 'nowplaying' && document.querySelector('.np-fact').classList.contains('is-focus')));
+    await nav('up', 'down', 'down');
+    check('Up from the fact reaches the device line; Down goes fact, then progress bar', await current.evaluate(() => !!document.querySelector('.np-progress.is-focus')));
+    await nav('down');
     check('The search asked for the cleaned title and the artist', W().calls.some(c => /gsrsearch=Song\+A\+Artist\+A\+song|gsrsearch=Song%20A%20Artist%20A%20song/.test(c)), W().calls);
     await nav('right', 'right', 'ok'); await current.waitForTimeout(500);
     check('With lyrics open the fact is hidden', await current.evaluate(() => getComputedStyle(document.querySelector('.np-fact')).display === 'none'));

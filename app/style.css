@@ -688,16 +688,19 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000}
 .np:not(.is-lyrics) .np-copy>*{flex-shrink:0}
 .np-progress{margin-top:auto;padding-top:24px}
 /* A short fact about the song from Wikipedia, between the album line and the progress bar (two lines at most). */
-.np-fact{margin:12px 0 0;font-size:23px;line-height:30px;color:rgba(246,241,231,.78);overflow:hidden;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2}
+.np-fact{margin:12px 0 0;font-size:23px;line-height:30px;color:rgba(246,241,231,.78);overflow:hidden;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;border-radius:8px;transition:background-color 140ms linear,color 140ms linear,box-shadow 140ms linear}
+/* Focused, it inverts like the device line; the ring is a box-shadow so the layout does not move. */
+.np-fact.is-focus{background:#f6f1e7;color:#141618;box-shadow:0 0 0 10px #f6f1e7}
+.np-fact.is-focus .np-fact-tag{color:rgba(20,22,24,.55)}
 .np-fact:empty,.np-fact.is-hidden{display:none}
 .np-fact.is-one{-webkit-line-clamp:1}
 .np-fact-tag{margin-right:12px;font-size:17px;font-weight:600;letter-spacing:1.2px;text-transform:uppercase;color:rgba(246,241,231,.5)}
 .np.is-lyrics .np-fact{display:none}
 .np-progress .music-bar{height:6px;border-radius:3px}
-.np-controls{display:flex;align-items:center;gap:28px}
+.np-controls{display:flex;align-items:center;gap:24px}
 /* The buttons and the volume share one row; the space above it is where the progress hint appears,
    so focusing the bar never moves anything. */
-.np-ctl-row{display:flex;align-items:center;gap:40px;margin-top:44px}
+.np-ctl-row{display:flex;align-items:center;gap:24px;margin-top:44px}
 .np-btn{display:flex;align-items:center;justify-content:center;width:96px;height:96px;border-radius:50%;color:var(--ink);background:rgba(255,255,255,.08);transition:transform 160ms var(--ease),background-color 140ms linear,color 140ms linear}
 .np-btn .ico{width:40px;height:40px;stroke-width:2;fill:currentColor}
 .np-main{width:128px;height:128px}
@@ -706,13 +709,28 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000}
 /* Volume of the playing device: a pill like Lyrics with − and + buttons and the level between them. */
 .np-volume{display:flex;align-items:center;gap:4px;height:96px;padding:0 8px;border-radius:48px;background:rgba(255,255,255,.08)}
 .np-volume.is-off{display:none}
-.np-vol-btn{display:flex;align-items:center;justify-content:center;width:80px;height:80px;border-radius:50%;color:var(--ink);transition:transform 160ms var(--ease),background-color 140ms linear,color 140ms linear}
+.np-vol-btn{display:flex;align-items:center;justify-content:center;width:76px;height:76px;border-radius:50%;color:var(--ink);transition:transform 160ms var(--ease),background-color 140ms linear,color 140ms linear}
 .np-vol-btn .ico{width:34px;height:34px;stroke-width:2.2}
 .np-vol-btn.is-focus{background:var(--solid);color:var(--solid-ink)}
-.np-vol-val{display:flex;align-items:center;justify-content:center;gap:10px;min-width:132px;font-size:28px;font-weight:500;font-variant-numeric:tabular-nums}
+.np-vol-val{display:flex;align-items:center;justify-content:center;gap:10px;min-width:116px;font-size:28px;font-weight:500;font-variant-numeric:tabular-nums}
 .np-vol-val .ico{width:32px;height:32px;stroke-width:1.8}
+/* Liked Songs: a white outline heart, filled Spotify green when the song is in your Liked Songs. */
+.np-like-wrap{display:flex}
+.np-like-wrap:empty{display:none}
+.np-btn.np-like .ico{fill:none;stroke:currentColor;stroke-width:2;width:40px;height:40px;transition:fill 160ms linear,stroke 160ms linear}
+.np-btn.np-like.is-on .ico{fill:#1ed760;stroke:#1ed760}
+.np-btn.np-like.is-on.is-focus .ico{fill:#139c45;stroke:#139c45}
+/* The fact's panel: the whole sentence and the one or two after it, over the text column. */
+.np-factpanel{position:absolute;right:0;top:50%;width:944px;min-height:600px;max-height:820px;padding:40px 48px 36px;box-sizing:border-box;display:flex;flex-direction:column;border-radius:28px;background:#121618;color:#f6f1e7;box-shadow:inset 0 0 0 1px rgba(255,255,255,.12),0 30px 80px rgba(4,8,10,.6);opacity:0;visibility:hidden;transform:translate3d(24px,-50%,0);transition:opacity 180ms linear,transform 260ms cubic-bezier(.22,1,.28,1),visibility 0s linear 260ms;z-index:2;overflow:hidden}
+.np-factpanel.is-open{opacity:1;visibility:visible;transform:translate3d(0,-50%,0);transition-delay:0s}
+.np-fp-tag{margin:0;font-size:20px;line-height:26px;font-weight:600;letter-spacing:1.4px;text-transform:uppercase;color:rgba(246,241,231,.5)}
+.np-fp-title{margin:8px 0 18px;font-size:38px;line-height:46px;font-weight:600;letter-spacing:-.6px}
+.np-fp-text{margin:0;font-size:30px;line-height:44px;color:rgba(246,241,231,.9)}
+.np-fp-foot{margin:auto 0 0;padding-top:22px;font-size:20px;line-height:26px;color:rgba(246,241,231,.5)}
 /* Lyrics: the cover and controls move left, the lines take the right; the current line is bright. */
-.np-btn.np-lyrics-btn{width:auto;padding:0 30px 0 24px;border-radius:48px;gap:12px;font-size:28px;font-weight:500}
+/* Lyrics is a round button like the others (its name is in aria-label), so the heart fits in the row. */
+.np-btn.np-lyrics-btn{font-size:28px;font-weight:500}
+.np-btn.np-lyrics-btn span{display:none}
 .np-btn.np-lyrics-btn .ico{fill:none;width:34px;height:34px}
 .np-btn.np-lyrics-btn.is-active:not(.is-focus){background:rgba(255,255,255,.22)}
 .np-lyrics{display:none}
@@ -728,17 +746,18 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000}
 /* With lyrics the column is 400 px wide: the volume goes under the buttons. */
 /* With lyrics open: previous, play/pause, next in one centred row under the progress bar, Lyrics and the
    volume in a second centred row (the zero-height ::before breaks the line). */
-.np.is-lyrics .np-ctl-row{flex-wrap:wrap;justify-content:center;column-gap:14px;row-gap:10px;width:400px;margin-top:46px}
+.np.is-lyrics .np-ctl-row{flex-wrap:wrap;justify-content:center;column-gap:12px;row-gap:10px;width:400px;margin-top:46px}
 .np.is-lyrics .np-ctl-row::before{content:"";order:2;flex-basis:100%;height:0}
 .np.is-lyrics .np-controls{display:contents}
 .np.is-lyrics .np-btn{order:1}
 .np.is-lyrics .np-btn.np-lyrics-btn{order:3}
 .np.is-lyrics .np-volume{order:4}
+.np.is-lyrics .np-like-wrap{order:5}
 .np.is-lyrics .np-volume{height:72px;padding:0 6px}
-.np.is-lyrics .np-vol-btn{width:60px;height:60px}
+.np.is-lyrics .np-vol-btn{width:56px;height:56px}
 .np.is-lyrics .np-vol-btn .ico{width:28px;height:28px}
-.np.is-lyrics .np-vol-val{min-width:112px;font-size:24px}
-.np.is-lyrics .np-vol-val .ico{width:26px;height:26px}
+.np.is-lyrics .np-vol-val{min-width:84px;gap:6px;font-size:22px}
+.np.is-lyrics .np-vol-val .ico{width:22px;height:22px}
 .np.is-lyrics .np-controls{gap:14px}
 .np.is-lyrics .np-btn{width:72px;height:72px}
 .np.is-lyrics .np-main{width:88px;height:88px}

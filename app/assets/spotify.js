@@ -9,7 +9,7 @@
   'use strict';
   var P = window.FramePKCE, cfg = window.FrameFork && window.FrameFork.spotify || {};
   var STORE = 'cleanframe.spotify.v1', API = 'https://api.spotify.com/v1', ACCOUNTS = 'https://accounts.spotify.com/api/token';
-  var SCOPES = 'user-read-currently-playing user-read-playback-state user-modify-playback-state';
+  var SCOPES = 'user-read-currently-playing user-read-playback-state user-modify-playback-state user-library-read user-library-modify';
   if (!P) return;
 
   var state = (function () { try { return JSON.parse(localStorage.getItem(STORE) || 'null'); } catch (e) { return null; } }());
@@ -43,7 +43,8 @@
   }
   function forget() { state = null; persist(); }
 
-  /* done(err, json) with json null for 204. Errors: 'revoked', 'premium', 'no device', 'busy' or HTTP n. */
+  /* done(err, json) with json null for 204. Errors: 'revoked', 'premium', 'scope' (the sign-in lacks a
+     permission), 'no device', 'busy' or HTTP n. */
   function api(method, path, done, retried, json) {
     token(!!retried, function (err, access) {
       if (err) { done(err); return; }
@@ -56,6 +57,7 @@
         if (r.status >= 200 && r.status < 300) { done(null, r.json); return; }
         if (r.status === 401) { done('revoked'); return; }
         if (r.status === 403 && /premium/i.test(reason)) { done('premium'); return; }
+        if (r.status === 403 && /scope/i.test(reason)) { done('scope'); return; }
         if (r.status === 404 || /no_active_device/i.test(reason)) { done('no device'); return; }
         if (r.status === 429) { done('busy'); return; }
         done(P.why(r) + (reason ? ' ' + reason : ''));
@@ -148,9 +150,32 @@
     });
   }
 
+  /* Liked Songs. Spotify moved saving to /me/library?uris= in 2026 and is retiring /me/tracks; the new
+     endpoint is tried first and the old one only when the new one is missing (404 reads as 'no device'
+     in api(), or another HTTP error). Sign-ins from before 0.37 lack the library permissions: 'scope'. */
+  function trackUri(id) { return /^[A-Za-z0-9]{22}$/.test(id || '') ? 'spotify:track:' + id : ''; }
+  function fallback(err) { return err && err !== 'scope' && err !== 'revoked' && err !== 'busy' && err !== 'premium'; }
+  function saved(id, done) {
+    var uri = trackUri(id);
+    if (!uri) { done('unknown'); return; }
+    api('GET', '/me/library/contains?uris=' + encodeURIComponent(uri), function (err, j) {
+      if (!err) { done(null, !!(j && j[0])); return; }
+      if (!fallback(err)) { done(err); return; }
+      api('GET', '/me/tracks/contains?ids=' + id, function (err2, j2) { done(err2, !err2 && !!(j2 && j2[0])); });
+    });
+  }
+  function save(id, on, done) {
+    var uri = trackUri(id), method = on ? 'PUT' : 'DELETE';
+    if (!uri) { done('unknown'); return; }
+    api(method, '/me/library?uris=' + encodeURIComponent(uri), function (err) {
+      if (!err || !fallback(err)) { done(err); return; }
+      api(method, '/me/tracks?ids=' + id, function (err2) { done(err2); });
+    });
+  }
+
   window.FrameSpotify = {
     configured: !!(cfg.clientId && /^[0-9a-f]{32}$/.test(cfg.clientId) && cfg.page),
     connected: function () { return !!state; },
-    pair: pair, forget: forget, nowPlaying: nowPlaying, control: control, lyrics: lyrics, devices: devices, transfer: transfer
+    pair: pair, forget: forget, nowPlaying: nowPlaying, control: control, lyrics: lyrics, devices: devices, transfer: transfer, saved: saved, save: save
   };
 }());

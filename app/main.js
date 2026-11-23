@@ -4,7 +4,7 @@
 
   /* ---------- Bundled data ---------- */
   var ASSETS = 'assets/', ICONS = ASSETS + 'icons/', WP = ASSETS + 'wallpapers/';
-  var APP_VERSION = '0.36.3';
+  var APP_VERSION = '0.37.0';
   var CAP = 9, SCRIM_Y = 560, DOCK_BOTTOM = 1032; // the Dock sits 48 px above the bottom edge; names and actions go above it
   var DOCK_MODES = { both: { tw: 288, th: 200, pitch: 296 }, text: { tw: 288, th: 104, pitch: 296 }, icons: { tw: 200, th: 156, pitch: 206 } }; // icons-only tiles leave room under the icon for the focused app's name
   var GRID_ROW = 240, GRID_COL = 344, COLS = 5;
@@ -116,6 +116,7 @@
     speaker: '<rect x="6" y="2.8" width="12" height="18.4" rx="2.4"/><circle cx="12" cy="14.5" r="3.2"/><circle cx="12" cy="7.2" r="1"/>',
     volume: '<path d="M3.5 9.6h3.6L12 5.4v13.2l-4.9-4.2H3.5z"/><path d="M15.6 9.2a4 4 0 0 1 0 5.6"/><path d="M18.2 6.6a7.6 7.6 0 0 1 0 10.8"/>',
     mute: '<path d="M3.5 9.6h3.6L12 5.4v13.2l-4.9-4.2H3.5z"/><path d="M16 9.5l5 5M21 9.5l-5 5"/>',
+    heart: '<path d="M12 20s-7.8-4.7-7.8-10.4A4.4 4.4 0 0 1 12 6.8a4.4 4.4 0 0 1 7.8 2.8C19.8 15.3 12 20 12 20z"/>',
     computer: '<rect x="4" y="5" width="16" height="10.5" rx="1.6"/><path d="M2.5 19h19"/>',
     warn: '<path d="M12 4 2.8 19.5h18.4Z"/><path d="M12 10v4.5M12 17.3v.1"/>',
     phone: '<rect x="7" y="2.8" width="10" height="18.4" rx="2.2"/><path d="M10.8 18h2.4"/>',
@@ -1520,9 +1521,9 @@
     spot.timer = setTimeout(function () {
       spot.timer = null;
       FS.nowPlaying(function (err, now) {
-        if (err) spot.err = err; else { spot.err = ''; if (now && volState.v !== null) now.volume = volState.v; spot.now = now; }
+        if (err) spot.err = err; else { spot.err = ''; volumeSeen(now); spot.now = now; }
         render();
-        if (!spot.timer) spotifyPoll(err === 'revoked' ? 10 * 60 * 1000 : err ? 60000 : now && now.playing ? 10000 : 30000);
+        if (!spot.timer) spotifyPoll(err === 'revoked' ? 10 * 60 * 1000 : err ? 60000 : volState.want !== null ? 2000 : now && now.playing ? 10000 : 30000);
       });
     }, when === true ? 0 : typeof when === 'number' ? when : 30000);
   }
@@ -1702,14 +1703,15 @@
     el.className = 'np-title is-s2';
   }
   /* Two lines at most; one if the title wraps; none if even that would push the buttons off the cover. */
-  function fitFact(el) {
-    var copy = el && el.parentNode, row = copy && copy.querySelector('.np-ctl-row');
+  function fitFact(el, focus) {
+    var copy = el && el.parentNode, row = copy && copy.querySelector('.np-ctl-row'), base = 'np-fact' + (focus ? ' is-focus' : '');
     if (!row) return;
-    /* Layout boxes, not scrollHeight: a focused button is scaled up and would always count as overflow. */
+    /* Layout boxes, not scrollHeight: a focused button is scaled up and would always count as overflow.
+       The fact's own focus ring is a box-shadow, so it does not change the layout either. */
     function fits() { return row.getBoundingClientRect().bottom <= copy.getBoundingClientRect().bottom + 1; }
-    el.className = 'np-fact';
+    el.className = base;
     if (!el.textContent || fits()) return;
-    el.className = 'np-fact is-one';
+    el.className = base + ' is-one';
     if (!fits()) el.className = 'np-fact is-hidden';
   }
   /* Fade the Now playing layout out, switch lyrics on or off, fade it back in. */
@@ -1718,42 +1720,100 @@
     t.switching = true;
     setTimeout(function () { t.lyrics = !t.lyrics; if (t.lyrics) loadLyrics(); t.switching = false; render(); }, 200);
   }
+  /* Liked Songs: the heart after the volume pill is white when the song is not in your Liked Songs and
+     green when it is, wherever it was added; OK adds or removes it. Checked when the song changes and
+     again every 30 seconds while the big screen shows, so a like from the phone turns it green too. */
+  var likes = { id: '', on: null, at: 0, asking: false, busy: false, scope: true };
+  function likeAvailable(n) { return !!(FS && FS.saved && spotifyOn() && n && !n.episode && /^[A-Za-z0-9]{22}$/.test(n.id || '')); }
+  function likeState(n) {
+    if (!likeAvailable(n) || likes.asking || likes.busy) return;
+    if (likes.id === n.id && Date.now() - likes.at < 30000) return;
+    var id = n.id;
+    if (likes.id !== id) likes.on = null;
+    likes.id = id; likes.at = Date.now(); likes.asking = true;
+    FS.saved(id, function (err, on) {
+      likes.asking = false;
+      if (likes.id !== id) return;
+      if (err === 'scope') likes.scope = false; else if (!err) { likes.on = on; likes.scope = true; }
+      render();
+    });
+  }
+  var LIKE_SCOPE_TEXT = 'To save songs, Frame Home needs one more Spotify permission. Sign out of Spotify in Settings and connect again.';
+  function toggleLike(n) {
+    if (!likeAvailable(n) || likes.busy || likes.id !== n.id) return;
+    if (!likes.scope) { showToast(T(LIKE_SCOPE_TEXT)); return; }
+    var id = n.id, want = !likes.on;
+    likes.busy = true; likes.on = want; render();
+    FS.save(id, want, function (err) {
+      likes.busy = false;
+      if (likes.id !== id) return;
+      if (err) { likes.on = !want; if (err === 'scope') likes.scope = false; showToast(err === 'scope' ? T(LIKE_SCOPE_TEXT) : spotifyErrText(err)); }
+      else { likes.at = Date.now(); showToast(T(want ? 'Added to Liked Songs' : 'Removed from Liked Songs')); }
+      render();
+    });
+  }
+  /* What Up reaches from the button rows (without lyrics): the progress bar, else the fact, else the device. */
+  function npAbove(t, n) { return n && n.duration ? 'bar' : t.factOk && !t.lyrics ? 'fact' : 'device'; }
   V.nowplaying = {
     sheet: false,
-    norm: function (t) { var n = spot.now; if (t.f.row === 'volume' && !volumeAvailable(n)) t.f.row = 'controls'; },
-    key: function (t, k) {
+    norm: function (t) {
       var n = spot.now;
+      if (t.f.row === 'volume' && !volumeAvailable(n)) t.f.row = 'controls';
+      if (t.f.row === 'like' && !likeAvailable(n)) t.f.row = 'controls';
+      if (t.f.row === 'fact' && (t.lyrics || !t.factOk)) { t.f.row = npAbove(t, n) === 'fact' ? 'device' : npAbove(t, n); t.fact = false; }
+    },
+    key: function (t, k) {
+      var n = spot.now, vol = volumeAvailable(n), like = likeAvailable(n);
       if (t.dev) { deviceKey(t, k); return; }
+      if (t.fact) {
+        /* The fact's panel: Back or OK closes it. */
+        if (k === 'back' || k === 'ok') t.fact = false;
+        return;
+      }
       if (t.f.row === 'device') {
         /* "Playing on …": OK lists your Spotify devices to move the music to. */
         if (k === 'back') pop();
-        else if (k === 'down') t.f.row = n && n.duration ? 'bar' : 'controls';
+        else if (k === 'down') t.f.row = t.factOk && !t.lyrics ? 'fact' : n && n.duration ? 'bar' : 'controls';
         else if (k === 'ok') openDevices(t);
+        return;
+      }
+      if (t.f.row === 'fact') {
+        /* The Wikipedia fact: OK opens it whole, with the sentences after it. */
+        if (k === 'back') pop();
+        else if (k === 'up') t.f.row = 'device';
+        else if (k === 'down') t.f.row = n && n.duration ? 'bar' : 'controls';
+        else if (k === 'ok') t.fact = true;
         return;
       }
       if (t.f.row === 'bar') {
         /* The progress bar: Left/Right move 10 seconds, the song jumps there once you stop. */
         if (k === 'back') { seek.at = null; pop(); }
-        else if (k === 'up') t.f.row = 'device';
+        else if (k === 'up') t.f.row = t.factOk && !t.lyrics ? 'fact' : 'device';
         else if (k === 'down' || !n || !n.duration) { t.f.row = 'controls'; if (t.lyrics && t.f.b === 3) t.f.b = typeof t.f.top === 'number' ? t.f.top : 1; }
         else if (k === 'left' || k === 'right') seekBy(n, k === 'left' ? -10000 : 10000);
         else if (k === 'ok') commitSeek();
         return;
       }
-      if (t.f.row === 'volume') {
-        /* The volume pill: − and + are buttons like the others; OK steps 5 %. Without lyrics it sits after
-           Lyrics in the button row; with lyrics it is the row under the buttons. */
+      if (t.f.row === 'volume' || t.f.row === 'like') {
+        /* The volume pill and the heart follow Lyrics: in the button row without lyrics, in the row under
+           the buttons with lyrics. − and + are buttons like the others; OK steps 5 %. */
         if (k === 'back') pop();
+        else if (k === 'up') { if (t.lyrics) { t.f.row = 'controls'; t.f.b = typeof t.f.top === 'number' ? t.f.top : 1; } else t.f.row = npAbove(t, n); }
+        else if (t.f.row === 'like') {
+          if (k === 'ok') toggleLike(n);
+          else if (k === 'left' && vol) { t.f.row = 'volume'; t.f.v = 1; }
+          else if (k === 'left') { t.f.row = 'controls'; t.f.b = 3; }
+        }
         else if (k === 'ok') setVolume((n && typeof n.volume === 'number' ? n.volume : 0) + (t.f.v ? 5 : -5));
         else if (k === 'right' && !t.f.v) t.f.v = 1;
+        else if (k === 'right' && like) t.f.row = 'like';
         else if (k === 'left' && t.f.v) t.f.v = 0;
         else if (k === 'left') { t.f.row = 'controls'; t.f.b = 3; }
-        else if (k === 'up') { if (t.lyrics) { t.f.row = 'controls'; t.f.b = typeof t.f.top === 'number' ? t.f.top : 1; } else t.f.row = n && n.duration ? 'bar' : 'device'; }
         return;
       }
       if (t.lyrics) {
         /* With lyrics open the buttons are two centred rows: previous, play/pause, next above;
-           Lyrics and the volume below. Up and Down move between the rows. */
+           Lyrics, the volume and the heart below. Up and Down move between the rows. */
         if (k === 'back') pop();
         else if (t.f.b < 3) {
           if (k === 'up') t.f.row = n && n.duration ? 'bar' : 'device';
@@ -1763,24 +1823,29 @@
           else if (k === 'ok') spotifyKey(['prev', 'toggle', 'next'][t.f.b]);
         } else {
           if (k === 'up') t.f.b = typeof t.f.top === 'number' ? t.f.top : 1;
-          else if (k === 'right' && volumeAvailable(n)) { t.f.row = 'volume'; t.f.v = 0; }
+          else if (k === 'right' && vol) { t.f.row = 'volume'; t.f.v = 0; }
+          else if (k === 'right' && like) t.f.row = 'like';
           else if (k === 'ok') toggleLyrics(t);
         }
         return;
       }
       if (k === 'back') pop();
-      else if (k === 'up') t.f.row = n && n.duration ? 'bar' : 'device';
+      else if (k === 'up') t.f.row = npAbove(t, n);
       else if (k === 'left' && t.f.b > 0) t.f.b--;
       else if (k === 'right' && t.f.b < 3) t.f.b++;
-      else if (k === 'right' && volumeAvailable(n)) { t.f.row = 'volume'; t.f.v = 0; }
+      else if (k === 'right' && vol) { t.f.row = 'volume'; t.f.v = 0; }
+      else if (k === 'right' && like) t.f.row = 'like';
       else if (k === 'ok' && t.f.b === 3) toggleLyrics(t);
       else if (k === 'ok') spotifyKey(['prev', 'toggle', 'next'][t.f.b]);
     },
     point: function (t, z, i) {
       if (z === 'npdevrow' && t.dev) { t.dev.i = i; deviceKey(t, 'ok'); }
       else if (t.dev) return;
+      else if (t.fact) t.fact = false;
       else if (z === 'np') { t.f.row = 'controls'; t.f.b = i; this.key(t, 'ok'); } else if (z === 'npbar') t.f.row = 'bar';
       else if (z === 'npvol') { t.f.row = 'volume'; t.f.v = i ? 1 : 0; this.key(t, 'ok'); }
+      else if (z === 'nplike') { t.f.row = 'like'; this.key(t, 'ok'); }
+      else if (z === 'npfact' && t.factOk) { t.f.row = 'fact'; t.fact = true; }
       else if (z === 'npdev') { t.f.row = 'device'; openDevices(t); }
     }
   };
@@ -1882,19 +1947,37 @@
   }
   /* Volume of the device the music plays on, set with the − and + of the volume pill. The change shows
      at once and the PUT is sent shortly after, so repeated presses do not flood the API. */
-  var volState = { v: null, timer: null };
+  var volState = { v: null, timer: null, want: null, until: 0 };
   function volumeAvailable(n) { return !!(n && n.supportsVolume && typeof n.volume === 'number'); }
   function setVolume(v) {
     var n = spot.now; if (!n) return;
     volState.v = Math.max(0, Math.min(100, Math.round(v)));
     n.volume = volState.v;
+    volState.want = null;
     clearTimeout(volState.timer); volState.timer = setTimeout(commitVolume, 350);
     render();
   }
   function commitVolume() {
     var to = volState.v; clearTimeout(volState.timer); volState.timer = null;
     if (to === null) return;
-    FS.control('volume', function (err) { volState.v = null; if (err) showToast(spotifyErrText(err)); render(); spotifyPoll(1200); }, to);
+    FS.control('volume', function (err) {
+      volState.v = null;
+      if (err) { volState.want = null; showToast(spotifyErrText(err)); } else { volState.want = to; volState.until = Date.now() + VOLUME_CONFIRM_MS; }
+      render(); spotifyPoll(1200);
+    }, to);
+  }
+  /* Spotify accepts a volume before the speaker has taken it, and some speakers (Alexa multi-room groups
+     such as "Everywhere") never do: their reported volume wanders instead. So the pill keeps showing what
+     you chose until Spotify reports it (±2 %), for up to 8 seconds; after that it shows what Spotify
+     reports and says the speaker kept its own volume, rather than a number that is not true. */
+  var VOLUME_CONFIRM_MS = 8000;
+  function volumeSeen(now) {
+    if (!now) { volState.want = null; return; }
+    if (volState.v !== null) { now.volume = volState.v; return; }
+    if (volState.want === null || typeof now.volume !== 'number') return;
+    if (Math.abs(now.volume - volState.want) <= 2) volState.want = null;
+    else if (Date.now() < volState.until) now.volume = volState.want;
+    else { volState.want = null; showToast(T('{0} kept its own volume ({1}%). Some speakers and speaker groups ignore volume changes from apps.', now.device || 'Spotify', Math.round(now.volume))); }
   }
   /* Colour-button legend: bottom left, beside where the remote's colour picker appears. */
   /* The remote's on-screen colour picker does not reach the app (checked with the remote test), so the
@@ -3374,9 +3457,10 @@
     },
     nowplaying: function () {
       return '<div class="np" data-slot="np"><div class="np-art-wrap" data-slot="artwrap"><img class="np-art" data-slot="art" alt=""></div>'
-        + '<div class="np-copy"><p class="np-device" data-slot="device" data-z="npdev" data-i="0"></p><h2 class="np-title" data-slot="title"></h2><p class="np-artist" data-slot="artist"></p><p class="np-album" data-slot="album"></p><p class="np-fact" data-slot="fact"></p>'
-        + '<div class="np-progress" data-slot="progress"></div><div class="np-ctl-row"><div class="np-controls" data-slot="controls"></div><div class="np-volume" data-slot="volume"></div></div></div>'
-        + '<div class="np-lyrics" data-slot="lyrics" aria-live="off"></div><div class="np-devices" data-slot="devices" role="dialog"></div></div>';
+        + '<div class="np-copy"><p class="np-device" data-slot="device" data-z="npdev" data-i="0"></p><h2 class="np-title" data-slot="title"></h2><p class="np-artist" data-slot="artist"></p><p class="np-album" data-slot="album"></p><p class="np-fact" data-slot="fact" data-z="npfact" data-i="0"></p>'
+        + '<div class="np-progress" data-slot="progress"></div><div class="np-ctl-row"><div class="np-controls" data-slot="controls"></div><div class="np-volume" data-slot="volume"></div><div class="np-like-wrap" data-slot="like"></div></div></div>'
+        + '<div class="np-lyrics" data-slot="lyrics" aria-live="off"></div><div class="np-devices" data-slot="devices" role="dialog"></div>'
+        + '<div class="np-factpanel" data-slot="factpanel" role="dialog" data-z="npfact" data-i="0"></div></div>';
     },
     alexalist: function () {
       return '<div class="alexa-pick"><h2 class="s-title" data-slot="title"></h2><p class="s-sub" data-slot="sub"></p><div class="alexa-list" data-slot="list"></div>'
@@ -3574,7 +3658,16 @@
         };
         setHTML(el.volume, vbtn(0) + '<span class="np-vol-val" aria-label="' + esc(T('Volume') + ' ' + vpct + '%') + '">' + icon(vmuted ? 'mute' : 'volume') + '<span class="np-vol-pct">' + vpct + '%</span></span>' + vbtn(1));
       } else setHTML(el.volume, '');
-      placeLyrics(); fitFact(el.fact);
+      likeState(n);
+      var likeOn = likeAvailable(n);
+      setHTML(el.like, likeOn ? '<button type="button" tabindex="-1" class="np-btn np-like' + (likes.on ? ' is-on' : '') + (t.f.row === 'like' && !t.dev ? ' is-focus' : '') + '" data-z="nplike" data-i="0" data-action="np.like"'
+        + ' aria-pressed="' + !!likes.on + '" aria-label="' + esc(T(likes.on ? 'Remove from Liked Songs' : 'Add to Liked Songs')) + '">' + icon('heart') + '</button>' : '');
+      placeLyrics(); fitFact(el.fact, t.f.row === 'fact' && !t.dev && !t.lyrics && !t.fact);
+      t.factOk = !t.lyrics && !!(info && info.text) && !/is-hidden/.test(el.fact.className);
+      var panel = !!(t.fact && t.factOk && info);
+      el.factpanel.className = 'np-factpanel' + (panel ? ' is-open' : '');
+      setHTML(el.factpanel, info && info.text ? '<p class="np-fp-tag">' + esc(T('From Wikipedia')) + '</p><h3 class="np-fp-title">' + esc(info.title || (n && n.title) || '') + '</h3>'
+        + '<p class="np-fp-text">' + esc(info.more || info.text) + '</p><p class="np-fp-foot">' + esc(T('Wikipedia, CC BY-SA 4.0 · Back closes')) + '</p>' : '');
     },
     alexalist: function (t, el) {
       var rows = alexaRows(t), words = alexaListText(t), html = '', i, r, sub;
