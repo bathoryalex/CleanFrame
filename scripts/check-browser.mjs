@@ -894,19 +894,29 @@ try {
     await current.waitForFunction(() => document.querySelector('.np-fact').textContent.length > 0); await current.waitForTimeout(300);
     const fr = await current.evaluate(() => { const r = e => document.querySelector(e).getBoundingClientRect(), f = document.querySelector('.np-fact'), t = document.querySelector('.np-title');
       return { size: parseFloat(getComputedStyle(t).fontSize), titleH: Math.round(r('.np-title').height), factShown: getComputedStyle(f).display !== 'none' && r('.np-fact').height > 20, whole: f.scrollHeight <= f.clientHeight + 1, text: f.textContent, row: r('.np-ctl-row').bottom, art: r('.np-art-wrap').bottom }; });
-    check('A long title shrinks onto one line and the Wikipedia fact still shows', fr.size < 68 && fr.titleH < 90 && fr.factShown && Math.abs(fr.row - fr.art) <= 2, fr);
+    check('A long title stays on one line at full size and the Wikipedia fact still shows', fr.size === 68 && fr.titleH < 90 && fr.factShown && Math.abs(fr.row - fr.art) <= 2, fr);
     check('From the real article it picks the story sentence about R.E.M. turning the theme down, shown whole', /R\.E\.M\. was originally asked .* turned the opportunity down\.$/.test(fr.text) && fr.whole, fr);
     current.__spotify.artists = null;
-    // A title on two lines leaves room for one line of the fact at most; the buttons stay on the cover's bottom edge.
-    const longTitle = 'A Very Long Song Title That Certainly Wraps Onto Two Lines';
+    // A long title never wraps: it waits a second, then runs like a ticker, out to the left and back in from the right.
+    const longTitle = 'A Very Long Song Title That Certainly Would Have Wrapped Onto Two Lines';
     W().search = [{ pageid: 3, title: longTitle, extract: '"' + longTitle + '" is a song by Artist A.', pageprops: {} }];
     W().full = { 3: 'x\n== Background ==\nThe idea for the song came to the singer in the shower in 1998, during a long winter tour of small Scandinavian towns with the band.\n' };
     current.__spotify.title = longTitle;
     await current.reload(); await ready(); await current.waitForFunction(() => document.querySelector('.cap-music'));
     await nav('up', 'left', 'ok'); await current.waitForFunction(() => ShoreQA.where().view === 'nowplaying');
-    await current.waitForFunction(() => document.querySelector('.np-fact').textContent.length > 0); await current.waitForTimeout(300);
-    const lt = await current.evaluate(() => { const r = e => document.querySelector(e).getBoundingClientRect(), f = document.querySelector('.np-fact'); return { titleLines: Math.round(r('.np-title').height / parseFloat(getComputedStyle(document.querySelector('.np-title')).lineHeight)), factH: getComputedStyle(f).display === 'none' ? 0 : Math.round(r('.np-fact').height), row: r('.np-ctl-row').bottom, art: r('.np-art-wrap').bottom }; });
-    check('With a two-line title the fact shrinks to one line or hides, and the buttons stay on the cover bottom', lt.titleLines === 2 && lt.factH <= 40 && Math.abs(lt.row - lt.art) <= 2, lt);
+    await current.waitForFunction(() => document.querySelector('.np-title .mq.is-moving'));
+    const tick = () => current.evaluate(() => { const box = document.querySelector('.np-title .mq'), inner = box.firstChild, cs = getComputedStyle(box), m = new DOMMatrix(getComputedStyle(inner).transform);
+      return { cls: box.className, x: m.m41, texts: [...inner.children].map(c => c.textContent), mask: cs.webkitMaskImage || cs.maskImage, dur: parseFloat(getComputedStyle(inner).animationDuration), w: inner.firstChild.offsetWidth, gap: parseFloat(inner.children[1] ? inner.children[1].style.paddingLeft : 0), lines: Math.round(document.querySelector('.np-title').getBoundingClientRect().height / 78) }; });
+    const t0 = await tick();
+    check('A long title stays on one line, waits at its start with only the right edge faded', t0.lines === 1 && t0.cls === 'mq is-moving' && Math.abs(t0.x) < 1 && /(transparent|rgba\(0, 0, 0, 0\)) 100%\)$/.test(t0.mask) && /^linear-gradient\(90deg, (#000|rgb\(0, 0, 0\)) 0/.test(t0.mask), t0);
+    await current.waitForTimeout(1600);
+    const t1 = await tick();
+    check('After a second it runs left at a steady pace, with both edges faded and a copy following', /is-run/.test(t1.cls) && t1.x < -30 && t1.texts.length === 2 && t1.texts[0] === t1.texts[1] && t1.texts[0] === longTitle && /^linear-gradient\(90deg, (transparent|rgba\(0, 0, 0, 0\)) 0/.test(t1.mask) && /(transparent|rgba\(0, 0, 0, 0\)) 100%\)$/.test(t1.mask), t1);
+    check('One lap is the text and its gap, at 2.6 font sizes a second', Math.abs(t1.dur - (t1.w + t1.gap) / (68 * 2.6)) < 0.05, t1);
+    const lt = await current.evaluate(() => { const r = e => document.querySelector(e).getBoundingClientRect(), f = document.querySelector('.np-fact'); return { factH: getComputedStyle(f).display === 'none' ? 0 : Math.round(r('.np-fact').height), row: r('.np-ctl-row').bottom, art: r('.np-art-wrap').bottom }; });
+    check('With a long title the fact keeps its two lines and the buttons stay on the cover bottom', Math.round(lt.factH / 30) === 2 && Math.abs(lt.row - lt.art) <= 2, lt);
+    await nav('right', 'right', 'ok'); await current.waitForTimeout(900);
+    check('A short artist does not move', await current.evaluate(() => document.querySelector('.np-artist .mq').className === 'mq' && document.querySelector('.np-artist .mq-in').children.length === 1));
     // No article about this song: only the album year, nothing invented.
     W().search = [{ pageid: 2, title: 'Song A (film)', extract: 'Song A is a 2003 film.' }]; W().full = {}; W().claims = {};
     current.__spotify.title = 'Song A'; current.__spotify.releaseDate = '2001-05-01';

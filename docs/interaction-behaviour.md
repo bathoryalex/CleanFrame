@@ -292,3 +292,12 @@ Sentence choice for the song fact is now scored instead of taking the first matc
 
 **Volume, corrected.** The 0.37 explanation was wrong: the speaker does take the new volume, also a single Echo, it only reports back a value near the one set (set 42 %, Spotify then reports 38 %, then 41 %). 0.37's toast saying the speaker "kept its own volume" would therefore have been false and is removed. Now, after you change the volume, the pill keeps showing the value you chose as long as Spotify's reports for the same device stay within 8 % of it, and the next − or + steps from that value. A report further off (or another device) means the volume was changed elsewhere, such as on the phone or by voice, and the pill shows Spotify's value again. Polling is back to its normal pace.
 
+## 0.38
+
+**Ticker for long titles and artists**, on Home and on the large Now playing screen.
+- Before: the text waited, eased slowly to its end, waited, and eased back (about 25 px/s).
+- Now: it waits 1 second at its start, then moves left at a steady 2.6 font sizes per second (78 px/s for the 30 px Home title, 177 px/s for the 68 px Now playing title). It runs out of the box on the left and comes back in from the right. A copy follows 2.5 font sizes behind, so one lap is the text plus that gap and the loop never jumps. The copy is added only while the text moves.
+- The edges fade over 0.8 em with a mask on the text box (the only element masked). While the text waits only the right edge fades, so the first letter is not dimmed; both edges fade once it runs.
+- On the large Now playing screen the title and the artists are always one line, at full size. The 0.36.1 shrinking (68 → 48 px) and the two-line wrap are gone, so the song fact always has its two lines.
+- With reduced motion the text does not move and ends in an ellipsis.
+

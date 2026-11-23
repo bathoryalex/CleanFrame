@@ -4,7 +4,7 @@
 
   /* ---------- Bundled data ---------- */
   var ASSETS = 'assets/', ICONS = ASSETS + 'icons/', WP = ASSETS + 'wallpapers/';
-  var APP_VERSION = '0.37.1';
+  var APP_VERSION = '0.38.0';
   var CAP = 9, SCRIM_Y = 560, DOCK_BOTTOM = 1032; // the Dock sits 48 px above the bottom edge; names and actions go above it
   var DOCK_MODES = { both: { tw: 288, th: 200, pitch: 296 }, text: { tw: 288, th: 104, pitch: 296 }, icons: { tw: 200, th: 156, pitch: 206 } }; // icons-only tiles leave room under the icon for the focused app's name
   var GRID_ROW = 240, GRID_COL = 344, COLS = 5;
@@ -1567,15 +1567,35 @@
     els = document.querySelectorAll('[data-music-bar]');
     for (i = 0; i < els.length; i++) els[i].style.width = w;
   }
-  /* Text that does not fit scrolls slowly back and forth, like a news ticker. */
+  /* Text that does not fit runs like a news ticker: after a second it moves left at a steady pace, out of
+     the box and back in from the right, followed by a copy of itself so the loop never jumps. The speed is
+     in font sizes per second, so large and small text read alike. The edges fade (a mask on the small text
+     box only); while the text still waits at its start only the right edge fades, so the first letter is
+     not dimmed. The copy is added only while the text moves, so textContent is the plain text otherwise. */
+  var MQ_SPEED = 2.6, MQ_WAIT = 1000;
   function marquee(root) {
-    var els = root ? root.querySelectorAll('.mq') : [], i, box, inner, over;
+    var els = root ? root.querySelectorAll('.mq') : [], i, box, inner, text, copy, over, key, fs, gap;
     for (i = 0; i < els.length; i++) {
-      box = els[i]; inner = box.firstChild; over = inner.scrollWidth - box.clientWidth;
+      box = els[i]; inner = box.firstChild; text = inner && inner.firstChild;
+      if (!text || text.nodeType !== 1) continue;
+      over = text.offsetWidth - box.clientWidth;
       if (over > 2) {
-        if (box._over !== over) { box._over = over; inner.style.setProperty('--mq-shift', (-over - 8) + 'px'); inner.style.animationDuration = Math.max(8, Math.round((over + 8) / 22) * 2 + 6) + 's'; }
-        if (box.className.indexOf('is-moving') < 0) box.className = 'mq is-moving';
-      } else if (box.className !== 'mq') { box.className = 'mq'; box._over = 0; }
+        key = text.offsetWidth + '|' + box.clientWidth;
+        if (box._key === key) continue;
+        box._key = key;
+        fs = parseFloat(window.getComputedStyle(box).fontSize) || 30; gap = Math.round(fs * 2.5);
+        copy = inner.childNodes[1];
+        if (!copy) { copy = document.createElement('span'); copy.className = 'mq-t mq-copy'; copy.setAttribute('aria-hidden', 'true'); copy.textContent = text.textContent; inner.appendChild(copy); }
+        copy.style.paddingLeft = gap + 'px';
+        inner.style.setProperty('--mq-shift', -(text.offsetWidth + gap) + 'px');
+        inner.style.animationDuration = ((text.offsetWidth + gap) / (fs * MQ_SPEED)).toFixed(2) + 's';
+        box.className = 'mq is-moving';
+        clearTimeout(box._t);
+        box._t = setTimeout((function (b) { return function () { if (b.className === 'mq is-moving') b.className = 'mq is-moving is-run'; }; }(box)), MQ_WAIT);
+      } else if (box._key) {
+        box._key = ''; clearTimeout(box._t); box.className = 'mq';
+        if (inner.childNodes[1]) inner.removeChild(inner.childNodes[1]);
+      }
     }
   }
   /* Alone in the corner the song shares the top row with the Home controls, so it stops 40 px short of
@@ -1594,7 +1614,7 @@
     if (box._limit !== limit) { box._limit = limit; box.style.width = limit + 'px'; box.style.maxWidth = limit + 'px'; }
     paintProgress(); marquee(box);
   }
-  function mq(text) { return '<span class="mq"><span class="mq-in">' + esc(text) + '</span></span>'; }
+  function mq(text) { return '<span class="mq"><span class="mq-in"><span class="mq-t">' + esc(text) + '</span></span></span>'; }
   /* The Home widget: OK on it opens the large Now playing screen. */
   function musicHtml(focus) {
     var n = spot.now;
@@ -1687,22 +1707,7 @@
     }
     return facts.info;
   }
-  /* A long title first gets smaller (68 → 60 → 52 → 48 px) to stay on one line, which leaves room for
-     the fact; only if it still does not fit does it wrap onto two lines at 52 px. */
-  var TITLE_SIZES = ['', 'is-s1', 'is-s2', 'is-s3'];
-  function fitTitle(el, lyrics) {
-    var key = el.textContent + '|' + !!lyrics + '|' + S.c.font, i;
-    if (el._fit === key) return;
-    el._fit = key;
-    el.className = 'np-title';
-    if (lyrics) return;
-    for (i = 0; i < TITLE_SIZES.length; i++) {
-      el.className = 'np-title is-measure ' + TITLE_SIZES[i];
-      if (el.scrollWidth <= el.clientWidth + 1) { el.className = 'np-title ' + TITLE_SIZES[i]; return; }
-    }
-    el.className = 'np-title is-s2';
-  }
-  /* Two lines at most; one if the title wraps; none if even that would push the buttons off the cover. */
+  /* Two lines at most; one, or none, if more would push the buttons off the cover. */
   function fitFact(el, focus) {
     var copy = el && el.parentNode, row = copy && copy.querySelector('.np-ctl-row'), base = 'np-fact' + (focus ? ' is-focus' : '');
     if (!row) return;
@@ -3634,9 +3639,8 @@
       setHTML(el.device, spotifyOn() ? icon('speaker') + '<span>' + esc(n && n.device ? T('Playing on {0}', n.device) : T('Choose a device')) + '</span>' + icon('right', 'np-dev-more') : '');
       el.device.className = 'np-device' + (t.f.row === 'device' && !t.dev ? ' is-focus' : '');
       growDevices(el.devices, t);
-      setHTML(el.title, t.lyrics && n ? mq(n.title) : esc(n ? n.title : T('Nothing is playing on Spotify.')));
-      fitTitle(el.title, t.lyrics);
-      setHTML(el.artist, t.lyrics && n ? mq(n.artist) : esc(n ? n.artist : ''));
+      setHTML(el.title, mq(n ? n.title : T('Nothing is playing on Spotify.')));
+      setHTML(el.artist, n ? mq(n.artist) : '');
       var info = !t.lyrics ? songFacts(n) : null, year = info && info.year || (n && n.albumType !== 'compilation' ? n.albumYear : 0);
       setHTML(el.album, esc(n ? n.album + (year ? ' · ' + year : '') : ''));
       setHTML(el.fact, info && info.text ? '<span class="np-fact-tag">' + esc(T('From Wikipedia')) + '</span>' + esc(info.text) : '');

@@ -673,12 +673,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000}
 .np-art{display:block;width:100%;height:100%;object-fit:cover}
 .np-copy{flex:1;min-width:0;display:flex;flex-direction:column}
 .np-device{margin:0 0 18px;font-size:26px;line-height:32px;color:var(--mute);letter-spacing:.2px}
-.np-title{margin:0;font-size:68px;line-height:78px;font-weight:600;letter-spacing:-1.6px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
-/* Long titles shrink to stay on one line (main.js fitTitle); is-measure is only set while measuring. */
-.np-title.is-s1{font-size:60px;line-height:70px;letter-spacing:-1.4px}
-.np-title.is-s2{font-size:52px;line-height:62px;letter-spacing:-1.1px}
-.np-title.is-s3{font-size:48px;line-height:58px;letter-spacing:-1px}
-.np-title.is-measure{display:block;white-space:nowrap}
+.np-title{margin:0;font-size:68px;line-height:78px;font-weight:600;letter-spacing:-1.6px;overflow:hidden;white-space:nowrap}
 .np-artist{margin:14px 0 0;font-size:40px;line-height:50px;font-weight:500;letter-spacing:-.6px;opacity:.85;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .np-album{margin:6px 0 0;font-size:28px;line-height:36px;color:var(--mute);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .np-progress .music-progress{margin-top:0;font-size:24px;line-height:30px;gap:20px;opacity:.9}
@@ -809,11 +804,15 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000}
 /* Ticker for long song titles and artists. */
 .mq{display:block;flex:1;min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
 .mq-in{display:inline-block;white-space:nowrap}
-.mq.is-moving{text-overflow:clip}
-.mq.is-moving .mq-in{animation-name:mq-scroll;animation-timing-function:ease-in-out;animation-iteration-count:infinite;animation-direction:alternate;will-change:transform}
-@keyframes mq-scroll{0%,14%{transform:translate3d(0,0,0)}86%,100%{transform:translate3d(var(--mq-shift),0,0)}}
+.mq-t{display:inline-block;white-space:nowrap}
+/* Moving text (main.js marquee): the right edge fades while it waits, both edges once it runs; one lap is
+   the text plus its gap, so the copy takes the original's place and the loop is seamless. */
+.mq.is-moving{text-overflow:clip;-webkit-mask-image:linear-gradient(90deg,#000 0,#000 calc(100% - .8em),transparent 100%);mask-image:linear-gradient(90deg,#000 0,#000 calc(100% - .8em),transparent 100%)}
+.mq.is-run{-webkit-mask-image:linear-gradient(90deg,transparent 0,#000 .8em,#000 calc(100% - .8em),transparent 100%);mask-image:linear-gradient(90deg,transparent 0,#000 .8em,#000 calc(100% - .8em),transparent 100%)}
+.mq.is-run .mq-in{animation-name:mq-loop;animation-timing-function:linear;animation-iteration-count:infinite;will-change:transform}
+@keyframes mq-loop{from{transform:translate3d(0,0,0)}to{transform:translate3d(var(--mq-shift),0,0)}}
 .music-artist .mq{display:block}
-@media(prefers-reduced-motion:reduce){.mq.is-moving .mq-in{animation:none}.mq.is-moving{text-overflow:ellipsis}}
+@media(prefers-reduced-motion:reduce){.mq.is-run .mq-in{animation:none}.mq.is-moving{text-overflow:ellipsis}.mq-copy{display:none}}
 /* Alexa switches keep their own style whatever the Wi‑Fi, All apps and Settings controls use. */
 .quiet-utils .u.sw-both,.quiet-utils .u.sw-text{width:auto;padding:0 14px;justify-content:flex-start}
 .quiet-utils .u.sw-both .u-label,.quiet-utils .u.sw-text .u-label{display:inline}
