@@ -235,3 +235,7 @@ The Light background is removed with its styles; Photo and Dark remain.
 ## 0.35
 
 - **Spotify volume** on the big Now playing screen: a focusable row under the transport controls. Down from the controls reaches it; Left/Right step it 5 %, OK mutes and restores the previous level. The change shows at once and the `PUT /me/player/volume` is sent after a short pause, so holding a key does not flood the API. It controls the Spotify playback volume on the device the music plays on, not the TV's own volume. Premium is required, like every playback control. The row is hidden when the active device reports `supports_volume: false` (and when nothing is playing); the mini Home widget has no volume control.
+
+## 0.35.1
+
+The volume row now looks like the progress bar above it: the same 6 px bar with the same left and right ends, the same focus (the bar grows to 12 px with a white fill and a light ring, and the hint appears underneath), a speaker-with-waves icon (a crossed speaker when muted) and the level on the right where the song length is.

@@ -4,7 +4,7 @@
 
   /* ---------- Bundled data ---------- */
   var ASSETS = 'assets/', ICONS = ASSETS + 'icons/', WP = ASSETS + 'wallpapers/';
-  var APP_VERSION = '0.35.0';
+  var APP_VERSION = '0.35.1';
   var CAP = 9, SCRIM_Y = 560, DOCK_BOTTOM = 1032; // the Dock sits 48 px above the bottom edge; names and actions go above it
   var DOCK_MODES = { both: { tw: 288, th: 200, pitch: 296 }, text: { tw: 288, th: 104, pitch: 296 }, icons: { tw: 200, th: 156, pitch: 206 } }; // icons-only tiles leave room under the icon for the focused app's name
   var GRID_ROW = 240, GRID_COL = 344, COLS = 5;
@@ -113,7 +113,8 @@
     updown: '<path d="m7.5 9.5 4.5-4.5 4.5 4.5M7.5 14.5l4.5 4.5 4.5-4.5"/>',
     tv: '<rect x="3" y="4.5" width="18" height="12" rx="2"/><path d="M8.5 20h7"/>',
     speaker: '<rect x="6" y="2.8" width="12" height="18.4" rx="2.4"/><circle cx="12" cy="14.5" r="3.2"/><circle cx="12" cy="7.2" r="1"/>',
-    mute: '<rect x="6" y="2.8" width="12" height="18.4" rx="2.4"/><circle cx="12" cy="14.5" r="3.2"/><path d="M9.9 5.5l4.2 3.4M14.1 5.5l-4.2 3.4"/>',
+    volume: '<path d="M3.5 9.6h3.6L12 5.4v13.2l-4.9-4.2H3.5z"/><path d="M15.6 9.2a4 4 0 0 1 0 5.6"/><path d="M18.2 6.6a7.6 7.6 0 0 1 0 10.8"/>',
+    mute: '<path d="M3.5 9.6h3.6L12 5.4v13.2l-4.9-4.2H3.5z"/><path d="M16 9.5l5 5M21 9.5l-5 5"/>',
     computer: '<rect x="4" y="5" width="16" height="10.5" rx="1.6"/><path d="M2.5 19h19"/>',
     warn: '<path d="M12 4 2.8 19.5h18.4Z"/><path d="M12 10v4.5M12 17.3v.1"/>',
     phone: '<rect x="7" y="2.8" width="10" height="18.4" rx="2.2"/><path d="M10.8 18h2.4"/>',
@@ -3501,7 +3502,7 @@
         el.volume.setAttribute('data-z', 'npvol'); el.volume.setAttribute('data-i', '0');
         el.volume.setAttribute('data-hint', T('Left and Right change the volume · OK mutes'));
         el.volume.setAttribute('aria-label', T('Volume') + ' ' + (vmuted ? T('Muted') : vpct + '%'));
-        setHTML(el.volume, icon(vmuted ? 'mute' : 'speaker', 'np-vol-icon') + '<div class="np-vol-track"><div class="np-vol-fill" style="width:' + vpct + '%"></div></div><span class="np-vol-pct">' + (vmuted ? T('Muted') : vpct + '%') + '</span>');
+        setHTML(el.volume, '<span class="music-progress">' + icon(vmuted ? 'mute' : 'volume', 'np-vol-icon') + '<span class="music-bar"><i style="width:' + vpct + '%"></i></span><span class="music-time np-vol-pct">' + (vmuted ? T('Muted') : vpct + '%') + '</span></span>');
       } else { el.volume.removeAttribute('data-z'); el.volume.removeAttribute('data-hint'); setHTML(el.volume, ''); }
       placeLyrics();
     },
