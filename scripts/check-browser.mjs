@@ -347,7 +347,7 @@ try {
     await current.evaluate(() => window.dispatchEvent(new Event('focus')));
     await scene('home'); await act('home.app.youtube'); await current.waitForFunction(() => __tv.calls.length === 2);
     check('Primary app keeps verified target', (await current.evaluate(() => __tv.calls.at(-1))).id === IDS[3]);
-    await current.evaluate(() => window.dispatchEvent(new Event('focus'))); await scene('settings'); await act('settings.samsung-home');
+    await current.evaluate(() => window.dispatchEvent(new Event('focus'))); await scene('settings'); await act('settings.group.system'); await act('system.samsung');
     await current.waitForFunction(() => __tv.calls.length === 3);
     check('Samsung escape keeps CSFS target', (await current.evaluate(() => __tv.calls.at(-1))).id === 'com.samsung.tv.csfs');
     await current.evaluate(() => { window.dispatchEvent(new Event('focus')); __tv.launchFailure = true; });
@@ -456,7 +456,7 @@ try {
   });
   await run('Settings overview and visible choices', async () => {
     await page(); await scene('settings');
-    const expected = ['settings.group.background', 'settings.group.layout', 'settings.group.typography', 'settings.editor', 'settings.group.wifiqr', 'settings.group.region', 'settings.group.lang', 'settings.samsung-home'];
+    const expected = ['settings.group.background', 'settings.group.layout', 'settings.group.typography', 'settings.editor', 'settings.group.wifiqr', 'settings.group.region', 'settings.group.lang', 'settings.group.system'];
     check('Overview has all eight settings cards', same((await call('actions')).filter(a => expected.includes(a)).sort(), expected.slice().sort()));
     const specs = {
       background: { bg: ['dark', 'photo'] },
@@ -485,7 +485,7 @@ try {
     await nav('back');
     check('Rotation Back restores its Background row', (await state()).settingsGroup === 'background' && (await state()).focusAction === 'background.rotation', await call('where'));
     await scene('settings');
-    check('Samsung Home is the last Settings row', (await call('actions')).filter(a => a.indexOf('settings.') === 0).pop() === 'settings.samsung-home');
+    check('System is the last Settings card', (await call('actions')).filter(a => a.indexOf('settings.') === 0).pop() === 'settings.group.system');
   });
   await run('Language, clock and weather preferences', async () => {
     await page(); await group('region');
@@ -517,9 +517,9 @@ try {
     await page(); await scene('settings');
     const cards = await current.evaluate(() => [...document.querySelectorAll('.settings-card')].map(e => { return { id: e.getAttribute('data-id'), left: e.offsetLeft, top: e.offsetTop, bottom: e.offsetTop + e.offsetHeight + e.offsetParent.getBoundingClientRect().top }; }));
     const cardGroups = await current.evaluate(() => [...document.querySelectorAll('.settings-group')].map(g => [...g.querySelectorAll('.settings-card')].map(e => e.getAttribute('data-id'))));
-    check('Settings shows three equal columns of three equal cards, Connections before Samsung Home', cardGroups.length === 3 && cardGroups[0].join() === 'background,layout,typography' && cardGroups[1].join() === 'editor,wifiqr,region' && cardGroups[2].join() === 'lang,connections,samsung' && await current.evaluate(() => new Set([...document.querySelectorAll('.settings-card')].map(e => e.offsetWidth + 'x' + e.offsetHeight)).size === 1 && new Set([...document.querySelectorAll('.settings-group')].map(e => e.offsetWidth + 'x' + e.offsetHeight)).size === 1) && cards.every(c => c.bottom <= 1000), cardGroups);
+    check('Settings shows three equal columns of three equal cards, Connections before System', cardGroups.length === 3 && cardGroups[0].join() === 'background,layout,typography' && cardGroups[1].join() === 'editor,wifiqr,region' && cardGroups[2].join() === 'lang,connections,system' && await current.evaluate(() => new Set([...document.querySelectorAll('.settings-card')].map(e => e.offsetWidth + 'x' + e.offsetHeight)).size === 1 && new Set([...document.querySelectorAll('.settings-group')].map(e => e.offsetWidth + 'x' + e.offsetHeight)).size === 1) && cards.every(c => c.bottom <= 1000), cardGroups);
     await nav('down', 'down', 'right', 'right');
-    check('Arrows move down a column and across to the same place in the next', await current.evaluate(() => document.querySelector('.settings-card.is-focus').getAttribute('data-id')) === 'samsung');
+    check('Arrows move down a column and across to the same place in the next', await current.evaluate(() => document.querySelector('.settings-card.is-focus').getAttribute('data-id')) === 'system');
     await act('settings.group.connections'); await current.waitForFunction(() => ShoreQA.state().settingsGroup === 'connections');
     await act('conn.alexa'); await current.waitForFunction(() => ShoreQA.state().settingsGroup === 'alexa');
     await act('alexa.connect');
@@ -797,6 +797,69 @@ try {
     check('The first calendar can be named', await current.evaluate(() => FrameCalendar.list()[0].name === 'Alex'));
     await scene('home');
     check('Home shows both names', await current.evaluate(() => [...document.querySelectorAll('.cap-cal-who')].map(e => e.textContent).sort().join() === 'Alex,Ági'));
+  });
+  await run('Settings backup: encrypt, send, restore and the phone page', async () => {
+    await page({ seed: baseline({ dockStyle: 'tiles', clock: '24', wifiSsid: 'HomeNet', wifiPass: 'secretwifi' }) });
+    await current.evaluate(() => {
+      localStorage.setItem('cleanframe.alexa.v1', JSON.stringify({ serial: 'X', domain: 'com', site: 'com', refresh: 'Atzr|t', access: 'Atza|t', at: Date.now() }));
+      localStorage.setItem('cleanframe.calendar.v1', JSON.stringify({ cals: [{ id: 'c1', url: 'https://calendar.google.com/calendar/ical/x/private-1/basic.ics', name: 'Ági' }] }));
+    });
+    await current.reload(); await ready();
+    const typeKeys = async (text) => { for (const ch of text) { const a = await current.evaluate(c => { const e = [...document.querySelectorAll('[data-action^="wifi.char."]')].find(x => x.textContent === c); return e && e.getAttribute('data-action'); }, ch); if (!a) throw Error('No key for "' + ch + '" in view ' + (await state()).view); await act(a); } };
+    const joinParts = (msgs) => { const byId = {}; msgs.forEach(m => { (byId[m.id] = byId[m.id] || [])[m.i] = m.code; }); const id = Object.keys(byId)[0]; const joined = byId[id].join('').replace(/\.$/, ''); return Buffer.from(joined.replace(/-/g, '+').replace(/_/g, '/'), 'base64').toString('utf8'); };
+
+    // 1) crypto round-trip
+    const rt = await current.evaluate(() => {
+      const text = FrameBackup.make('secret12', '9.9.9');
+      return { hasText: text.length > 60, bad: FrameBackup.read('wrongpass', text).ok, ok: FrameBackup.read('secret12', text) };
+    });
+    check('make/read round-trips and a wrong pass-phrase is rejected', rt.hasText && rt.bad === false && rt.ok.ok === true
+      && Object.keys(rt.ok.keys).sort().join() === 'cleanframe.alexa.v1,cleanframe.calendar.v1,cleanframe.home.v1' && /Ági/.test(rt.ok.keys['cleanframe.calendar.v1']), rt);
+
+    // 2) the export UI sends numbered parts that decrypt back
+    const posts = [];
+    await current.route(u => /framehome-bk-/.test(u.href), async route => {
+      if (route.request().method() === 'POST') { posts.push(route.request().postData()); return route.fulfill({ status: 200, headers: { 'Access-Control-Allow-Origin': '*' }, body: '{}' }); }
+      return route.fulfill({ status: 200, headers: { 'Access-Control-Allow-Origin': '*' }, body: '' });
+    });
+    await scene('settings'); await act('settings.group.system'); await act('backup.create');
+    check('Create a backup opens the pass-phrase keyboard', (await state()).view === 'wifitype');
+    await typeKeys('secret12'); await act('wifi.act.1');
+    check('The export view opens on its own channel', (await state()).view === 'backup' && (await state()).backup.mode === 'export' && /\/backup\/#t=framehome-bk-/.test((await state()).backup.url));
+    await new Promise(r => setTimeout(r, 400));
+    const file1 = joinParts(posts.map(p => JSON.parse(p)));
+    const dec = await current.evaluate(t => { const r = FrameBackup.read('secret12', t); return { ok: r.ok, keys: r.ok ? Object.keys(r.keys).sort().join() : '' }; }, file1);
+    check('The sent file decrypts with the pass-phrase', posts.length >= 1 && dec.ok && /cleanframe.home.v1/.test(dec.keys), { posts: posts.length, dec });
+    await nav('back');
+
+    // 3) restore: a received file is applied and the app reloads
+    const file = await current.evaluate(() => { localStorage.setItem('cleanframe.calendar.v1', JSON.stringify({ cals: [{ id: 'c9', url: 'https://calendar.google.com/calendar/ical/z/private-9/basic.ics', name: 'FromBackup' }] })); return FrameBackup.make('pw123', '1'); });
+    const parts = await current.evaluate(t => FrameBackup._parts(t), file);
+    await current.evaluate(() => { localStorage.removeItem('cleanframe.calendar.v1'); window.ShoreQA.noReload = true; });
+    await current.unroute(u => /framehome-bk-/.test(u.href)).catch(() => {});
+    await current.route(u => /framehome-bk-[a-z0-9]+\/json/i.test(u.href), route => route.fulfill({ status: 200, headers: { 'Access-Control-Allow-Origin': '*' },
+      body: parts.map(p => JSON.stringify({ event: 'message', message: JSON.stringify(p) })).join('\n') + '\n' }));
+    await scene('settings'); await act('settings.group.system'); await act('backup.restore');
+    await current.waitForFunction(() => ShoreQA.state().view === 'wifitype' && ShoreQA.state().backup.hasFile);
+    await typeKeys('pw123'); await act('wifi.act.1');
+    const restored = await current.evaluate(() => { try { return JSON.parse(localStorage.getItem('cleanframe.calendar.v1') || '{}'); } catch (e) { return {}; } });
+    await current.waitForFunction(() => ShoreQA.state().backup.phase === 'reloaded');
+    check('Restore decrypts the file and writes the settings back', restored.cals && restored.cals[0] && restored.cals[0].name === 'FromBackup', restored);
+    await current.unroute(u => /framehome-bk-[a-z0-9]+\/json/i.test(u.href)).catch(() => {});
+
+    // 4) the restore phone page turns a chosen file into the same numbered parts the TV reads
+    const phone = await preview.browser.newPage({ viewport: { width: 390, height: 844 } }), pposts = [];
+    await phone.route('https://ntfy.sh/**', async route => { if (route.request().method() === 'POST') pposts.push(route.request().postData()); await route.fulfill({ status: 200, headers: { 'Access-Control-Allow-Origin': '*' }, body: '{}' }); });
+    await phone.goto('file://' + root + 'docs/backup/index.html#t=framehome-bk-abcdefghijklmnopqrst&r=1');
+    const phoneFile = await current.evaluate(() => FrameBackup.make('zzz9', '1'));
+    await phone.setInputFiles('#rFile', { name: 'frame-home-backup.json', mimeType: 'application/json', buffer: Buffer.from(phoneFile) });
+    await phone.waitForFunction(() => !document.getElementById('rSend').disabled);
+    await phone.click('#rSend');
+    await phone.waitForFunction(() => /ok/.test(document.getElementById('rStatus').className));
+    const phoneBack = joinParts(pposts.map(p => JSON.parse(p)));
+    const phoneDec = await current.evaluate(t => FrameBackup.read('zzz9', t).ok, phoneBack);
+    check('The phone restore page sends parts the TV decrypts', pposts.length >= 1 && phoneBack === phoneFile && phoneDec === true, { posts: pposts.length });
+    await phone.close();
   });
   await run('Remote buttons can open apps and use CH and Guide', async () => {
     await page({ seed: baseline({ alexaKeys: { chup: { id: 'app:9Ur5IzDKqV.TizenYouTube', name: 'YouTube' } } }) });

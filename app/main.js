@@ -4,7 +4,7 @@
 
   /* ---------- Bundled data ---------- */
   var ASSETS = 'assets/', ICONS = ASSETS + 'icons/', WP = ASSETS + 'wallpapers/';
-  var APP_VERSION = '0.33.0';
+  var APP_VERSION = '0.34.0';
   var CAP = 9, SCRIM_Y = 560, DOCK_BOTTOM = 1032; // the Dock sits 48 px above the bottom edge; names and actions go above it
   var DOCK_MODES = { both: { tw: 288, th: 200, pitch: 296 }, text: { tw: 288, th: 104, pitch: 296 }, icons: { tw: 200, th: 156, pitch: 206 } }; // icons-only tiles leave room under the icon for the focused app's name
   var GRID_ROW = 240, GRID_COL = 344, COLS = 5;
@@ -43,6 +43,7 @@
   var CUSTOM = 'custom', STILL_TAG = 'frame-home-still', PART_TAG = 'frame-home-part', SEND_PAGE = window.FrameFork && window.FrameFork.sendPage || '', FCW = window.FrameCustomWallpaper, RELAY = (window.FrameFork && window.FrameFork.relay) || 'https://ntfy.sh';
   var ALEXA_PAGE = window.FrameFork && window.FrameFork.alexaPage || '', FA = ALEXA_PAGE && window.FrameAlexa ? window.FrameAlexa : null;
   var CAL_PAGE = window.FrameFork && window.FrameFork.calendarPage || '';
+  var BACKUP_PAGE = window.FrameFork && window.FrameFork.backupPage || '', FB = window.FrameBackup || null;
   var SPOTIFY_PAGE = window.FrameFork && window.FrameFork.spotify && window.FrameFork.spotify.page || '', FS = window.FrameSpotify && window.FrameSpotify.configured ? window.FrameSpotify : null;
   var custom = { urls: null, stamp: 0, phase: 'idle', name: '', busy: false, queued: null, seen: {}, sets: {}, lost: false, percent: 0, stillMsg: null, link: 'idle', detail: '', relay: null };
   function addCustomWall(tone) {
@@ -729,7 +730,7 @@
   function openSettings() { push({ id: 'settings', f: { id: S.settingsFocus } }); }
   function openAppearance(group) {
     var axis = { background: 'bg', layout: 'layout', typography: 'font', focus: 'focus', region: 'lang' }[group];
-    var action = S.detailFocus[group] || (axis ? 'choice.' + axis + '.' + S.c[axis] : group === 'rotation' ? 'rotation.' + S.c.mode : group === 'alexa' ? (alexaOn() ? 'alexa.list.readings' : 'alexa.connect') : group === 'spotify' ? (spotifyOn() ? 'choice.spotifyShow.' + S.c.spotifyShow : 'spotify.connect') : group === 'connections' ? (FA ? 'conn.alexa' : 'conn.spotify') : group === 'dateinfo' ? 'choice.holidays.' + S.c.holidays : 'wifi.edit.ssid');
+    var action = S.detailFocus[group] || (axis ? 'choice.' + axis + '.' + S.c[axis] : group === 'rotation' ? 'rotation.' + S.c.mode : group === 'alexa' ? (alexaOn() ? 'alexa.list.readings' : 'alexa.connect') : group === 'spotify' ? (spotifyOn() ? 'choice.spotifyShow.' + S.c.spotifyShow : 'spotify.connect') : group === 'connections' ? (FA ? 'conn.alexa' : 'conn.spotify') : group === 'dateinfo' ? 'choice.holidays.' + S.c.holidays : group === 'system' ? (FB && BACKUP_PAGE ? 'backup.create' : 'system.samsung') : 'wifi.edit.ssid');
     push({ id: 'appearance', group: group, f: { action: action } });
   }
   function openWifiField(field) {
@@ -1055,13 +1056,13 @@
       /* Two languages: OK on the tile switches between them, no page needed. */
       { id: 'lang', icon: 'lang', label: T('Language'), value: PREF_NAMES[S.c.lang], toggle: true }
     ].concat(FA || FS ? [{ id: 'connections', icon: 'alexa', label: T('Connections'), value: connectionsSummary() }] : []).concat([
-      { id: 'samsung', icon: 'home', label: T('Samsung Home'), value: T('Leave Frame Home'), direct: true }]);
+      { id: 'system', icon: 'home', label: T('System'), value: FB && BACKUP_PAGE ? T('Backup, Samsung Home') : T('Samsung Home') }]);
   }
   function settingsIds() { return settingsRows().map(function (r) { return r.id; }); }
   /* Three columns of three equal cards. */
   var SETTINGS_GROUPS = [{ id: 'personal', label: 'Personalization', ids: ['background', 'layout', 'typography'] },
     { id: 'home', label: 'Home and time', ids: ['editor', 'wifiqr', 'region'] },
-    { id: 'system', label: 'System', ids: ['lang', 'connections', 'samsung'] }];
+    { id: 'system', label: 'System', ids: ['lang', 'connections', 'system'] }];
   function settingsGroups() {
     var have = settingsIds();
     return SETTINGS_GROUPS.map(function (g) { return { id: g.id, label: g.label, ids: g.ids.filter(function (id) { return have.indexOf(id) >= 0; }) }; }).filter(function (g) { return g.ids.length; });
@@ -1090,10 +1091,10 @@
     if (id === 'lang') { applyPref('lang', S.c.lang === 'hu' ? 'en' : 'hu'); return; }
     if (id === 'focus') id = 'typography';
     if (id === 'editor') openEditor('settings');
-    else if (id === 'samsung') perform('Samsung Home', FrameDevice.home);
+    else if (id === 'system') openAppearance('system');
     else openAppearance(id);
   }
-  var DETAIL_NAMES = { background: 'Background', layout: 'Layout', typography: 'Style', focus: 'Style', rotation: 'Rotation', region: 'Date and time', wifiqr: 'Wifi QR code settings', alexa: 'Alexa', spotify: 'Spotify', connections: 'Connections', dateinfo: 'Date details' };
+  var DETAIL_NAMES = { background: 'Background', layout: 'Layout', typography: 'Style', focus: 'Style', rotation: 'Rotation', region: 'Date and time', wifiqr: 'Wifi QR code settings', alexa: 'Alexa', spotify: 'Spotify', connections: 'Connections', dateinfo: 'Date details', system: 'System' };
   var PARENT = { rotation: 'background', alexa: 'connections', spotify: 'connections', dateinfo: 'region' };
   function backLabel(t) { return T(PARENT[t.group] ? DETAIL_NAMES[PARENT[t.group]] : 'Settings'); }
   function choice(axis, value, disabled) {
@@ -1132,6 +1133,12 @@
       { id: 'seconds', title: T('Seconds'), horizontal: true, items: options('seconds', PREF_VALUES.seconds) },
       { id: 'weather', title: T('Weather') + ' · ' + WEATHER_PLACE.name, horizontal: true, items: options('weather', PREF_VALUES.weather) },
       { id: 'dateinfo', title: '', items: [{ action: 'region.dateinfo', label: T('Date details'), description: dateInfoSummary() }] }
+    ];
+    if (t.group === 'system') return [
+      { id: 'backup', items: FB && BACKUP_PAGE ? [
+        { action: 'backup.create', label: T('Create a backup'), description: T('Save all your settings to your phone') },
+        { action: 'backup.restore', label: T('Restore from a backup'), description: T('Load settings from a saved file') }] : [] },
+      { id: 'thistv', items: [{ action: 'system.samsung', label: T('Samsung Home'), description: T('Leave Frame Home') }] }
     ];
     if (t.group === 'alexa') return alexaSections();
     if (t.group === 'spotify') return spotifySections();
@@ -1233,6 +1240,9 @@
     else if (item.action === 'alexa.signout') alexaSignOut();
     else if (item.action === 'wifi.edit.ssid') openWifiField('ssid');
     else if (item.action === 'wifi.edit.pass') openWifiField('pass');
+    else if (item.action === 'backup.create') startBackup('export');
+    else if (item.action === 'backup.restore') startBackup('import');
+    else if (item.action === 'system.samsung') perform('Samsung Home', FrameDevice.home);
   }
   V.appearance = {
     norm: function (t) {
@@ -1869,6 +1879,56 @@
     point: function (t, z) { if (z === 'act') this.key(t, 'ok'); }
   };
 
+  /* ---------- Backup and restore ----------
+     Export: enter a pass-phrase, the TV encrypts everything and sends the file to the phone to save.
+     Restore: the phone sends a saved file back, the TV asks for the pass-phrase and writes it back. */
+  var bk = { mode: '', phase: '', topic: '', text: '', url: '', detail: '', send: null, recv: null };
+  function stopBackup() { if (bk.send) { bk.send.stop(); bk.send = null; } if (bk.recv) { bk.recv.stop(); bk.recv = null; } }
+  function startBackup(mode) {
+    if (!FB || !BACKUP_PAGE) return;
+    stopBackup();
+    if (mode === 'export') { openBkPass('export'); return; }
+    bk.mode = 'import'; bk.phase = 'waiting'; bk.text = ''; bk.detail = ''; bk.topic = FB.topic();
+    bk.url = BACKUP_PAGE + '#t=' + bk.topic + '&r=1';
+    push({ id: 'backup', mode: 'import', f: { b: 0 } });
+    bk.recv = FB.receive(RELAY, bk.topic, function (text) {
+      bk.recv = null; bk.text = text; bk.phase = 'got';
+      openBkPass('import'); render();
+    });
+  }
+  function openBkPass(mode) { push({ id: 'wifitype', field: 'bkpass', bkmode: mode, draft: '', max: 64, f: { zone: 'char', ci: 0, ai: 0 } }); }
+  function commitBkPass(t) {
+    var pass = String(t.draft || '');
+    if (pass.length < 1) return false;
+    if (t.bkmode === 'export') {
+      var text = FB.make(pass, APP_VERSION);
+      pop();
+      if (!text) { bk.mode = 'export'; bk.phase = 'empty'; bk.url = ''; push({ id: 'backup', mode: 'export', f: { b: 0 } }); return true; }
+      bk.mode = 'export'; bk.phase = 'sending'; bk.detail = ''; bk.topic = FB.topic(); bk.text = text;
+      bk.url = BACKUP_PAGE + '#t=' + bk.topic;
+      bk.send = FB.send(RELAY, bk.topic, text);
+      push({ id: 'backup', mode: 'export', f: { b: 0 } });
+      return true;
+    }
+    var res = FB.read(pass, bk.text);
+    if (!res.ok) { bk.phase = 'badpass'; bk.detail = res.code; pop(); render(); return true; }
+    pop();
+    FB.apply(res.keys); bk.phase = 'done'; bk.detail = ''; render();
+    setTimeout(reloadApp, 900);
+    return true;
+  }
+  function reloadApp() { if (QA.noReload) { bk.phase = 'reloaded'; render(); return; } try { location.reload(); } catch (e) { /* ignore */ } }
+  function closeBackup() { stopBackup(); bk.phase = ''; pop(); }
+  V.backup = {
+    sheet: true,
+    key: function (t, k) {
+      if (k === 'ok' && t.mode === 'export' && bk.phase !== 'empty') { openBkPass('export'); return; }
+      if (k === 'ok' && t.mode === 'import' && (bk.phase === 'badpass' || bk.phase === 'got')) { openBkPass('import'); return; }
+      if (k === 'back' || k === 'ok') closeBackup();
+    },
+    point: function (t, z) { if (z === 'act') this.key(t, 'ok'); }
+  };
+
   /* One list screen for every Alexa choice. t.mode picks the rows and what OK does. */
   var LIST_NEEDS_DEVICES = { readings: 1, switches: 1, keytarget: 1, members: 1, details: 1 };
   function openAlexaList(mode, extra) {
@@ -2349,6 +2409,7 @@
         else if (f.ai === 1 && t.field === 'group') { if (saveGroupName(t) === true) pop(); }
         else if (f.ai === 1 && t.field === 'swname') { if (saveSwitchName(t)) pop(); }
         else if (f.ai === 1 && t.field === 'calname') { FC.rename(t.target, t.draft); pop(); }
+        else if (f.ai === 1 && t.field === 'bkpass') { commitBkPass(t); }
         else if (f.ai === 1) { if (saveWifiDraft(t.field, t.draft)) pop(); }
         else pop();
       }
@@ -2489,7 +2550,7 @@
     npOverlay.setAttribute('aria-hidden', on ? 'false' : 'true');
   }
   function wifiDraftDisplay(t) {
-    if (t.field === 'pass') return t.draft ? Array(t.draft.length + 1).join('•') : T('No password');
+    if (t.field === 'pass' || t.field === 'bkpass') return t.draft ? Array(t.draft.length + 1).join('•') : T(t.field === 'bkpass' ? 'Choose a pass-phrase' : 'No password');
     if (t.field === 'group') return t.draft || T('Group name');
     if (t.field === 'swname') return t.draft || T('Name on Home');
     if (t.field === 'calname') return t.draft || T('For example: Ági');
@@ -2998,7 +3059,8 @@
     focus: { clockStyle: 'Clock', font: 'Home text', focus: 'Focus', material: 'Focus' },
     region: { clock: 'Clock', clockPos: 'Clock', seconds: 'Clock', date: 'Date and weather', weather: 'Date and weather', dateinfo: 'Date and weather' },
     rotation: { mode: 'Rotation' },
-    wifiqr: { ssid: 'Network', pass: 'Network', sec: 'Network' }
+    wifiqr: { ssid: 'Network', pass: 'Network', sec: 'Network' },
+    system: { backup: 'Backup', thistv: 'This TV' }
   };
   /* Pages whose changes show on Home keep the live preview on the right; the others use the width. */
   var PREVIEW_GROUPS = { background: 1, layout: 1, typography: 1, focus: 1, region: 1, dateinfo: 1 };
@@ -3193,6 +3255,18 @@
         + '<p class="phone-status" data-slot="status" aria-live="polite"></p><p class="phone-note">' + T(p.note) + '</p>'
         + '<div class="phone-acts" data-slot="acts"></div></div></div></div>';
     },
+    backup: function (t) {
+      var exp = t.mode === 'export';
+      var steps = exp
+        ? ['Scan the code with your phone.', 'On the page that opens, save the backup file (for example to Google Drive or Files).', 'Keep the file and your pass-phrase safe. You need both to restore.']
+        : ['Scan the code with your phone.', 'On the page that opens, choose your saved backup file and send it.', 'The TV then asks for your pass-phrase and writes your settings back.'];
+      return '<div class="phone-panel"><h2 class="s-title">' + T(exp ? 'Create a backup' : 'Restore from a backup') + '</h2>'
+        + '<div class="phone-body"><div class="phone-qr-card"><canvas class="phone-qr" width="360" height="360" data-slot="qr"></canvas><p class="phone-url" data-slot="url"></p></div>'
+        + '<div class="phone-copy"><ol class="phone-steps">' + steps.map(function (s) { return '<li>' + T(s) + '</li>'; }).join('') + '</ol>'
+        + '<p class="phone-status" data-slot="status" aria-live="polite"></p>'
+        + '<p class="phone-note">' + T('The file is encrypted with your pass-phrase. Only the encrypted file passes through ntfy.sh, on a private channel, and is deleted there after a few hours.') + '</p>'
+        + '<div class="phone-acts" data-slot="acts"></div></div></div></div>';
+    },
     remotetest: function () {
       return '<div class="rt"><h2 class="s-title">' + T('Remote test') + '</h2><p class="s-sub">' + T('Press the colour button and the other buttons. Everything the TV tells Frame Home appears here. Press Back twice to leave.') + '</p>'
         + '<p class="rt-meta" data-slot="meta"></p><ol class="rt-log" data-slot="log"></ol></div>';
@@ -3313,7 +3387,7 @@
       }).join('');
       setHTML(el.list, html);
       el.list.className = 'settings-grid is-columns';
-      setHTML(el.hint, T(t.f.id === 'samsung' ? 'Open Samsung’s Home screen' : t.f.id === 'lang' ? 'Switch the language' : 'Open selected group'));
+      setHTML(el.hint, T(t.f.id === 'system' ? 'Open system settings' : t.f.id === 'lang' ? 'Switch the language' : 'Open selected group'));
     },
     message: function (t, el) {
       setHTML(el.acts, messageContent(t).actions.map(function (a, i) {
@@ -3342,6 +3416,23 @@
       setHTML(el.url, esc(p.page.replace(/^https:\/\//, '').replace(/\/$/, '')));
       setHTML(el.status, '<span class="phone-dot is-' + dot + '"></span>' + esc(text));
       setHTML(el.acts, '<button type="button" tabindex="-1" class="btn is-focus" data-z="act" data-i="0" data-action="pair.ok"><span>' + T(st.phase === 'done' ? 'Done' : st.phase === 'failed' ? 'Try again' : 'Close') + '</span></button>');
+    },
+    backup: function (t, el) {
+      var exp = t.mode === 'export';
+      var text = {
+        sending: T('Saving to your phone… scan the code and save the file.'),
+        empty: T('There is nothing to back up yet.'),
+        waiting: T('Waiting for your backup file from the phone…'),
+        got: T('File received. Enter your pass-phrase on the TV.'),
+        badpass: T(bk.detail === 'bad-version' ? 'This backup is from a newer version of Frame Home.' : bk.detail === 'bad-file' ? 'That file is not a Frame Home backup.' : 'Wrong pass-phrase, or the file is damaged. OK tries again.'),
+        done: T('Restored. Frame Home is reloading…'), reloaded: T('Restored.')
+      }[bk.phase] || (exp ? T('Saving to your phone…') : T('Waiting for your backup file from the phone…'));
+      var dot = { sending: 'waiting', waiting: 'waiting', got: 'processing', badpass: 'offline', empty: 'offline', done: 'done', reloaded: 'done' }[bk.phase] || 'connecting';
+      if (bk.url && el.qr._payload !== bk.url && window.qrcode) { drawQr(el.qr, bk.url); el.qr._payload = bk.url; }
+      setHTML(el.url, bk.url ? esc(BACKUP_PAGE.replace(/^https:\/\//, '').replace(/\/$/, '')) : '');
+      setHTML(el.status, '<span class="phone-dot is-' + dot + '"></span>' + esc(text));
+      var act = bk.phase === 'badpass' || (bk.phase === 'got' && !exp) ? T('Try again') : bk.phase === 'done' ? T('Done') : T('Close');
+      setHTML(el.acts, '<button type="button" tabindex="-1" class="btn is-focus" data-z="act" data-i="0" data-action="backup.ok"><span>' + esc(act) + '</span></button>');
     },
     remotetest: function (t, el) {
       setHTML(el.meta, esc(T('{0} keys supported, {1} registered for this test.', rt.supported, rt.registered.length)));
@@ -3397,7 +3488,7 @@
     },
     wifitype: function (t, el) {
       var f = t.f, chars = '', acts = [T('Delete last'), T('Save'), T('Cancel')], i;
-      setHTML(el.title, T(t.field === 'ssid' ? 'Network name' : t.field === 'group' ? 'Group name' : t.field === 'swname' ? 'Name on Home' : t.field === 'calname' ? 'Calendar name' : 'Password'));
+      setHTML(el.title, T(t.field === 'ssid' ? 'Network name' : t.field === 'group' ? 'Group name' : t.field === 'swname' ? 'Name on Home' : t.field === 'calname' ? 'Calendar name' : t.field === 'bkpass' ? (t.bkmode === 'import' ? 'Pass-phrase of this backup' : 'Pass-phrase for this backup') : 'Password'));
       setHTML(el.value, esc(wifiDraftDisplay(t)));
       var set = t.chars || WIFI_CHARS;
       for (i = 0; i < set.length; i++) chars += '<button type="button" tabindex="-1" class="btn' + (f.zone === 'char' && f.ci === i ? ' is-focus' : '') + '" data-z="char" data-i="' + i + '" data-action="wifi.char.' + i + '"' + (set.charAt(i) === ' ' ? ' aria-label="' + T('Space') + '"' : '') + '>' + (set.charAt(i) === ' ' ? '␣' : esc(set.charAt(i))) + '</button>';
@@ -3702,6 +3793,7 @@
     out.wallpaperPicker = t.id === 'wallpaper' ? { candidate: WALLS[t.i].id, applied: S.c.wall, shown: S.wallShown, pending: t.previewDue || S.wallPending,
       queuedApplying: !!t.applyPending, applyPending: t.applyPending, failed: t.failedId, zone: t.f.zone, top: t.top, visible: WALL_VISIBLE, backdrop: IMG.bg.src } : null;
     out.undo = S.undo.map(function (u) { return u.label; }); out.storageOk = storageOk;
+    out.backup = { phase: bk.phase, mode: bk.mode, url: bk.url, detail: bk.detail, hasFile: !!bk.text };
     out.appVersion = APP_VERSION;
     return JSON.parse(JSON.stringify(out));
   };

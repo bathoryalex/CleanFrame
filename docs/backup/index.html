@@ -1,0 +1,196 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#11171a">
+<title>Frame Home · Backup</title>
+<style>
+  /* Frame Home backup helper. The TV encrypts everything with your pass-phrase; this page only moves
+     the already-encrypted file. The file arrives (or is sent) in small numbered parts through a
+     private ntfy.sh channel named in the URL fragment, which browsers never send to a server. */
+  :root {
+    --bg: #f2efe8; --card: #ffffff; --ink: #1d1a16; --mute: rgba(29, 26, 22, .62); --line: rgba(29, 26, 22, .12);
+    --accent: #1d1a16; --accent-ink: #f2efe8; --ok: #2f8a4c; --warn: #a2560f; --track: rgba(29, 26, 22, .10);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #11171a; --card: #1b2327; --ink: #f4f4f1; --mute: rgba(244, 244, 241, .64); --line: rgba(244, 244, 241, .12);
+      --accent: #f3f3ef; --accent-ink: #141618; --ok: #7fd18b; --warn: #e9a35b; --track: rgba(244, 244, 241, .12); }
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { -webkit-text-size-adjust: 100%; }
+  body { min-height: 100vh; background: var(--bg); color: var(--ink); font: 17px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; -webkit-font-smoothing: antialiased; }
+  main { max-width: 520px; margin: 0 auto; padding: max(28px, env(safe-area-inset-top)) 20px max(32px, env(safe-area-inset-bottom)); display: flex; flex-direction: column; gap: 20px; }
+  h1 { font-size: 22px; line-height: 1.2; font-weight: 650; letter-spacing: -.3px; }
+  .sub { color: var(--mute); font-size: 15px; margin-top: 4px; }
+  .card { background: var(--card); border-radius: 22px; padding: 18px; box-shadow: 0 1px 0 var(--line), 0 10px 30px rgba(0, 0, 0, .06); display: flex; flex-direction: column; gap: 12px; }
+  h2 { font-size: 17px; font-weight: 650; }
+  p { font-size: 15px; }
+  .note { color: var(--mute); font-size: 13px; }
+  .row { display: flex; gap: 10px; flex-wrap: wrap; }
+  .row > button { flex: 1 1 auto; }
+  button { appearance: none; border: 0; font: inherit; font-weight: 600; border-radius: 16px; min-height: 52px; padding: 0 16px; display: flex; align-items: center; justify-content: center; width: 100%; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+  button.send { background: var(--accent); color: var(--accent-ink); }
+  button.soft { background: var(--track); color: var(--ink); }
+  button:disabled { opacity: .45; cursor: default; }
+  input[type=file] { font: inherit; font-size: 15px; }
+  .status { font-size: 15px; min-height: 22px; }
+  .status.ok { color: var(--ok); } .status.warn { color: var(--warn); }
+  .missing { display: none; }
+  body.no-channel .card, body.no-channel header .sub { display: none; } body.no-channel .missing { display: block; }
+  .mode-export .restore-only, .mode-restore .export-only { display: none; }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1 data-t="title">Frame Home backup</h1>
+    <p class="sub export-only" data-t="subExport">Save the encrypted backup of your TV settings to your phone. Only the TV knows your pass-phrase; this page never sees it.</p>
+    <p class="sub restore-only" data-t="subRestore">Send a saved backup file back to your TV. The TV will ask for your pass-phrase and write your settings back.</p>
+  </header>
+
+  <section class="card export-only">
+    <h2 data-t="eHead">Save the backup file</h2>
+    <p class="status" id="eStatus" aria-live="polite" data-t="eWaiting">Waiting for the backup from the TV…</p>
+    <div class="row" id="eActions" hidden>
+      <button class="send" id="eShare" type="button" hidden data-t="share">Save or share…</button>
+      <button class="send" id="eSave" type="button" data-t="save">Save file</button>
+    </div>
+    <p class="note" data-t="eNote">Keep this file and your pass-phrase safe. You need both to restore. You can save the file anywhere — Google Drive, Files, email it to yourself.</p>
+  </section>
+
+  <section class="card restore-only">
+    <h2 data-t="rHead">Choose your backup file</h2>
+    <input type="file" id="rFile" accept=".json,.fhbackup,application/json">
+    <button class="send" id="rSend" type="button" disabled data-t="rSendBtn">Send to TV</button>
+    <p class="status" id="rStatus" aria-live="polite"></p>
+    <p class="note" data-t="rNote">Pick the backup file you saved earlier. It stays encrypted; the TV decrypts it with your pass-phrase.</p>
+  </section>
+
+  <p class="missing" data-t="missing">Open this page by scanning the QR code on the TV.</p>
+</main>
+<script>
+(function () {
+  'use strict';
+  var EN = {
+    title: 'Frame Home backup',
+    eReceiving: 'Receiving the backup from the TV…', eReady: 'Backup received. Save it now.', eSaved: 'Saved. Keep it safe.',
+    rSending: 'Sending to the TV…', rSent: 'Sent. Look at the TV and enter your pass-phrase.', rFailed: 'Could not reach the relay. Try again.', rBad: 'That file is not a Frame Home backup.'
+  };
+  var TEXT = { hu: {
+    title: 'Frame Home mentés',
+    subExport: 'Mentsd el a TV-beállításaid titkosított mentését a telefonodra. A jelszót csak a TV ismeri; ez az oldal sosem látja.',
+    subRestore: 'Küldj vissza egy mentett fájlt a TV-nek. A TV kéri a jelszót, és visszaírja a beállításaidat.',
+    eHead: 'Mentsd el a fájlt', eWaiting: 'Várakozás a mentésre a TV-ről…', save: 'Fájl mentése', share: 'Mentés vagy megosztás…',
+    eNote: 'Tartsd biztonságban a fájlt és a jelszót. Visszaállításhoz mindkettő kell. A fájlt bárhova mentheted — Google Drive, Fájlok, vagy küldd el magadnak e-mailben.',
+    rHead: 'Válaszd ki a mentésfájlt', rSendBtn: 'Küldés a TV-re',
+    rNote: 'Válaszd ki a korábban mentett fájlt. Titkosítva marad; a TV a jelszavaddal fejti vissza.',
+    missing: 'Ezt az oldalt a TV-n lévő QR-kód beolvasásával nyisd meg.',
+    eReceiving: 'Mentés fogadása a TV-ről…', eReady: 'Mentés megérkezett. Mentsd el most.', eSaved: 'Elmentve. Tartsd biztonságban.',
+    rSending: 'Küldés a TV-nek…', rSent: 'Elküldve. Nézd a TV-t, és add meg a jelszót.', rFailed: 'Nem értem el a továbbítót. Próbáld újra.', rBad: 'Ez a fájl nem Frame Home mentés.'
+  } };
+  var lang = /^hu\b/i.test(navigator.language || '') ? 'hu' : 'en';
+  function t(key) { return (TEXT[lang] && TEXT[lang][key]) || EN[key] || key; }
+  document.documentElement.lang = lang;
+  Array.prototype.forEach.call(document.querySelectorAll('[data-t]'), function (el) { var v = TEXT[lang] && TEXT[lang][el.getAttribute('data-t')]; if (v) el.textContent = v; });
+
+  var frag = {};
+  location.hash.replace(/^#/, '').split('&').forEach(function (pair) { var i = pair.indexOf('='); if (i > 0) frag[pair.slice(0, i)] = decodeURIComponent(pair.slice(i + 1)); });
+  if (!/^framehome-bk-[A-Za-z0-9]{16,40}$/.test(frag.t || '')) { document.body.className = 'no-channel'; return; }
+  var restore = frag.r === '1', topic = frag.t, RELAY = 'https://ntfy.sh', CHUNK = 1200;
+  document.body.className = restore ? 'mode-restore' : 'mode-export';
+  try { history.replaceState(null, '', location.pathname); } catch (e) { /* keep */ }
+
+  function b64url(a) { var s = '', i; for (i = 0; i < a.length; i++) s += String.fromCharCode(a[i]); return btoa(s).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, ''); }
+  function b64urlDecode(s) { var b = atob(String(s).replace(/-/g, '+').replace(/_/g, '/') + '===='.slice(s.length % 4 || 4)), a = new Uint8Array(b.length), i; for (i = 0; i < b.length; i++) a[i] = b.charCodeAt(i); return a; }
+  function utf8Bytes(str) { var bin = unescape(encodeURIComponent(str)), a = new Uint8Array(bin.length), i; for (i = 0; i < bin.length; i++) a[i] = bin.charCodeAt(i) & 255; return a; }
+  function utf8String(a) { var bin = '', i; for (i = 0; i < a.length; i++) bin += String.fromCharCode(a[i]); try { return decodeURIComponent(escape(bin)); } catch (e) { return null; } }
+  function newId() { var a = (window.crypto && crypto.getRandomValues) ? crypto.getRandomValues(new Uint8Array(9)) : (function () { var x = new Uint8Array(9), i; for (i = 0; i < 9; i++) x[i] = Math.floor(Math.random() * 256); return x; }()); return b64url(a).replace(/[^A-Za-z0-9]/g, '').slice(0, 12) || 'bk'; }
+
+  if (restore) {
+    var rFile = document.getElementById('rFile'), rSend = document.getElementById('rSend'), rStatus = document.getElementById('rStatus'), chosen = '';
+    function rSay(text, kind) { rStatus.textContent = text; rStatus.className = 'status' + (kind ? ' ' + kind : ''); }
+    rFile.addEventListener('change', function () {
+      var f = rFile.files && rFile.files[0]; chosen = ''; rSend.disabled = true; rSay('');
+      if (!f) return;
+      var reader = new FileReader();
+      reader.onload = function () { var txt = String(reader.result || '').trim(); try { var o = JSON.parse(txt); if (o && o.kdf && o.d && o.n && o.m) { chosen = txt; rSend.disabled = false; rSay(''); return; } } catch (e) {} rSay(t('rBad'), 'warn'); };
+      reader.onerror = function () { rSay(t('rBad'), 'warn'); };
+      reader.readAsText(f);
+    });
+    rSend.addEventListener('click', function () {
+      if (!chosen) return;
+      rSend.disabled = true; rSay(t('rSending'));
+      var body = b64url(utf8Bytes(chosen)), id = newId(), n = Math.max(1, Math.ceil(body.length / CHUNK)), parts = [], i, left = 0, failed = false;
+      for (i = 0; i < n; i++) parts.push({ id: id, i: i, n: n, code: body.slice(i * CHUNK, (i + 1) * CHUNK) || '.' });
+      left = parts.length;
+      parts.forEach(function (p) {
+        var x = new XMLHttpRequest();
+        x.open('POST', RELAY + '/' + topic, true);
+        x.onload = function () { if (!(x.status >= 200 && x.status < 300)) failed = true; if (!--left) done(); };
+        x.onerror = function () { failed = true; if (!--left) done(); };
+        x.send(JSON.stringify(p));
+      });
+      function done() { if (failed) { rSend.disabled = false; rSay(t('rFailed'), 'warn'); } else rSay(t('rSent'), 'ok'); }
+    });
+    return;
+  }
+
+  /* Export: collect the TV's numbered parts, join them, and offer the file to save. */
+  var eStatus = document.getElementById('eStatus'), eActions = document.getElementById('eActions'), eSave = document.getElementById('eSave'), eShare = document.getElementById('eShare');
+  var sets = {}, got = false, since = Math.floor(Date.now() / 1000) - 5;
+  function eSay(text, kind) { eStatus.textContent = text; eStatus.className = 'status' + (kind ? ' ' + kind : ''); }
+  eSay(t('eReceiving'));
+  function filename() { var d = new Date(), z = function (n) { return (n < 10 ? '0' : '') + n; }; return 'frame-home-backup-' + d.getFullYear() + '-' + z(d.getMonth() + 1) + '-' + z(d.getDate()) + '.json'; }
+  function ready(text) {
+    if (got) return; got = true;
+    eSay(t('eReady'), 'ok'); eActions.hidden = false;
+    var blob = new Blob([text], { type: 'application/json' }), name = filename();
+    eSave.addEventListener('click', function () {
+      var url = URL.createObjectURL(blob), a = document.createElement('a');
+      a.href = url; a.download = name; document.body.appendChild(a); a.click();
+      setTimeout(function () { document.body.removeChild(a); URL.revokeObjectURL(url); }, 1000);
+      eSay(t('eSaved'), 'ok');
+    });
+    try {
+      var file = new File([blob], name, { type: 'application/json' });
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        eShare.hidden = false;
+        eShare.addEventListener('click', function () { navigator.share({ files: [file], title: name }).then(function () { eSay(t('eSaved'), 'ok'); }, function () {}); });
+      }
+    } catch (e) { /* no share */ }
+  }
+  function take(m) {
+    if (!m || typeof m.id !== 'string' || typeof m.code !== 'string' || typeof m.n !== 'number' || typeof m.i !== 'number') return false;
+    if (m.n < 1 || m.n > 400 || m.i < 0 || m.i >= m.n) return false;
+    var set = sets[m.id] || (sets[m.id] = { n: m.n, parts: [], got: 0 });
+    if (set.n !== m.n) return false;
+    if (set.parts[m.i] === undefined) { set.parts[m.i] = m.code; set.got++; }
+    if (set.got < set.n) return false;
+    var joined = set.parts.join('').replace(/\.$/, ''), text = utf8String(b64urlDecode(joined));
+    if (text) { ready(text); return true; }
+    return false;
+  }
+  function poll() {
+    if (got) return;
+    var x = new XMLHttpRequest();
+    x.open('GET', RELAY + '/' + topic + '/json?poll=1&since=' + since, true);
+    x.onload = function () {
+      var lines = String(x.responseText || '').split('\n'), i, env, msg;
+      for (i = 0; i < lines.length; i++) {
+        try { env = JSON.parse(lines[i]); } catch (e) { continue; }
+        if (!env || env.event !== 'message') continue;
+        try { msg = JSON.parse(env.message || ''); } catch (e2) { continue; }
+        if (take(msg)) return;
+      }
+      if (!got) setTimeout(poll, x.status === 429 ? 15000 : 4000);
+    };
+    x.onerror = function () { if (!got) setTimeout(poll, 5000); };
+    x.send();
+  }
+  poll();
+}());
+</script>
+</body>
+</html>

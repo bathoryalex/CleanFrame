@@ -31,6 +31,9 @@ window.FrameFork = {
   alexaPage: 'https://bathoryalex.github.io/CleanFrame/alexa/',
   /* The calendar QR code opens this page (docs/calendar/), which encrypts your secret iCal address. */
   calendarPage: 'https://bathoryalex.github.io/CleanFrame/calendar/',
+  /* Backup and restore QR codes open this page (docs/backup/): it saves the encrypted backup file to
+     your phone and sends a chosen file back. The TV does the encryption; the page only moves the file. */
+  backupPage: 'https://bathoryalex.github.io/CleanFrame/backup/',
   /* Spotify app from developer.spotify.com (Authorization Code with PKCE; the client id is public,
      there is no secret). `page` must be listed as a Redirect URI in that app. Empty clientId hides Spotify. */
   spotify: { clientId: '46baaffd46624e648beec0c38bc3d070', page: 'https://bathoryalex.github.io/CleanFrame/spotify/' },
