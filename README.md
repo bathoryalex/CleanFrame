@@ -4,9 +4,9 @@
 
 A quieter home screen for Samsung TVs. Your apps, a photograph, the time and the weather, with an interface made for the TV remote.
 
-![Frame Home: the top Dock bar with the song on the left and five Alexa switches and icon-only controls on the right, a thin centred clock with seconds, the date, weather and indoor temperature, name days and a calendar event on small cards, and the Modern dock at the bottom with icons and names side by side](docs/images/frame-home-home.jpg)
+![Frame Home: the top Dock bar with the song on the left and five Alexa switches and icon-only controls on the right, a thin centred clock with seconds, the date, weather and indoor temperature, one glass panel with today's name days and events from two named calendars, and the Modern dock at the bottom with icons and names side by side](docs/images/frame-home-home.jpg)
 
-*Top Dock bar, thin 24-hour clock with seconds, name days and a calendar event, and the Modern dock with icons and names. Rendered in the browser preview on the Desert stars wallpaper with sample Spotify, Alexa and calendar data.*
+*Top Dock bar, thin 24-hour clock with seconds, one panel with name days and events from two calendars (each marked with its name and colour), and the Modern dock with icons and names. Rendered in the browser preview on the Desert stars wallpaper with sample Spotify, Alexa and calendar data.*
 
 This repo uses [Nathan Clark's CleanFrame](https://github.com/nthnclrk/CleanFrame) as a base and changes it to suit my Samsung TV (**Frame Home**, its own app identity). It is still evolving; upstream remains the better reference for a general-purpose project.
 
@@ -14,7 +14,7 @@ This repo uses [Nathan Clark's CleanFrame](https://github.com/nthnclrk/CleanFram
 
 | Settings | Dock layout |
 | --- | --- |
-| ![Settings as a grid of nine cards](docs/images/frame-home-settings.jpg) | ![Dock layout: one glass shelf with colour icons and names, the corner clock with weather and indoor temperature, the date, name days and a calendar event, and the top-row cards](docs/images/frame-home-dock.jpg) |
+| ![Settings: three equal columns, Personalization, Home and time, and System, each with three cards](docs/images/frame-home-settings.jpg) | ![Dock layout: one glass shelf with colour icons and names, the corner clock with weather and indoor temperature, the date, a glass panel with name days and a calendar event, and the top-row cards](docs/images/frame-home-dock.jpg) |
 
 ## What it does
 
@@ -27,7 +27,7 @@ This repo uses [Nathan Clark's CleanFrame](https://github.com/nthnclrk/CleanFram
 - **Alexa.** Up to three readings (temperature, humidity) beside the clock, up to four switches among the Home controls (six with the top Dock bar), named groups of lights, and remote buttons assigned to a light or a group. Works with any device in your Alexa app, including Matter devices paired to an Echo (see below).
 - **Remote buttons.** The red, green, yellow and blue buttons, CH +, CH − and Guide can each switch a light or group, control Spotify or open any app. A row of chips above the apps shows what they do.
 - **Back to Home.** Coming back to Frame Home from another app always lands on the Home screen with the apps focused. While Frame Home is already open, the TV does not tell the app that its Home button was pressed (checked with the remote test), so that button cannot close open panels; a remote button set to **Home screen** can.
-- **Settings.** Three equal columns of three equal cards (Personalization: Background, Layout, Style; Home and time: Apps on Home, Wi‑Fi QR, Date and time; System: Language, Connections, Samsung Home), made for arrow keys; inside, each page is a set of cards with one row per setting (OK opens a short list of its choices over the rows below). Each group (Background, Layout, Typography, Focus, Apps on Home, Language and clock, Wi‑Fi QR, Connections for Alexa, Spotify and the remote buttons) shows its choices beside a live Home preview. The last card opens Samsung's Home screen.
+- **Settings.** Three equal columns of three equal cards (Personalization: Background, Layout, Style; Home and time: Apps on Home, Wi‑Fi QR, Date and time; System: Language, Connections, Samsung Home), made for arrow keys; inside, each page is a set of cards with one row per setting (OK opens a short list of its choices over the rows below). Background, Layout, Style and Date and time show their choices beside a live Home preview. The last card opens Samsung's Home screen.
 - **English or Hungarian** interface, switchable at any time.
 
 The glass and blur are rendered ahead of time. The TV loads the finished images and uses transforms and opacity for focus feedback; nothing is blurred live while you navigate.
@@ -74,11 +74,11 @@ Settings → **Connections** → **Spotify** → **Connect Spotify** shows a QR 
 
 ## Date details
 
-Settings → Language and clock → **Date details** (they also show when the date itself is off):
+Settings → Date and time → **Date details** (they also show when the date itself is off):
 
 - **Hungarian holidays** add today's public holiday after the date, from the public [Nager.Date](https://date.nager.at) API (`/api/v3/PublicHolidays/<year>/HU`). Each year is fetched once and kept on the TV. It lists public holidays only, not observances or working-day swaps.
 - **Name days** show up to three of today's Hungarian name days. The holiday, the name days and the calendar events share one soft glass panel under the date, as tall as its lines and hidden when empty. The list is bundled with the app (data from the npm package [nevnap](https://github.com/nevadavid/nevnap), MIT), so nothing is fetched. In leap years 24–28 February move one day later, as in the Hungarian calendar.
-- **Calendar** shows today's next (at most two) events, or tomorrow's when today has none left. **Connect calendar** shows a QR code; the [calendar page](docs/calendar/index.html) explains, on the phone, where to copy the calendar's secret iCal address: Google Calendar → Settings → the calendar → *Secret address in iCal format*; Outlook.com → Settings → Calendar → Shared calendars → *Publish a calendar* → ICS link. The phone apps do not show this address, so on a phone the page asks for the desktop site of calendar.google.com or outlook.com in the browser. The page encrypts the address with a key that only the QR code carries and sends it through ntfy.sh; the TV decrypts it, keeps it apart from the preferences and reads the calendar every 15 minutes. No sign-in or password is involved, but anyone who has the secret address can read the calendar, so Up to three calendars can be connected (for example yours and a partner's): each gets a name in Date details → Calendars, and with more than one, every event on Home carries its calendar's name and colour. **Disconnect this calendar** forgets one on the TV and the address can be reset in Google or Outlook. Google may take several hours to show changes in the secret address feed. Recurring events support the common rules (daily, weekly by weekday, monthly by day or weekday, yearly, with interval, count, end date and exceptions).
+- **Calendar** shows today's next (at most three) events, or tomorrow's when today has none left. **Connect calendar** shows a QR code; the [calendar page](docs/calendar/index.html) explains, on the phone, where to copy the calendar's secret iCal address: Google Calendar → Settings → the calendar → *Secret address in iCal format*; Outlook.com → Settings → Calendar → Shared calendars → *Publish a calendar* → ICS link. The phone apps do not show this address, so on a phone the page asks for the desktop site of calendar.google.com or outlook.com in the browser. The page encrypts the address with a key that only the QR code carries and sends it through ntfy.sh; the TV decrypts it, keeps it apart from the preferences and reads the calendar every 15 minutes. No sign-in or password is involved, but anyone who has the secret address can read the calendar, so **Disconnect this calendar** forgets it on the TV and the address can be reset in Google or Outlook. Up to three calendars can be connected (for example yours and a partner's): **Add another calendar** pairs the next one from the phone and asks for its name; Date details → **Calendars** lists them, and OK on one renames or disconnects it. With more than one, every event on Home carries its calendar's name and colour. Google may take several hours to show changes in the secret address feed. Recurring events support the common rules (daily, weekly by weekday, monthly by day or weekday, yearly, with interval, count, end date and exceptions).
 
 ## Configure
 

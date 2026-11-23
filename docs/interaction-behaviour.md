@@ -137,7 +137,7 @@ Language and clock ends with a one-line **Date details** entry (its summary list
 
 Every item in the top row is a card on dark glass: each Alexa switch, one shared card for Wi‑Fi, All apps and Settings, and the song widget (which always has its card, focused or not). Focus looks the same on all of them: lighter glass and a 3 px bright ring, with no moving lens. With the clock in the centre the song card sits at the top left, its top edge level with the other cards (56 px from the top) and its left edge 112 px in, mirroring the controls on the right.
 
-In Tiles, Settings → Focus applies: **Glass** turns the focused tile into lighter glass with a soft bright edge, shaped by the Material choice (Soft: even light glass; Frost: brighter at the top; Clear tint: clearer glass with a stronger edge); **Type** keeps the tile dark, rings it and dims the other tiles' icons and names.
+In Tiles, the Focus card (Settings → Style since 0.32) applies: **Glass** turns the focused tile into lighter glass with a soft bright edge, shaped by the Material choice (Soft: even light glass; Frost: brighter at the top; Clear tint: clearer glass with a stronger edge); **Type** keeps the tile dark, rings it and dims the other tiles' icons and names.
 
 ## Spotify devices
 
@@ -145,7 +145,7 @@ In Now playing, Up from the progress bar (or from the buttons when there is no p
 
 ## Top bar: Separate widgets or Dock
 
-Settings → Layout → Top bar → **Style**. **Separate widgets** is the card row described above. **Dock** draws one glass bar across the full width of the screen at the top edge (152 px tall; light glass on a light background). Inside it the song card sits on the left (always there, even with the corner clock) and the Alexa switches and Wi‑Fi, All apps and Settings sit on the right as separate tiles, each as tall as the song card (120 px): icon above name, names only or icons only (120 x 120), as set for each group; a switch shows its small toggle under the name and glows warm while on. Focus is the same ring on lighter glass. The corner clock and its lines move below the bar, and the centred clock starts lower. Navigation is unchanged: Up from the apps enters the controls, Left from the first one reaches the song.
+Settings → Layout → Top bar → **Style**. **Separate widgets** is the card row described above. **Dock** draws one glass bar across the full width of the screen at the top edge (152 px tall). Inside it the song card sits on the left (always there, even with the corner clock) and the Alexa switches and Wi‑Fi, All apps and Settings sit on the right as separate tiles, each as tall as the song card (120 px): icon above name, names only or icons only (120 x 120), as set for each group; a switch shows its small toggle under the name and glows warm while on. Focus is the same ring on lighter glass. The corner clock and its lines move below the bar, and the centred clock starts lower. Navigation is unchanged: Up from the apps enters the controls, Left from the first one reaches the song.
 
 ## Tiles shadow
 
@@ -221,4 +221,5 @@ The Light background is removed with its styles; Photo and Dark remain.
 - **Settings overview**: three equal columns that fill the width, each a framed group of three equal wide cards (picture or icon left, name and value right): Personalization (Background, Layout, Style), Home and time (Apps on Home, Wi‑Fi QR, Date and time), System (Language, Connections, Samsung Home). Up/Down move within a column; Left/Right go to the same place in the next column.
 - **Day panel** under the date and weather: one glass panel with a soft top-to-bottom gradient, as tall as its lines: the Hungarian holiday (warm, with a dot), the name days, a TOMORROW heading when the events are tomorrow's, then up to three events. It is not drawn when there is nothing to show. The holiday is no longer on the date line.
 - **More calendars**: up to three (stored as `{ cals: [{ id, url, name }] }`; a 0.22 single address is read as the first). Date details → Calendars lists them; OK on one opens Name (on-screen keyboard, up to 16 characters) and Disconnect this calendar; **Add another calendar** pairs one more from a phone, and when it is the second or third the name keyboard opens after Done. With more than one calendar each event row starts with a coloured dot (blue, pink, green) and the calendar's name; unnamed ones read "Calendar 2" and so on.
+- **Live preview** beside the settings: Background, Layout, Style, Date and time and Date details. The other pages (Wi‑Fi QR, Connections, Alexa, Spotify, Rotation) use the full width.
 
