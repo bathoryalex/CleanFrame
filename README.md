@@ -6,15 +6,19 @@ A quieter home screen for Samsung TVs. Your apps, a photograph, the time and the
 
 ![Frame Home: the top Dock bar with the song on the left and five Alexa switches and icon-only controls on the right, a thin centred clock with seconds, the date, weather and indoor temperature, one glass panel with today's name days, then today's and tomorrow's events from two calendars, each on a name chip in its calendar's colour, and the Modern dock at the bottom with icons and names side by side](docs/images/frame-home-home.jpg)
 
-*Top Dock bar, thin 24-hour clock with seconds, one panel with name days and events from two calendars (each marked with its name and colour), and the Modern dock with icons and names. Rendered in the browser preview on the Desert stars wallpaper with sample Spotify, Alexa and calendar data.*
+*Top Dock bar, thin 24-hour clock with seconds, one panel with name days and events from two calendars (each marked with its name and colour), and the Modern dock with icons and names. Rendered in the browser preview on the Desert stars wallpaper with sample Spotify, Alexa and calendar data. The screenshots below are from the browser preview too; the song, its lyrics and the cover (one of the bundled wallpapers) are samples.*
 
 This repo uses [Nathan Clark's CleanFrame](https://github.com/nthnclrk/CleanFrame) as a base and changes it to suit my Samsung TV (**Frame Home**, its own app identity). It is still evolving; upstream remains the better reference for a general-purpose project.
 
 **Use it at your own risk.** Setup scripts, certificates and TV notes here match my machine and firmware. Fork again, start with the browser preview, and adapt before you install on your own hardware. Native Home/startup changes need particular care; the setup guide covers the risks and recovery steps.
 
-| Settings | Dock layout |
+| Now playing (Spotify) | Lyrics |
 | --- | --- |
-| ![Settings: three equal columns, Personalization, Home and time, and System, each with three cards](docs/images/frame-home-settings.jpg) | ![Dock layout: one glass shelf with colour icons and names, the corner clock with weather and indoor temperature, the date, a glass panel with name days and today's calendar event, and the top-row cards](docs/images/frame-home-dock.jpg) |
+| ![Now playing: a large cover, the song, artist, album and year, the progress bar, previous, play/pause and next, Lyrics, the volume pill at 40 % and a green heart for a song in Liked Songs](docs/images/frame-home-nowplaying.jpg) | ![Lyrics: the cover, song and buttons move to a narrow column on the left in two centred rows, and the synced lyrics fill the right with the current line bright](docs/images/frame-home-lyrics.jpg) |
+
+| Settings | Settings → Layout | Dock layout |
+| --- | --- | --- |
+| ![Settings: three equal columns, Personalization, Home and time, and System, each with three cards](docs/images/frame-home-settings.jpg) | ![Layout settings: Bottom bar (layout, app display, icon style) and Top bar (style, Wi-Fi/All apps/Settings, Alexa switches) as dropdown rows, with a live preview of Home on the right](docs/images/frame-home-layout.jpg) | ![Dock layout: one glass shelf with colour icons and names, the corner clock with weather and indoor temperature, the date, a glass panel with name days and today's calendar event, and the top-row cards](docs/images/frame-home-dock.jpg) |
 
 ## What it does
 
