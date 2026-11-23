@@ -4,7 +4,7 @@
 
 A quieter home screen for Samsung TVs. Your apps, a photograph, the time and the weather, with an interface made for the TV remote.
 
-![Frame Home: the top Dock bar with the song on the left and five Alexa switches and icon-only controls on the right, a thin centred clock with seconds, the date, weather and indoor temperature, one glass panel with today's name days and events from two named calendars, and the Modern dock at the bottom with icons and names side by side](docs/images/frame-home-home.jpg)
+![Frame Home: the top Dock bar with the song on the left and five Alexa switches and icon-only controls on the right, a thin centred clock with seconds, the date, weather and indoor temperature, one glass panel with today's name days, then today's and tomorrow's events from two calendars, each on a name chip in its calendar's colour, and the Modern dock at the bottom with icons and names side by side](docs/images/frame-home-home.jpg)
 
 *Top Dock bar, thin 24-hour clock with seconds, one panel with name days and events from two calendars (each marked with its name and colour), and the Modern dock with icons and names. Rendered in the browser preview on the Desert stars wallpaper with sample Spotify, Alexa and calendar data.*
 
@@ -14,7 +14,7 @@ This repo uses [Nathan Clark's CleanFrame](https://github.com/nthnclrk/CleanFram
 
 | Settings | Dock layout |
 | --- | --- |
-| ![Settings: three equal columns, Personalization, Home and time, and System, each with three cards](docs/images/frame-home-settings.jpg) | ![Dock layout: one glass shelf with colour icons and names, the corner clock with weather and indoor temperature, the date, a glass panel with name days and a calendar event, and the top-row cards](docs/images/frame-home-dock.jpg) |
+| ![Settings: three equal columns, Personalization, Home and time, and System, each with three cards](docs/images/frame-home-settings.jpg) | ![Dock layout: one glass shelf with colour icons and names, the corner clock with weather and indoor temperature, the date, a glass panel with name days and today's calendar event, and the top-row cards](docs/images/frame-home-dock.jpg) |
 
 ## What it does
 
