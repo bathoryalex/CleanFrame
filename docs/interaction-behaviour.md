@@ -301,3 +301,8 @@ Sentence choice for the song fact is now scored instead of taking the first matc
 - On the large Now playing screen the title and the artists are always one line, at full size. The 0.36.1 shrinking (68 → 48 px) and the two-line wrap are gone, so the song fact always has its two lines.
 - With reduced motion the text does not move and ends in an ellipsis.
 
+## 0.38.1
+
+- **Alexa and Spotify polling cannot be stopped by a drawing error.** The next read is now scheduled before Home is redrawn; before, an exception while drawing would have ended the 5-second Alexa read loop (and Spotify's) until Home was reopened. A light switched elsewhere not showing on the TV (reported on 0.37.1) could not be reproduced in the browser: there the change shows within one read, also after switching the same light from the TV and with a sensor answering without its value. So this is a safeguard, not a confirmed fix.
+- **Settings → Alexa → Device details** now says how often Home reads Alexa, how long ago the last answer came and, if the last read failed, why. A recent answer while the light still shows the old state means Alexa itself reports the old state (open the device to see its power value); an old answer means reading stalled.
+

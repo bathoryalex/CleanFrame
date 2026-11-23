@@ -944,6 +944,11 @@ try {
     await current.waitForTimeout(6000);
     check('A fresh value replaces it on the next read', await current.evaluate(() => /23\.1/.test((document.querySelector('.weather.indoor') || {}).textContent || '')));
     dev.temp = saved;
+    // Device details say how often Home reads Alexa and when the last answer came, to tell a stalled read from a stale Alexa state.
+    await group('connections'); await act('conn.alexa'); await current.waitForFunction(() => ShoreQA.state().settingsGroup === 'alexa'); await act('alexa.list.details');
+    await current.waitForFunction(() => /Home reads Alexa/.test(document.querySelector('.alexa-pick .s-sub').textContent));
+    const sub = await current.evaluate(() => document.querySelector('.alexa-pick .s-sub').textContent);
+    check('Device details show the read interval and the last answer', /Home reads Alexa every 5 s\. Last answer \d+ s ago\./.test(sub), sub);
   });
   await run('Spotify phone page sends the code back to the TV', async () => {
     const phone = await preview.browser.newPage({ viewport: { width: 390, height: 844 } }), posts = [];

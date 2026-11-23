@@ -4,7 +4,7 @@
 
   /* ---------- Bundled data ---------- */
   var ASSETS = 'assets/', ICONS = ASSETS + 'icons/', WP = ASSETS + 'wallpapers/';
-  var APP_VERSION = '0.38.0';
+  var APP_VERSION = '0.38.1';
   var CAP = 9, SCRIM_Y = 560, DOCK_BOTTOM = 1032; // the Dock sits 48 px above the bottom edge; names and actions go above it
   var DOCK_MODES = { both: { tw: 288, th: 200, pitch: 296 }, text: { tw: 288, th: 104, pitch: 296 }, icons: { tw: 200, th: 156, pitch: 206 } }; // icons-only tiles leave room under the icon for the focused app's name
   var GRID_ROW = 240, GRID_COL = 344, COLS = 5;
@@ -1410,10 +1410,13 @@
     if (!alexaOn() || document.hidden || !alexaIds().length) return;
     alexa.timer = setTimeout(function () {
       alexa.timer = null;
+      alexa.asked = Date.now();
       FA.read(alexaIds(), function (err, vals) {
-        if (err) alexa.err = err; else { alexa.err = ''; storeVals(vals); }
-        render();
+        alexa.answered = Date.now();
+        if (err) { alexa.err = err; alexa.lastErr = err; } else { alexa.err = ''; alexa.lastOk = alexa.answered; storeVals(vals); }
+        /* The next read is scheduled before drawing, so an error while drawing cannot stop the polling. */
         if (!alexa.timer) alexaPoll(err === 'revoked' ? 10 * 60 * 1000 : undefined);
+        render();
       });
     }, when === true ? 0 : typeof when === 'number' ? when : liveTargets().length || legendRows().length ? ALEXA_SWITCH_POLL : ALEXA_POLL);
   }
@@ -1522,8 +1525,8 @@
       spot.timer = null;
       FS.nowPlaying(function (err, now) {
         if (err) spot.err = err; else { spot.err = ''; volumeSeen(now); spot.now = now; }
-        render();
         if (!spot.timer) spotifyPoll(err === 'revoked' ? 10 * 60 * 1000 : err ? 60000 : now && now.playing ? 10000 : 30000);
+        render();
       });
     }, when === true ? 0 : typeof when === 'number' ? when : 30000);
   }
@@ -2218,9 +2221,18 @@
       groups: [T('Groups'), T('A group switches all its lights at once. It shows as on only when every light is on.')],
       group: [g ? g.name : T('Groups'), T('Group settings')],
       members: [g ? g.name : T('Groups'), T('Choose the lights in this group.')],
-      details: [T('Device details'), T('What Alexa reports for each device. Useful when a value is missing.')],
+      details: [T('Device details'), T('What Alexa reports for each device. Useful when a value is missing.') + ' ' + alexaPollStatus()],
       detail: [t.devName || T('Device details'), T('Feature, type and value as Alexa reports them.')]
     }[t.mode] || ['', ''];
+  }
+  /* For Device details: how often Home reads Alexa and when it last got an answer, to tell a stalled
+     read from Alexa reporting an old state. */
+  function alexaPollStatus() {
+    var every = liveTargets().length || legendRows().length ? ALEXA_SWITCH_POLL : ALEXA_POLL, ago = function (t) { return Math.max(0, Math.round((Date.now() - t) / 1000)); };
+    var text = T('Home reads Alexa every {0} s.', Math.round(every / 1000));
+    text += ' ' + (alexa.lastOk ? T('Last answer {0} s ago.', ago(alexa.lastOk)) : T('No answer yet.'));
+    if (alexa.lastErr && alexa.answered && alexa.answered > (alexa.lastOk || 0)) text += ' ' + T('Last read failed: {0}', alexaErrText(alexa.lastErr));
+    return text;
   }
   function saveAlexa(patch, label) { if (!savePrefs(patch, label)) { showToast(T('Couldn’t save this change.')); return false; } alexaPoll(true); return true; }
   function toggleIn(list, item, same, max) {
