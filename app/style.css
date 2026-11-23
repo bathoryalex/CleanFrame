@@ -1233,3 +1233,6 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000}
 /* Colour choices for a calendar's dot (Date details → a calendar). */
 .cal-swatch{display:block;width:26px;height:26px;border-radius:50%;box-shadow:0 0 0 2px rgba(255,255,255,.25)}
 
+/* The Tomorrow heading: a small label (the centred clock's larger rows no longer apply to it), with a
+   little more room above it than between the events. */
+.cap-row.cap-when,.clock-big .cap-row.cap-when{font-size:15px;line-height:20px;letter-spacing:1.2px;margin-top:8px}

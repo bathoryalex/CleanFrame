@@ -325,3 +325,7 @@ Sentence choice for the song fact is now scored instead of taking the first matc
 - **Event size**: calendar events are 20 px, as large as the calendar's name chip (they were 26–28 px, larger than the name days above them).
 - **Calendar colours**: each calendar's dot colour can be chosen in Date details → the calendar → Colour on Home: blue, pink, green, yellow, orange, red, purple, teal or white. The default stays by position (blue, pink, green). The colour is kept with the calendar (`cleanframe.calendar.v1`, so backups carry it).
 
+## 0.39.1
+
+The TOMORROW heading is a small label again: 15 px with spaced capitals and 8 px more room above it. With the centred clock it had taken the larger 28 px row size.
+
