@@ -80,6 +80,8 @@
         mainArtist: item.artists && item.artists[0] ? item.artists[0].name : '', episode: !item.artists,
         art: artUrl(item.album ? item.album.images : item.images, 64), artBig: artUrl(item.album ? item.album.images : item.images, 600),
         album: item.album && item.album.name || '', device: j.device && j.device.name || '', deviceId: j.device && j.device.id || '',
+        volume: j.device && typeof j.device.volume_percent === 'number' ? j.device.volume_percent : null,
+        supportsVolume: !!(j.device && j.device.supports_volume !== false && typeof j.device.volume_percent === 'number'),
         progress: typeof j.progress_ms === 'number' ? j.progress_ms : 0, duration: item.duration_ms || 0, at: Date.now()
       });
     });
@@ -89,6 +91,8 @@
     var c = CONTROL[action];
     /* Seek within the song: PUT /me/player/seek?position_ms= (Premium, like every playback control). */
     if (action === 'seek') { api('PUT', '/me/player/seek?position_ms=' + Math.max(0, Math.round(arg || 0)), function (err) { done(err); }); return; }
+    /* Volume on the device the music plays on: PUT /me/player/volume?volume_percent= (0–100, Premium). */
+    if (action === 'volume') { api('PUT', '/me/player/volume?volume_percent=' + Math.max(0, Math.min(100, Math.round(arg || 0))), function (err) { done(err); }); return; }
     if (!c) { done('unknown'); return; }
     api(c[0], c[1], function (err) { done(err); });
   }

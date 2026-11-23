@@ -167,9 +167,9 @@ async function page(options = {}) {
       { id: 'dev-echo', is_active: true, is_restricted: false, name: 'Echo Dot Max', type: 'Speaker' }, { id: 'dev-pc', is_active: false, is_restricted: false, name: 'Desk PC', type: 'Computer' },
       { id: 'dev-car', is_active: false, is_restricted: true, name: 'Car', type: 'Automobile' }, { id: null, name: 'Ghost', type: 'Speaker' }]
       .concat(Q.many ? Array.from({ length: 11 }, (_, i) => ({ id: 'dev-x' + i, is_active: false, is_restricted: false, name: 'Echo ' + (i + 1), type: 'Speaker' })) : []) }) });
-    if (r.method() === 'GET') return route.fulfill({ headers: sp, contentType: 'application/json', body: JSON.stringify({ is_playing: Q.playing, device: { name: Q.device || 'Echo Dot Max' },
+    if (r.method() === 'GET') return route.fulfill({ headers: sp, contentType: 'application/json', body: JSON.stringify({ is_playing: Q.playing, device: { name: Q.device || 'Echo Dot Max', volume_percent: Q.volume == null ? 40 : Q.volume, supports_volume: Q.supportsVolume !== false },
       progress_ms: 61000, item: { id: 't1', name: Q.title || 'Song A', duration_ms: 210000, artists: Q.artists || [{ name: 'Artist A' }, { name: 'Guest B' }], album: { name: 'Album A', images: [{ url: 'https://i.scdn.co/image/big', width: 640 }, { url: 'https://i.scdn.co/image/small', width: 64 }] } } }) });
-    Q.calls.push(r.method() + ' ' + path); if (/seek/.test(path)) Q.seekUrl = r.url();
+    Q.calls.push(r.method() + ' ' + path); if (/seek/.test(path)) Q.seekUrl = r.url(); if (/volume/.test(path)) { Q.volumeUrl = r.url(); Q.volume = Number(new URL(r.url()).searchParams.get('volume_percent')); }
     if (r.method() === 'PUT' && path === '/v1/me/player') { Q.transfer = JSON.parse(r.postData() || '{}'); Q.device = 'Desk PC'; return route.fulfill({ status: 204, headers: sp, body: '' }); }
     if (Q.refuse) return route.fulfill({ status: 403, headers: sp, contentType: 'application/json', body: JSON.stringify({ error: { status: 403, message: 'Player command failed: Premium required', reason: Q.refuse } }) });
     if (path.endsWith('/pause')) Q.playing = false; if (path.endsWith('/play')) Q.playing = true;
@@ -703,6 +703,38 @@ try {
     current.__spotify.many = false;
     await nav('back');
     check('Back closes the list and keeps Now playing', (await current.evaluate(() => ShoreQA.where().view)) === 'nowplaying' && await current.evaluate(() => !document.querySelector('.np-devices.is-open')));
+  });
+  await run('Spotify: volume on the big Now playing screen', async () => {
+    await page();
+    await current.evaluate(() => localStorage.setItem('cleanframe.spotify.v1', JSON.stringify({ refresh: 'AQtest', access: 'BQtest', until: Date.now() + 3600000 })));
+    current.__spotify.volume = 40;
+    await current.reload(); await ready();
+    await current.waitForFunction(() => document.querySelector('.cap-music'));
+    await nav('up', 'left', 'ok');
+    await current.waitForFunction(() => ShoreQA.where().view === 'nowplaying');
+    await nav('down');
+    check('Down from the controls focuses the volume row at the device volume', await current.evaluate(() => !!document.querySelector('.np-volume.is-focus') && /40%/.test(document.querySelector('.np-vol-pct').textContent)));
+    await nav('right', 'right');
+    check('Right raises the volume and shows it at once', await current.evaluate(() => /50%/.test(document.querySelector('.np-vol-pct').textContent)));
+    await current.waitForTimeout(600);
+    check('The new volume is sent to Spotify', /\/me\/player\/volume\?volume_percent=50/.test(current.__spotify.volumeUrl || ''), current.__spotify.volumeUrl);
+    await nav('ok');
+    check('OK mutes the device', await current.evaluate(() => /Muted|Némítva/.test(document.querySelector('.np-vol-pct').textContent)));
+    await current.waitForTimeout(600);
+    check('Mute sends volume 0', /volume_percent=0$/.test(current.__spotify.volumeUrl || ''), current.__spotify.volumeUrl);
+    await nav('ok');
+    check('OK again restores the previous volume', await current.evaluate(() => /50%/.test(document.querySelector('.np-vol-pct').textContent)));
+    await nav('up');
+    check('Up returns to the controls', await current.evaluate(() => !!document.querySelector('.np-controls .is-focus') && !document.querySelector('.np-volume.is-focus')));
+    // A device that cannot set volume through the API hides the row.
+    current.__spotify.supportsVolume = false;
+    await current.reload(); await ready();
+    await current.waitForFunction(() => document.querySelector('.cap-music'));
+    await nav('up', 'left', 'ok');
+    await current.waitForFunction(() => ShoreQA.where().view === 'nowplaying');
+    await nav('down');
+    check('Without volume support the row is hidden and Down stays on the controls', await current.evaluate(() => !!document.querySelector('.np-volume.is-off') && !!document.querySelector('.np-controls .is-focus')));
+    current.__spotify.supportsVolume = true;
   });
   await run('Spotify phone page sends the code back to the TV', async () => {
     const phone = await preview.browser.newPage({ viewport: { width: 390, height: 844 } }), posts = [];

@@ -4,7 +4,7 @@
 
   /* ---------- Bundled data ---------- */
   var ASSETS = 'assets/', ICONS = ASSETS + 'icons/', WP = ASSETS + 'wallpapers/';
-  var APP_VERSION = '0.34.0';
+  var APP_VERSION = '0.35.0';
   var CAP = 9, SCRIM_Y = 560, DOCK_BOTTOM = 1032; // the Dock sits 48 px above the bottom edge; names and actions go above it
   var DOCK_MODES = { both: { tw: 288, th: 200, pitch: 296 }, text: { tw: 288, th: 104, pitch: 296 }, icons: { tw: 200, th: 156, pitch: 206 } }; // icons-only tiles leave room under the icon for the focused app's name
   var GRID_ROW = 240, GRID_COL = 344, COLS = 5;
@@ -113,6 +113,7 @@
     updown: '<path d="m7.5 9.5 4.5-4.5 4.5 4.5M7.5 14.5l4.5 4.5 4.5-4.5"/>',
     tv: '<rect x="3" y="4.5" width="18" height="12" rx="2"/><path d="M8.5 20h7"/>',
     speaker: '<rect x="6" y="2.8" width="12" height="18.4" rx="2.4"/><circle cx="12" cy="14.5" r="3.2"/><circle cx="12" cy="7.2" r="1"/>',
+    mute: '<rect x="6" y="2.8" width="12" height="18.4" rx="2.4"/><circle cx="12" cy="14.5" r="3.2"/><path d="M9.9 5.5l4.2 3.4M14.1 5.5l-4.2 3.4"/>',
     computer: '<rect x="4" y="5" width="16" height="10.5" rx="1.6"/><path d="M2.5 19h19"/>',
     warn: '<path d="M12 4 2.8 19.5h18.4Z"/><path d="M12 10v4.5M12 17.3v.1"/>',
     phone: '<rect x="7" y="2.8" width="10" height="18.4" rx="2.2"/><path d="M10.8 18h2.4"/>',
@@ -1505,7 +1506,7 @@
     spot.timer = setTimeout(function () {
       spot.timer = null;
       FS.nowPlaying(function (err, now) {
-        if (err) spot.err = err; else { spot.err = ''; spot.now = now; }
+        if (err) spot.err = err; else { spot.err = ''; if (now && volState.v !== null) now.volume = volState.v; spot.now = now; }
         render();
         if (!spot.timer) spotifyPoll(err === 'revoked' ? 10 * 60 * 1000 : err ? 60000 : now && now.playing ? 10000 : 30000);
       });
@@ -1661,6 +1662,7 @@
      and fades out again on Back, so opening and closing move instead of cutting. */
   V.nowplaying = {
     sheet: false,
+    norm: function (t) { var n = spot.now; if (t.f.row === 'volume' && !volumeAvailable(n)) t.f.row = 'controls'; },
     key: function (t, k) {
       var n = spot.now;
       if (t.dev) { deviceKey(t, k); return; }
@@ -1680,8 +1682,18 @@
         else if (k === 'ok') commitSeek();
         return;
       }
+      if (t.f.row === 'volume') {
+        /* Volume on the playing device: Left/Right step 5 %, OK mutes and restores. */
+        if (k === 'back') pop();
+        else if (k === 'up') t.f.row = 'controls';
+        else if (k === 'left') setVolume((n && typeof n.volume === 'number' ? n.volume : 0) - 5);
+        else if (k === 'right') setVolume((n && typeof n.volume === 'number' ? n.volume : 0) + 5);
+        else if (k === 'ok') toggleMute();
+        return;
+      }
       if (k === 'back') pop();
       else if (k === 'up') t.f.row = n && n.duration ? 'bar' : 'device';
+      else if (k === 'down' && volumeAvailable(n)) t.f.row = 'volume';
       else if (k === 'left' && t.f.b > 0) t.f.b--;
       else if (k === 'right' && t.f.b < 3) t.f.b++;
       else if (k === 'ok' && t.f.b === 3) {
@@ -1696,6 +1708,7 @@
       if (z === 'npdevrow' && t.dev) { t.dev.i = i; deviceKey(t, 'ok'); }
       else if (t.dev) return;
       else if (z === 'np') { t.f.row = 'controls'; t.f.b = i; this.key(t, 'ok'); } else if (z === 'npbar') t.f.row = 'bar';
+      else if (z === 'npvol') t.f.row = 'volume';
       else if (z === 'npdev') { t.f.row = 'device'; openDevices(t); }
     }
   };
@@ -1794,6 +1807,26 @@
       else { n.progress = to; n.at = Date.now(); n.ended = false; lyr.line = -2; lyr.snap = true; }
       render(); spotifyPoll(1200);
     }, to);
+  }
+  /* Volume of the device the music plays on. Left/Right step it, OK mutes and restores; the change
+     shows at once and the PUT is sent shortly after, so holding a key does not flood the API. */
+  var volState = { v: null, timer: null, last: 50 };
+  function volumeAvailable(n) { return !!(n && n.supportsVolume && typeof n.volume === 'number'); }
+  function setVolume(v) {
+    var n = spot.now; if (!n) return;
+    volState.v = Math.max(0, Math.min(100, Math.round(v)));
+    n.volume = volState.v; if (volState.v > 0) volState.last = volState.v;
+    clearTimeout(volState.timer); volState.timer = setTimeout(commitVolume, 350);
+    render();
+  }
+  function commitVolume() {
+    var to = volState.v; clearTimeout(volState.timer); volState.timer = null;
+    if (to === null) return;
+    FS.control('volume', function (err) { volState.v = null; if (err) showToast(spotifyErrText(err)); render(); spotifyPoll(1200); }, to);
+  }
+  function toggleMute() {
+    var n = spot.now; if (!n) return;
+    if ((typeof n.volume === 'number' ? n.volume : 0) > 0) setVolume(0); else setVolume(volState.last || 50);
   }
   /* Colour-button legend: bottom left, beside where the remote's colour picker appears. */
   /* The remote's on-screen colour picker does not reach the app (checked with the remote test), so the
@@ -3274,7 +3307,7 @@
     nowplaying: function () {
       return '<div class="np" data-slot="np"><div class="np-art-wrap" data-slot="artwrap"><img class="np-art" data-slot="art" alt=""></div>'
         + '<div class="np-copy"><p class="np-device" data-slot="device" data-z="npdev" data-i="0"></p><h2 class="np-title" data-slot="title"></h2><p class="np-artist" data-slot="artist"></p><p class="np-album" data-slot="album"></p>'
-        + '<div class="np-progress" data-slot="progress"></div><div class="np-controls" data-slot="controls"></div></div>'
+        + '<div class="np-progress" data-slot="progress"></div><div class="np-controls" data-slot="controls"></div><div class="np-volume" data-slot="volume"></div></div>'
         + '<div class="np-lyrics" data-slot="lyrics" aria-live="off"></div><div class="np-devices" data-slot="devices" role="dialog"></div></div>';
     },
     alexalist: function () {
@@ -3462,6 +3495,14 @@
         return '<button type="button" tabindex="-1" class="np-btn' + (i === 1 ? ' np-main' : '') + (i === 3 ? ' np-lyrics-btn' + (t.lyrics ? ' is-active' : '') : '') + (t.f.row === 'controls' && !t.dev && t.f.b === i ? ' is-focus' : '') + '" data-z="np" data-i="' + i + '" data-action="np.' + ['prev', 'toggle', 'next', 'lyrics'][i] + '"'
           + (i === 3 ? ' aria-pressed="' + !!t.lyrics + '"' : '') + ' aria-label="' + esc(label) + '">' + icon(name) + (i === 3 ? '<span>' + esc(label) + '</span>' : '') + '</button>';
       }).join(''));
+      var volOn = volumeAvailable(n), vpct = volOn ? Math.max(0, Math.min(100, Math.round(n.volume))) : 0, vmuted = volOn && vpct === 0;
+      el.volume.className = 'np-volume' + (volOn ? '' : ' is-off') + (t.f.row === 'volume' ? ' is-focus' : '');
+      if (volOn) {
+        el.volume.setAttribute('data-z', 'npvol'); el.volume.setAttribute('data-i', '0');
+        el.volume.setAttribute('data-hint', T('Left and Right change the volume · OK mutes'));
+        el.volume.setAttribute('aria-label', T('Volume') + ' ' + (vmuted ? T('Muted') : vpct + '%'));
+        setHTML(el.volume, icon(vmuted ? 'mute' : 'speaker', 'np-vol-icon') + '<div class="np-vol-track"><div class="np-vol-fill" style="width:' + vpct + '%"></div></div><span class="np-vol-pct">' + (vmuted ? T('Muted') : vpct + '%') + '</span>');
+      } else { el.volume.removeAttribute('data-z'); el.volume.removeAttribute('data-hint'); setHTML(el.volume, ''); }
       placeLyrics();
     },
     alexalist: function (t, el) {
