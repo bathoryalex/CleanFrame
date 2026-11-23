@@ -4,7 +4,7 @@
 
   /* ---------- Bundled data ---------- */
   var ASSETS = 'assets/', ICONS = ASSETS + 'icons/', WP = ASSETS + 'wallpapers/';
-  var APP_VERSION = '0.35.2';
+  var APP_VERSION = '0.35.3';
   var CAP = 9, SCRIM_Y = 560, DOCK_BOTTOM = 1032; // the Dock sits 48 px above the bottom edge; names and actions go above it
   var DOCK_MODES = { both: { tw: 288, th: 200, pitch: 296 }, text: { tw: 288, th: 104, pitch: 296 }, icons: { tw: 200, th: 156, pitch: 206 } }; // icons-only tiles leave room under the icon for the focused app's name
   var GRID_ROW = 240, GRID_COL = 344, COLS = 5;
@@ -103,6 +103,7 @@
     lyrics: '<path d="M4.5 6.5h11M4.5 11h8M4.5 15.5h6"/><path d="M17 18.2V9.5l3.5-1"/><circle cx="15.2" cy="18.3" r="1.9"/>',
     drop: '<path d="M12 3.6c-3.2 4-5.6 7.3-5.6 10.1a5.6 5.6 0 0 0 11.2 0c0-2.8-2.4-6.1-5.6-10.1Z"/>',
     plus: '<path d="M12 5v14M5 12h14"/>',
+    minus: '<path d="M5 12h14"/>',
     indoor: '<path d="M4 11 12 4.5l8 6.5v8a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1Z"/><path d="M12 10.5v5.2"/><circle cx="12" cy="16.6" r="1.4"/>',
     undo: '<path d="M9 6 5 10l4 4"/><path d="M5 10h9.5a4.5 4.5 0 0 1 0 9H11"/>',
     check: '<path d="m5.5 12.5 4 4 9-9"/>',
@@ -1684,19 +1685,22 @@
         return;
       }
       if (t.f.row === 'volume') {
-        /* Volume beside Lyrics: Left/Right step 5 %, OK mutes and restores, Back returns to the buttons. */
-        if (k === 'back') { t.f.row = 'controls'; t.f.b = 3; }
-        else if (k === 'up') t.f.row = n && n.duration ? 'bar' : 'device';
-        else if (k === 'left') setVolume((n && typeof n.volume === 'number' ? n.volume : 0) - 5);
-        else if (k === 'right') setVolume((n && typeof n.volume === 'number' ? n.volume : 0) + 5);
-        else if (k === 'ok') toggleMute();
+        /* The volume pill: − and + are buttons like the others; OK steps 5 %. Without lyrics it sits after
+           Lyrics in the button row; with lyrics it is the row under the buttons. */
+        if (k === 'back') pop();
+        else if (k === 'ok') setVolume((n && typeof n.volume === 'number' ? n.volume : 0) + (t.f.v ? 5 : -5));
+        else if (k === 'right' && !t.f.v) t.f.v = 1;
+        else if (k === 'left' && t.f.v) t.f.v = 0;
+        else if (k === 'left' && !t.lyrics) { t.f.row = 'controls'; t.f.b = 3; }
+        else if (k === 'up') { if (t.lyrics) t.f.row = 'controls'; else t.f.row = n && n.duration ? 'bar' : 'device'; }
         return;
       }
       if (k === 'back') pop();
       else if (k === 'up') t.f.row = n && n.duration ? 'bar' : 'device';
       else if (k === 'left' && t.f.b > 0) t.f.b--;
       else if (k === 'right' && t.f.b < 3) t.f.b++;
-      else if (k === 'right' && volumeAvailable(n)) t.f.row = 'volume';
+      else if (k === 'right' && !t.lyrics && volumeAvailable(n)) { t.f.row = 'volume'; t.f.v = 0; }
+      else if (k === 'down' && t.lyrics && volumeAvailable(n)) { t.f.row = 'volume'; t.f.v = 0; }
       else if (k === 'ok' && t.f.b === 3) {
         /* Fade the layout out, switch it, fade it back in. */
         if (t.switching) return;
@@ -1709,7 +1713,7 @@
       if (z === 'npdevrow' && t.dev) { t.dev.i = i; deviceKey(t, 'ok'); }
       else if (t.dev) return;
       else if (z === 'np') { t.f.row = 'controls'; t.f.b = i; this.key(t, 'ok'); } else if (z === 'npbar') t.f.row = 'bar';
-      else if (z === 'npvol') t.f.row = 'volume';
+      else if (z === 'npvol') { t.f.row = 'volume'; t.f.v = i ? 1 : 0; this.key(t, 'ok'); }
       else if (z === 'npdev') { t.f.row = 'device'; openDevices(t); }
     }
   };
@@ -1809,14 +1813,14 @@
       render(); spotifyPoll(1200);
     }, to);
   }
-  /* Volume of the device the music plays on. Left/Right step it, OK mutes and restores; the change
-     shows at once and the PUT is sent shortly after, so holding a key does not flood the API. */
-  var volState = { v: null, timer: null, last: 50 };
+  /* Volume of the device the music plays on, set with the − and + of the volume pill. The change shows
+     at once and the PUT is sent shortly after, so repeated presses do not flood the API. */
+  var volState = { v: null, timer: null };
   function volumeAvailable(n) { return !!(n && n.supportsVolume && typeof n.volume === 'number'); }
   function setVolume(v) {
     var n = spot.now; if (!n) return;
     volState.v = Math.max(0, Math.min(100, Math.round(v)));
-    n.volume = volState.v; if (volState.v > 0) volState.last = volState.v;
+    n.volume = volState.v;
     clearTimeout(volState.timer); volState.timer = setTimeout(commitVolume, 350);
     render();
   }
@@ -1824,10 +1828,6 @@
     var to = volState.v; clearTimeout(volState.timer); volState.timer = null;
     if (to === null) return;
     FS.control('volume', function (err) { volState.v = null; if (err) showToast(spotifyErrText(err)); render(); spotifyPoll(1200); }, to);
-  }
-  function toggleMute() {
-    var n = spot.now; if (!n) return;
-    if ((typeof n.volume === 'number' ? n.volume : 0) > 0) setVolume(0); else setVolume(volState.last || 50);
   }
   /* Colour-button legend: bottom left, beside where the remote's colour picker appears. */
   /* The remote's on-screen colour picker does not reach the app (checked with the remote test), so the
@@ -3497,13 +3497,13 @@
           + (i === 3 ? ' aria-pressed="' + !!t.lyrics + '"' : '') + ' aria-label="' + esc(label) + '">' + icon(name) + (i === 3 ? '<span>' + esc(label) + '</span>' : '') + '</button>';
       }).join(''));
       var volOn = volumeAvailable(n), vpct = volOn ? Math.max(0, Math.min(100, Math.round(n.volume))) : 0, vmuted = volOn && vpct === 0;
-      el.volume.className = 'np-volume' + (volOn ? '' : ' is-off') + (t.f.row === 'volume' ? ' is-focus' : '');
+      el.volume.className = 'np-volume' + (volOn ? '' : ' is-off') + (t.f.row === 'volume' && !t.dev ? ' is-focus' : '');
       if (volOn) {
-        el.volume.setAttribute('data-z', 'npvol'); el.volume.setAttribute('data-i', '0');
-        el.volume.setAttribute('data-hint', T('Left and Right: volume · OK: mute · Back: buttons'));
-        el.volume.setAttribute('aria-label', T('Volume') + ' ' + (vmuted ? T('Muted') : vpct + '%'));
-        setHTML(el.volume, '<span class="music-progress">' + icon(vmuted ? 'mute' : 'volume', 'np-vol-icon') + '<span class="music-bar"><i style="width:' + vpct + '%"></i></span><span class="music-time np-vol-pct">' + (vmuted ? T('Muted') : vpct + '%') + '</span></span>');
-      } else { el.volume.removeAttribute('data-z'); el.volume.removeAttribute('data-hint'); setHTML(el.volume, ''); }
+        var vbtn = function (i) {
+          return '<button type="button" tabindex="-1" class="np-vol-btn' + (t.f.row === 'volume' && !t.dev && (t.f.v || 0) === i ? ' is-focus' : '') + '" data-z="npvol" data-i="' + i + '" data-action="np.vol' + (i ? 'up' : 'down') + '" aria-label="' + esc(T(i ? 'Volume up' : 'Volume down')) + '">' + icon(i ? 'plus' : 'minus') + '</button>';
+        };
+        setHTML(el.volume, vbtn(0) + '<span class="np-vol-val" aria-label="' + esc(T('Volume') + ' ' + vpct + '%') + '">' + icon(vmuted ? 'mute' : 'volume') + '<span class="np-vol-pct">' + vpct + '%</span></span>' + vbtn(1));
+      } else setHTML(el.volume, '');
       placeLyrics();
     },
     alexalist: function (t, el) {
