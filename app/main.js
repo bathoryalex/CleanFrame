@@ -4,7 +4,7 @@
 
   /* ---------- Bundled data ---------- */
   var ASSETS = 'assets/', ICONS = ASSETS + 'icons/', WP = ASSETS + 'wallpapers/';
-  var APP_VERSION = '0.40.0';
+  var APP_VERSION = '0.41.0';
   var CAP = 9, SCRIM_Y = 560, DOCK_BOTTOM = 1032; // the Dock sits 48 px above the bottom edge; names and actions go above it
   var DOCK_MODES = { both: { tw: 288, th: 200, pitch: 296 }, text: { tw: 288, th: 104, pitch: 296 }, icons: { tw: 200, th: 156, pitch: 206 } }; // icons-only tiles leave room under the icon for the focused app's name
   var GRID_ROW = 240, GRID_COL = 344, COLS = 5;
@@ -30,8 +30,8 @@
   }
   window.FrameText = T;
   /* Saved preferences outside the appearance bundle: they apply at once and load nothing. */
-  var PREF_VALUES = { lang: ['en', 'hu'], clock: ['24', '12'], date: ['off', 'on'], clockPos: ['corner', 'center', 'large'], weather: ['off', 'now', 'day'], spotifyShow: ['on', 'off'], keyHints: ['auto', 'pressed', 'always', 'off'], switchStyle: ['both', 'icons', 'text'], clockStyle: ['classic', 'thin', 'led', 'flip'], seconds: ['off', 'on'], layoutView: ['dock', 'tiles', 'modern'], holidays: ['off', 'on'], namedays: ['off', 'on'], calShow: ['on', 'off'], topStyle: ['cards', 'bar'] };
-  var PREF_NAMES = { en: 'English', hu: 'Magyar', '24': '24-hour', '12': '12-hour', corner: 'Corner', center: 'Centre', large: 'Large', off: 'Off', on: 'On', now: 'Basic', day: 'Full', both: 'Both', icons: 'Icons', text: 'Text', classic: 'Classic', thin: 'Thin', led: 'LED', flip: 'Flip', list: 'List', dock: 'Dock', tiles: 'Tiles', modern: 'Modern dock', cards: 'Separate widgets', bar: 'Dock' };
+  var PREF_VALUES = { lang: ['en', 'hu'], clock: ['24', '12'], date: ['off', 'on'], clockPos: ['corner', 'center', 'large'], weather: ['off', 'now', 'day'], spotifyShow: ['on', 'off'], keyHints: ['auto', 'pressed', 'always', 'off'], switchStyle: ['both', 'icons', 'text'], clockStyle: ['classic', 'thin', 'led', 'flip'], seconds: ['off', 'on'], layoutView: ['dock', 'tiles', 'modern'], holidays: ['off', 'on'], namedays: ['off', 'on'], calShow: ['on', 'off'], topStyle: ['cards', 'bar'], settingsLook: ['original', 'metro'] };
+  var PREF_NAMES = { en: 'English', hu: 'Magyar', '24': '24-hour', '12': '12-hour', corner: 'Corner', center: 'Centre', large: 'Large', off: 'Off', on: 'On', now: 'Basic', day: 'Full', both: 'Both', icons: 'Icons', text: 'Text', classic: 'Classic', thin: 'Thin', led: 'LED', flip: 'Flip', list: 'List', dock: 'Dock', tiles: 'Tiles', modern: 'Modern dock', cards: 'Separate widgets', bar: 'Dock', original: 'Original', metro: 'Metro' };
   WALLS.forEach(function (w) { w.ut = w.ut || { tr: 'light', br: 'light' }; w.frostVeil = w.frostVeil || .12; });
   var MODES = [
     { id: 'fixed', name: 'Fixed', min: 0 }, { id: 'open', name: 'Each time Home opens', min: 0 },
@@ -526,7 +526,7 @@
       alexaReadings: cleanReadings(s), alexaSwitches: cleanSwitches(s), alexaGroups: cleanGroups(s.alexaGroups), alexaKeys: cleanKeys(s.alexaKeys), alexaIcons: cleanIcons(s.alexaIcons), alexaNames: cleanNames(s.alexaNames),
       spotifyShow: pick(s.spotifyShow, PREF_VALUES.spotifyShow, 'on'), keyHints: pick(s.keyHints === 'on' || s.keyHints === 'top' ? 'auto' : s.keyHints, PREF_VALUES.keyHints, 'auto'), switchStyle: pick(s.switchStyle, PREF_VALUES.switchStyle, 'both'),
       clockStyle: pick(s.clockStyle, PREF_VALUES.clockStyle, 'classic'), seconds: pick(s.seconds, PREF_VALUES.seconds, 'off'), dockStyle: s.dockStyle === 'tiles' || s.dockStyle === 'modern' ? s.dockStyle : 'shelf',
-      holidays: pick(s.holidays, PREF_VALUES.holidays, 'off'), namedays: pick(s.namedays, PREF_VALUES.namedays, 'off'), calShow: pick(s.calShow, PREF_VALUES.calShow, 'on'), topStyle: pick(s.topStyle, PREF_VALUES.topStyle, 'cards')
+      holidays: pick(s.holidays, PREF_VALUES.holidays, 'off'), namedays: pick(s.namedays, PREF_VALUES.namedays, 'off'), calShow: pick(s.calShow, PREF_VALUES.calShow, 'on'), topStyle: pick(s.topStyle, PREF_VALUES.topStyle, 'cards'), settingsLook: pick(s.settingsLook, PREF_VALUES.settingsLook, 'original')
     };
   }
   function serialise(c) {
@@ -569,7 +569,7 @@
     c.wifiSsid = S.c.wifiSsid; c.wifiPass = S.c.wifiPass; c.wifiSec = S.c.wifiSec;
     c.lang = S.c.lang; c.clock = S.c.clock; c.clockPos = S.c.clockPos; c.date = S.c.date; c.weather = S.c.weather;
     c.customAt = S.c.customAt; c.customTone = S.c.customTone; c.relayTopic = S.c.relayTopic; c.relayAt = S.c.relayAt; c.relaySince = S.c.relaySince;
-    c.alexaReadings = S.c.alexaReadings; c.alexaSwitches = S.c.alexaSwitches; c.alexaGroups = S.c.alexaGroups; c.alexaKeys = S.c.alexaKeys; c.alexaIcons = S.c.alexaIcons; c.alexaNames = S.c.alexaNames; c.spotifyShow = S.c.spotifyShow; c.keyHints = S.c.keyHints; c.switchStyle = S.c.switchStyle; c.clockStyle = S.c.clockStyle; c.seconds = S.c.seconds; c.dockStyle = S.c.dockStyle; c.holidays = S.c.holidays; c.namedays = S.c.namedays; c.calShow = S.c.calShow; c.topStyle = S.c.topStyle;
+    c.alexaReadings = S.c.alexaReadings; c.alexaSwitches = S.c.alexaSwitches; c.alexaGroups = S.c.alexaGroups; c.alexaKeys = S.c.alexaKeys; c.alexaIcons = S.c.alexaIcons; c.alexaNames = S.c.alexaNames; c.spotifyShow = S.c.spotifyShow; c.keyHints = S.c.keyHints; c.switchStyle = S.c.switchStyle; c.clockStyle = S.c.clockStyle; c.seconds = S.c.seconds; c.dockStyle = S.c.dockStyle; c.holidays = S.c.holidays; c.namedays = S.c.namedays; c.calShow = S.c.calShow; c.topStyle = S.c.topStyle; c.settingsLook = S.c.settingsLook;
     return c;
   }
   function snap() { return { home: S.c.home.slice(), recent: S.c.recent.slice() }; }
@@ -1074,10 +1074,37 @@
   function settingsLayout() { return settingsGroups().map(function (g) { return g.ids; }); }
   var SETTINGS_COLS = 4;
   function settingsCols() { return settingsIds().length > 8 ? 3 : SETTINGS_COLS; }
+  /* Metro look (Settings → Style → Settings look): the same groups as live tiles of three sizes on a
+     two-column grid per group: [column, row, width, height]. The remote moves to the nearest tile in
+     the pressed direction across all groups. */
+  var METRO_TILES = { background: [0, 0, 2, 2], layout: [0, 2, 1, 1], typography: [1, 2, 1, 1], editor: [0, 0, 2, 1], wifiqr: [0, 1, 2, 1], region: [0, 2, 2, 1],
+    lang: [0, 0, 1, 1], system: [1, 0, 1, 1], connections: [0, 1, 2, 2] };
+  var METRO_TINT = { layout: '157,184,232', typography: '231,179,200', editor: '159,208,207', wifiqr: '232,184,150', region: '196,178,230', lang: '169,211,184', system: '227,163,160', connections: '170,188,214' };
+  function metroOn() { return S.c.settingsLook === 'metro'; }
+  function metroRects() {
+    var out = {};
+    settingsGroups().forEach(function (g, gi) { g.ids.forEach(function (id) { var m = METRO_TILES[id] || [0, 0, 1, 1]; out[id] = { x: gi * 3 + m[0], y: m[1], w: m[2], h: m[3] }; }); });
+    return out;
+  }
+  function metroMove(id, k) {
+    var R = metroRects(), a = R[id], best = null, bestScore = 1e9;
+    if (!a) return id;
+    Object.keys(R).forEach(function (other) {
+      var b = R[other], gap, over, score;
+      if (other === id) return;
+      if (k === 'right') gap = b.x - (a.x + a.w); else if (k === 'left') gap = a.x - (b.x + b.w); else if (k === 'down') gap = b.y - (a.y + a.h); else gap = a.y - (b.y + b.h);
+      if (gap < 0) return;
+      over = k === 'left' || k === 'right' ? Math.min(a.y + a.h, b.y + b.h) - Math.max(a.y, b.y) : Math.min(a.x + a.w, b.x + b.w) - Math.max(a.x, b.x);
+      score = gap * 10 + (over > 0 ? 0 : 100) + Math.abs((k === 'left' || k === 'right' ? (b.y + b.h / 2) - (a.y + a.h / 2) : (b.x + b.w / 2) - (a.x + a.w / 2)));
+      if (score < bestScore) { bestScore = score; best = other; }
+    });
+    return best || id;
+  }
   V.settings = {
     sheet: true,
     norm: function (t) { var ids = settingsIds(); if (ids.indexOf(t.f.id) < 0) t.f.id = ids[0]; },
     key: function (t, k) {
+      if (metroOn() && (k === 'up' || k === 'down' || k === 'left' || k === 'right')) { t.f.id = S.settingsFocus = metroMove(t.f.id, k); return; }
       /* Three columns: Up/Down move within a column, Left/Right to the same place in the next one. */
       var cols = settingsLayout(), c = 0, r = 0, id = t.f.id;
       cols.forEach(function (ids, ci) { var ri = ids.indexOf(id); if (ri >= 0) { c = ci; r = ri; } });
@@ -1097,6 +1124,18 @@
     if (id === 'editor') openEditor('settings');
     else if (id === 'system') openAppearance('system');
     else openAppearance(id);
+  }
+  /* Metro look: pages of one Settings group sit side by side as a pivot; Left and Right on a row move to
+     the page before or after. Pages opened from another page (Rotation, Alexa …) stand alone. */
+  var METRO_PIVOTS = [['background', 'layout', 'typography'], ['wifiqr', 'region'], ['connections', 'system']];
+  function pivotOf(group) { var g = group === 'focus' ? 'typography' : group, out = [g]; METRO_PIVOTS.forEach(function (p) { if (p.indexOf(g) >= 0) out = p.filter(function (id) { return id !== 'connections' || FA || FS; }); }); return out; }
+  function pivotTo(t, dir) {
+    var list = pivotOf(t.group), i = list.indexOf(t.group === 'focus' ? 'typography' : t.group), to = list[i + dir], below;
+    if (!to) return false;
+    cancelLook(); S.err = null; pop();
+    below = top(); if (below && below.id === 'settings') below.f.id = to;
+    S.settingsFocus = to; openAppearance(to);
+    return true;
   }
   var DETAIL_NAMES = { background: 'Background', layout: 'Layout', typography: 'Style', focus: 'Style', rotation: 'Rotation', region: 'Date and time', wifiqr: 'Wifi QR code settings', alexa: 'Alexa', spotify: 'Spotify', connections: 'Connections', dateinfo: 'Date details', system: 'System' };
   var PARENT = { rotation: 'background', alexa: 'connections', spotify: 'connections', dateinfo: 'region' };
@@ -1127,7 +1166,8 @@
         reason: inactive ? T('Materials are available with a Photo background.') : '' }
     ]; }
     if (t.group === 'typography' || t.group === 'focus') return [{ id: 'clockStyle', title: T('Clock style'), horizontal: true, items: options('clockStyle', PREF_VALUES.clockStyle) },
-      { id: 'font', title: T('Font'), items: options('font', LOOK_VALUES.font) }].concat(focusSections());
+      { id: 'font', title: T('Font'), items: options('font', LOOK_VALUES.font) }].concat(focusSections())
+      .concat([{ id: 'settingsLook', title: T('Settings look'), horizontal: true, items: options('settingsLook', PREF_VALUES.settingsLook) }]);
     if (t.group === 'rotation') return [{ id: 'mode', title: '', items: options('mode', MODES.map(function (m) { return m.id; }), flat),
       reason: flat ? T('Choose Photo in Background to use rotation.') : T('Timed changes pause while Settings or another panel is open.') }];
     if (t.group === 'region') return [
@@ -1285,6 +1325,7 @@
         column = Math.min(t.f.column || 0, at.rows[row].length - 1);
         detailFocus(t, at.rows[row][column]);
       } else if (k === 'left' || k === 'right') {
+        if (metroOn() && at.rows[row].length === 1 && t.id === 'appearance') { pivotTo(t, k === 'left' ? -1 : 1); return; }
         column = clamp(column + (k === 'left' ? -1 : 1), 0, at.rows[row].length - 1);
         detailFocus(t, at.rows[row][column], column);
       }
@@ -2688,7 +2729,7 @@
     var t = top(), sheet = !!V[t.id].sheet, shown = wall(S.shown ? S.shown.wall : S.c.wall), palette = ADAPTIVE_INK[shown.id];
     var adaptive = applyAdaptiveInk(palette), tr = adaptive && palette.tr ? palette.tr.pol : shown.ut.tr, br = adaptive && palette.br ? palette.br.pol : shown.ut.br;
     S.c.layoutView = S.c.dockStyle === 'shelf' ? 'dock' : S.c.dockStyle;
-    stage.className = 'stage bg-' + S.c.bg + ' l-dock dock-' + S.c.dockStyle + ' clockstyle-' + S.c.clockStyle + ' m-' + (materialApplies() ? S.c.material : 'none') + ' f-' + S.c.focus + ' a-' + S.c.apps + ' i-' + S.c.iconStyle + ' u-' + S.c.controls + ' clock-' + S.c.clockPos + (S.c.clockPos !== 'corner' ? ' clock-big' : '') + ' top-' + S.c.topStyle + ' tone-' + shown.tone + ' tr-' + tr + ' br-' + br + wallClasses(shown) + inkRungClasses(palette, adaptive) + ' at-' + t.id + ' font-' + homeFont() + (homeFont() !== 'manrope' ? ' font-custom' : '') + (S.fontSwitch ? ' is-font-switch' : '') + (adaptive ? ' has-adaptive-ink adaptive-tl-' + palette.tl.pol : '') + (!adaptive && shown.clockInk ? ' has-clock-ink' : '') + (!adaptive && shown.dockClockInk ? ' has-dock-clock-ink' : '') + (registeredMaterial(shown.id) ? ' registered-material' : '') + (sheet ? ' is-sheet' : '') + (t.id === 'wifiqr' ? ' is-wifi-qr' : '') + (t.id === 'appearance' && !PREVIEW_GROUPS[t.group] ? ' no-preview' : '') + (S.hdmiInApp ? ' is-hdmi-input' : '') + (S.reflow ? ' is-reflow' : '');
+    stage.className = 'stage bg-' + S.c.bg + ' l-dock dock-' + S.c.dockStyle + ' clockstyle-' + S.c.clockStyle + ' m-' + (materialApplies() ? S.c.material : 'none') + ' f-' + S.c.focus + ' a-' + S.c.apps + ' i-' + S.c.iconStyle + ' u-' + S.c.controls + ' clock-' + S.c.clockPos + (S.c.clockPos !== 'corner' ? ' clock-big' : '') + ' top-' + S.c.topStyle + ' tone-' + shown.tone + ' tr-' + tr + ' br-' + br + wallClasses(shown) + inkRungClasses(palette, adaptive) + ' at-' + t.id + ' look-' + S.c.settingsLook + ' font-' + homeFont() + (homeFont() !== 'manrope' ? ' font-custom' : '') + (S.fontSwitch ? ' is-font-switch' : '') + (adaptive ? ' has-adaptive-ink adaptive-tl-' + palette.tl.pol : '') + (!adaptive && shown.clockInk ? ' has-clock-ink' : '') + (!adaptive && shown.dockClockInk ? ' has-dock-clock-ink' : '') + (registeredMaterial(shown.id) ? ' registered-material' : '') + (sheet ? ' is-sheet' : '') + (t.id === 'wifiqr' ? ' is-wifi-qr' : '') + (t.id === 'appearance' && !PREVIEW_GROUPS[t.group] ? ' no-preview' : '') + (S.hdmiInApp ? ' is-hdmi-input' : '') + (S.reflow ? ' is-reflow' : '');
     if (!adaptive && shown.clockInk) stage.style.setProperty('--clock-ink', shown.clockInk);
     else stage.style.removeProperty('--clock-ink');
     if (!adaptive && shown.dockClockInk) stage.style.setProperty('--dock-clock-ink', shown.dockClockInk);
@@ -3310,8 +3351,8 @@
   var CARD_HEADS = {
     background: { bg: 'Background', wall: 'Background', rotation: 'Background' },
     layout: { layout: 'Bottom bar: apps', apps: 'Bottom bar: apps', iconStyle: 'Bottom bar: apps', topStyle: 'Top bar: widgets and controls', controls: 'Top bar: widgets and controls', switchStyle: 'Top bar: widgets and controls' },
-    typography: { clockStyle: 'Clock', font: 'Home text', focus: 'Focus', material: 'Focus' },
-    focus: { clockStyle: 'Clock', font: 'Home text', focus: 'Focus', material: 'Focus' },
+    typography: { clockStyle: 'Clock', font: 'Home text', focus: 'Focus', material: 'Focus', settingsLook: 'Settings' },
+    focus: { clockStyle: 'Clock', font: 'Home text', focus: 'Focus', material: 'Focus', settingsLook: 'Settings' },
     region: { clock: 'Clock', clockPos: 'Clock', seconds: 'Clock', date: 'Date and weather', weather: 'Date and weather', dateinfo: 'Date and weather' },
     rotation: { mode: 'Rotation' },
     wifiqr: { ssid: 'Network', pass: 'Network', sec: 'Network' },
@@ -3380,9 +3421,13 @@
     appearanceEl.setAttribute('aria-modal', 'true');
     if (t.id === 'wallpaper') { renderWallpaper(t); return; }
     V.appearance.norm(t);
-    appearanceEl.className = 'appearance settings-v2 detail-' + t.group + (PREVIEW_GROUPS[t.group] ? '' : ' no-preview');
+    appearanceEl.className = 'appearance settings-v2 detail-' + t.group + (PREVIEW_GROUPS[t.group] ? '' : ' no-preview') + (metroOn() ? ' is-metro' : '');
     appearanceRows.className = 'appearance-rows';
-    appearanceTitle.textContent = T(DETAIL_NAMES[t.group]);
+    if (metroOn()) {
+      /* The page's name, then its pivot neighbours dimmed: the pages Left and Right lead to. */
+      var piv = pivotOf(t.group), cur = t.group === 'focus' ? 'typography' : t.group;
+      setHTML(appearanceTitle, '<span class="pivot">' + piv.map(function (id) { return '<span class="pivot-item' + (id === cur ? ' is-current' : '') + '">' + esc(T(DETAIL_NAMES[id])) + '</span>'; }).join('') + '</span>');
+    } else { appearanceTitle._html = null; appearanceTitle.textContent = T(DETAIL_NAMES[t.group]); }
     var at = detailLocation(t), selected = at.item, error = S.lookError, status = '', hint;
     function command(item, inner, cls) {
       var applied = item.axis && S.c[item.axis] === item.value;
@@ -3403,7 +3448,40 @@
     setHTML(appearanceStatus, status);
     hint = t.drop ? T('Apply · Back closes the list') : selected.select ? T('Show the choices') : '';
     if (!hint) hint = selected.disabled ? '' : selected.action === 'settings.back' ? T('Return to {0}', backLabel(t)) : T(selected.action === 'settings.retry' ? 'Retry this change' : selected.axis ? 'Apply selected setting' : selected.action === 'background.wallpaper' ? 'Choose a wallpaper' : selected.action === 'background.rotation' ? 'Choose a rotation interval' : selected.action === 'background.custom' || selected.action === 'alexa.connect' || selected.action === 'spotify.connect' ? 'Show the QR code' : /^(alexa\.list|conn)\./.test(selected.action) || selected.action === 'region.dateinfo' ? 'Open' : selected.action === 'calendar.connect' ? 'Show the QR code' : selected.action === 'spotify.signout' ? 'Sign out of Spotify' : selected.action === 'alexa.signout' ? 'Sign out of Alexa' : 'Open on the TV');
-    setHTML(appearanceDesc, hint ? '<span class="remote-key">OK</span><span>' + esc(hint) + '</span>' : '');
+    setHTML(appearanceDesc, (hint ? '<span class="remote-key">OK</span><span>' + esc(hint) + '</span>' : '')
+      + (metroOn() && !t.drop && pivotOf(t.group).length > 1 ? '<span class="remote-key pivot-key">◀ ▶</span><span>' + esc(T('Other pages')) + '</span>' : ''));
+  }
+  /* The Metro Settings overview: live tiles. Background shows the picture, Style the font, Date and time
+     the time, Language its code, Apps on Home the first app icons and Connections what is connected. */
+  function fillMetroSettings(t, el) {
+    var rows = {}, R = metroRects();
+    settingsRows().forEach(function (r) { rows[r.id] = r; });
+    function live(r) {
+      var n;
+      if (r.id === 'background') return S.c.bg === 'photo' ? '<img class="mt-photo" src="' + esc(wallAsset(S.c.wall, 'thumb')) + '" alt="">' : '<span class="mt-photo card-flat-' + S.c.bg + '"></span>';
+      if (r.id === 'typography') return '<span class="mt-big" style="font-family:\'' + FONTS[S.c.font].family + '\',Manrope,sans-serif">Aa</span>';
+      if (r.id === 'lang') return '<span class="mt-big">' + (S.c.lang === 'hu' ? 'HU' : 'EN') + '</span>';
+      if (r.id === 'region') return '<span class="mt-big mt-time">' + fmtHM(Date.now()) + '</span>';
+      if (r.id === 'editor') return '<span class="mt-apps">' + S.c.home.slice(0, 7).map(function (id) { return app(id) ? smallMark(app(id)) : ''; }).join('') + '</span>';
+      if (r.id === 'connections') {
+        n = FC && FC.list ? FC.list().length : 0;
+        return '<span class="mt-list">' + [FA ? [T('Alexa'), alexaOn()] : null, FS ? [T('Spotify'), spotifyOn()] : null, FC ? [n > 1 ? T('Calendars · {0}', n) : T('Calendar'), n > 0] : null]
+          .filter(Boolean).map(function (x) { return '<span class="mt-item' + (x[1] ? ' is-on' : '') + '"><i></i>' + esc(x[0]) + (x[1] ? '' : '<em>' + esc(T('Not connected')) + '</em>') + '</span>'; }).join('') + '</span>';
+      }
+      return '<span class="mt-icon">' + icon(r.icon) + '</span>';
+    }
+    var html = settingsGroups().map(function (g) {
+      return '<section class="metro-group group-' + g.id + '"><h3 class="metro-head">' + esc(T(g.label)) + '</h3><div class="metro-grid">' + g.ids.map(function (id) {
+        var r = rows[id], m = METRO_TILES[id] || [0, 0, 1, 1], size = m[2] === 2 && m[3] === 2 ? 'is-large' : m[2] === 2 ? 'is-wide' : 'is-small';
+        return '<button type="button" tabindex="-1" class="settings-card metro-tile ' + size + ' card-' + id + (id === t.f.id ? ' is-focus' : '') + '" style="grid-column:' + (m[0] + 1) + ' / span ' + m[2] + ';grid-row:' + (m[1] + 1) + ' / span ' + m[3] + (METRO_TINT[id] ? ';--tint:' + METRO_TINT[id] : '') + '"'
+          + ' data-z="row" data-i="0" data-id="' + id + '" data-action="settings.' + (id === 'editor' ? 'editor' : 'group.' + id) + '" aria-label="' + esc(r.label + ', ' + r.value) + '">'
+          + live(r) + '<span class="mt-copy"><span class="mt-value">' + esc(r.value) + '</span><span class="mt-name">' + esc(r.label) + '</span></span></button>';
+      }).join('') + '</div></section>';
+    }).join('');
+    setHTML(el.list, html);
+    el.list.className = 'settings-grid is-metro';
+    setHTML(el.hint, T(t.f.id === 'system' ? 'Open system settings' : t.f.id === 'lang' ? 'Switch the language' : 'Open selected group'));
+    void R;
   }
   function renderWallpaper(t) {
     V.wallpaper.norm(t);
@@ -3489,7 +3567,7 @@
         + '<div class="ed-home" data-slot="home"></div><div class="ed-order-break" data-slot="break">' + T('Then scroll') + '</div><div class="ed-other-view" data-slot="ov"><div class="ed-other" data-slot="other"></div></div><div class="ed-origin" data-slot="origin"></div>'
         + '<div class="row-cue editor-before" data-slot="otherBefore" aria-hidden="true">' + icon('up') + '</div><div class="row-cue editor-after" data-slot="otherAfter" aria-hidden="true">' + icon('down') + '</div>';
     },
-    settings: function () { return '<h2 class="s-title">' + T('Settings') + '</h2><div class="settings-grid" data-slot="list"></div><p class="settings-overview-hint"><span class="remote-key">OK</span><span data-slot="hint"></span></p>'; },
+    settings: function () { return '<h2 class="s-title settings-page-title">' + T('Settings') + '</h2><div class="settings-grid" data-slot="list"></div><p class="settings-overview-hint"><span class="remote-key">OK</span><span data-slot="hint"></span></p>'; },
     message: function (t) {
       var m = messageContent(t);
       return '<h2 class="msg-title">' + esc(T(m.title)) + '</h2><p class="msg-line">' + esc(T(m.line)) + '</p><p class="msg-note">' + esc(T(m.note)) + '</p><div class="msg-acts" data-slot="acts"></div>';
@@ -3628,6 +3706,7 @@
     },
     settings: function (t, el) {
       var html = '', byId = {};
+      if (metroOn()) { fillMetroSettings(t, el); return; }
       settingsRows().forEach(function (r) {
         var visual;
         if (r.id === 'background') visual = S.c.bg === 'photo' ? '<img class="card-photo" src="' + esc(wallAsset(S.c.wall, 'thumb')) + '" alt="">' : '<span class="card-photo card-flat-' + S.c.bg + '"></span>';
@@ -3937,6 +4016,7 @@
     if (document.hidden) return;
     function paintCaption() {
       if (top().id === 'home' || isSettingsDetail(top())) renderCaption(top(), homeState(top()));
+      else if (top().id === 'settings' && metroOn()) render();
     }
     paintCaption();
     refreshWeather(paintCaption);

@@ -1233,3 +1233,50 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000}
 .cap-cal-time.is-allday{font-size:16px;font-weight:500;opacity:.7}
 .cap-cal-title{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:20px;line-height:28px;font-weight:500}
 
+/* ---------- Metro look for Settings (0.41; Settings → Style → Settings look) ----------
+   Metro's structure (thin lowercase titles, live tiles of three sizes, pivots) in this app's material:
+   glass tiles with a soft pastel tint, rounded corners, the usual light focus. */
+@font-face{font-family:'Frame Metro';font-style:normal;font-weight:100 400;src:url('assets/fonts/geist/Geist-Variable.ttf') format('truetype');font-display:swap}
+.look-metro .settings-page-title{top:30px;left:132px;font-family:'Frame Metro',Manrope,sans-serif;font-weight:200;font-size:96px;line-height:116px;letter-spacing:-2px;text-transform:lowercase}
+.settings-grid.is-metro{position:absolute;left:140px;top:182px;display:flex;gap:64px;width:auto}
+.metro-head{margin:0 0 14px 2px;font-family:'Frame Metro',Manrope,sans-serif;font-weight:300;font-size:32px;line-height:40px;text-transform:lowercase;color:rgba(246,241,231,.8)}
+.metro-grid{display:grid;grid-template-columns:repeat(2,228px);grid-template-rows:repeat(3,216px);gap:14px}
+.metro-tile.settings-card{display:block;position:relative;width:auto;height:auto;padding:0;border-radius:20px;overflow:hidden;color:#f6f1e7;text-align:left;
+  background:linear-gradient(140deg,rgba(var(--tint,200,200,200),.30),rgba(var(--tint,200,200,200),.10) 70%),rgba(255,255,255,.06);box-shadow:inset 0 0 0 1px rgba(255,255,255,.12);
+  transition:transform 180ms cubic-bezier(.22,1,.28,1),box-shadow 160ms linear,outline-color 160ms linear;outline:4px solid transparent;outline-offset:4px}
+.metro-tile.settings-card.is-focus{background:linear-gradient(140deg,rgba(var(--tint,200,200,200),.40),rgba(var(--tint,200,200,200),.16) 70%),rgba(255,255,255,.10);color:#f6f1e7;outline-color:#f6f1e7;transform:scale(1.03);box-shadow:0 24px 60px rgba(4,8,10,.5)}
+.mt-copy{position:absolute;left:22px;right:18px;bottom:16px;display:flex;flex-direction:column}
+.mt-name{font-size:26px;line-height:32px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mt-value{font-size:20px;line-height:26px;color:rgba(246,241,231,.72);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mt-icon{position:absolute;left:22px;top:20px;display:flex;align-items:center;justify-content:center;width:56px;height:56px;border-radius:15px;background:rgba(255,255,255,.10)}
+.mt-icon .ico{width:32px;height:32px}
+.mt-big{position:absolute;left:22px;top:6px;font-family:'Frame Metro',Manrope,sans-serif;font-weight:200;font-size:80px;line-height:100px;letter-spacing:-1px}
+.mt-time{font-variant-numeric:tabular-nums}
+.mt-photo{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.metro-tile.card-background{background:#15191b}
+.metro-tile.card-background .mt-copy{z-index:1}
+.metro-tile.card-background::after{content:"";position:absolute;inset:0;background:linear-gradient(transparent 48%,rgba(8,10,12,.68))}
+.mt-apps{position:absolute;left:22px;top:22px;display:flex;gap:8px}
+.mt-apps .mark{position:relative;flex:none}
+.mt-list{position:absolute;left:22px;right:18px;top:20px;display:flex;flex-direction:column;gap:8px}
+.mt-item{display:flex;align-items:center;gap:12px;font-size:24px;line-height:32px;font-weight:500}
+.mt-item i{flex:none;width:10px;height:10px;border-radius:50%;background:rgba(246,241,231,.35)}
+.mt-item.is-on i{background:#9fd0cf;box-shadow:0 0 10px rgba(159,208,207,.8)}
+.mt-item em{font-style:normal;font-size:19px;color:rgba(246,241,231,.5);margin-left:4px}
+.mt-item:not(.is-on){color:rgba(246,241,231,.62)}
+@media(prefers-reduced-motion:reduce){.metro-tile.settings-card.is-focus{transform:none}}
+/* Metro detail pages: a small SETTINGS label (the Back row), the pivot title, rows with the value under the name. */
+.appearance.is-metro .settings-back{top:38px;left:124px}
+.appearance.is-metro .setting-choice.setting-back{min-height:40px;font-size:20px;line-height:26px;font-weight:700;letter-spacing:3px;text-transform:uppercase}
+.appearance.is-metro .setting-back .ico{width:20px;height:20px}
+.appearance.is-metro .settings-title{top:84px;left:132px;font-size:80px;line-height:100px;font-weight:200;letter-spacing:-1.6px;white-space:nowrap}
+.pivot{display:flex;gap:36px;font-family:'Frame Metro',Manrope,sans-serif;text-transform:lowercase}
+.pivot-item{color:rgba(246,241,231,.28)}
+.pivot-item.is-current{position:relative;color:#f6f1e7}
+.pivot-item.is-current::after{content:"";position:absolute;left:4px;bottom:-6px;width:56px;height:4px;border-radius:2px;background:rgba(157,184,232,.9)}
+.appearance.is-metro.settings-v2 .set-row{display:grid;grid-template-columns:minmax(0,1fr) auto auto;grid-template-rows:auto auto;align-content:center;column-gap:14px;row-gap:0;align-items:center;min-height:74px;padding-top:8px;padding-bottom:9px}
+.appearance.is-metro.settings-v2 .set-label{grid-column:1;grid-row:1;font-family:'Frame Metro',Manrope,sans-serif;font-weight:300;font-size:32px;line-height:40px}
+.appearance.is-metro.settings-v2 .set-value{grid-column:1;grid-row:2;max-width:none;text-align:left;font-size:21px;line-height:26px;font-weight:600;color:#9db8e8}
+.appearance.is-metro.settings-v2 .set-row.is-focus .set-value{color:#3b5fa8}
+.appearance.is-metro.settings-v2 .set-row>.ico,.appearance.is-metro.settings-v2 .set-row>.setting-swatch,.appearance.is-metro.settings-v2 .set-row>.setting-tick{grid-row:1 / span 2}
+.appearance.is-metro .pivot-key{margin-left:18px;min-width:0;padding:0 8px}

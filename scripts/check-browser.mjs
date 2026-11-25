@@ -996,6 +996,37 @@ try {
     check('Only Alexa devices are read: not the Home screen or Spotify buttons', current.__alexa.asked.length > 0 && current.__alexa.asked.every(id => /^amzn1\.alexa\.endpoint\./.test(id)), [...new Set(current.__alexa.asked)]);
     current.__alexa.strict = false; lamp.power = 'OFF';
   });
+  await run('Settings: Metro look with live tiles and pivots', async () => {
+    await page();
+    await group('typography');
+    check('Style offers the Settings look: Original or Metro', same(await current.evaluate(() => [...document.querySelectorAll('[data-action^="choice.settingsLook."]')].map(e => e.getAttribute('data-action'))), ['choice.settingsLook.original', 'choice.settingsLook.metro']));
+    await act('choice.settingsLook.metro');
+    check('Metro is saved', (await stored()).settingsLook === 'metro');
+    await scene('settings'); await current.waitForTimeout(400);
+    const ov = await current.evaluate(() => { const g = document.querySelector('.settings-grid'), t = id => document.querySelector('.metro-tile[data-id="' + id + '"]');
+      return { cls: g.className, groups: [...g.querySelectorAll('.metro-head')].map(e => e.textContent), sizes: ['background', 'editor', 'lang', 'connections'].map(id => t(id) ? t(id).className.match(/is-(large|wide|small)/)[1] : ''),
+        title: getComputedStyle(document.querySelector('.settings-page-title')).textTransform, time: (t('region').querySelector('.mt-time') || {}).textContent, apps: t('editor').querySelectorAll('.mark').length, photo: !!t('background').querySelector('img.mt-photo'),
+        now: (d => (d.getHours()) + ':' + String(d.getMinutes()).padStart(2, '0'))(new Date()) }; });
+    check('The overview is live tiles in three groups, with a thin lowercase title', /is-metro/.test(ov.cls) && ov.groups.length === 3 && same(ov.sizes, ['large', 'wide', 'small', 'large']) && ov.title === 'lowercase', ov);
+    check('Live tiles show the picture, the time and the app icons', ov.photo && ov.time === ov.now && ov.apps >= 6, ov);
+    const at = () => current.evaluate(() => document.querySelector('.metro-tile.is-focus').getAttribute('data-id'));
+    const path = [];
+    for (const k of ['up', 'down', 'right', 'right', 'up', 'right', 'left', 'up']) { await nav(k); path.push(await at()); }
+    check('Arrows move to the nearest tile in that direction across the groups', same(path, ['background', 'layout', 'typography', 'region', 'wifiqr', 'connections', 'wifiqr', 'editor']), path);
+    await nav('left', 'down', 'ok'); await current.waitForTimeout(300);
+    const piv = await current.evaluate(() => ({ group: ShoreQA.state().settingsGroup, items: [...document.querySelectorAll('.pivot-item')].map(e => e.textContent + (e.classList.contains('is-current') ? '*' : '')), metro: document.getElementById('appearance').classList.contains('is-metro') }));
+    check('A page opens with its group as a pivot: Background, Layout, Style', piv.group === 'layout' && piv.metro && same(piv.items, ['Background', 'Layout*', 'Style']), piv);
+    await nav('right');
+    check('Right moves to the next page of the pivot', (await state()).settingsGroup === 'typography');
+    await nav('right');
+    check('The last page stays put', (await state()).settingsGroup === 'typography');
+    await nav('left', 'left');
+    check('Left goes back through Layout to Background', (await state()).settingsGroup === 'background');
+    await nav('right', 'right', 'back'); await current.waitForTimeout(300);
+    check('Back returns to the overview with the page you ended on focused', (await state()).view === 'settings' && await at() === 'typography', await state());
+    await nav('ok'); await act('choice.settingsLook.original'); await scene('settings'); await current.waitForTimeout(300);
+    check('Original brings back the three columns of cards', await current.evaluate(() => /is-columns/.test(document.querySelector('.settings-grid').className) && !document.querySelector('.metro-tile')));
+  });
   await run('Spotify phone page sends the code back to the TV', async () => {
     const phone = await preview.browser.newPage({ viewport: { width: 390, height: 844 } }), posts = [];
     await phone.route('https://ntfy.sh/**', async route => { const r = route.request(); posts.push({ url: r.url(), body: r.postData(), tags: r.headers()['tags'] }); await route.fulfill({ status: 200, headers: { 'Access-Control-Allow-Origin': '*' }, body: '{}' }); });

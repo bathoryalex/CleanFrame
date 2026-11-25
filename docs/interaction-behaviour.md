@@ -339,3 +339,16 @@ The TOMORROW heading is a small label again: 15 px with spaced capitals and 8 px
 
 Events are one grid, so names, times and titles line up in columns across both days. With several calendars each event starts with its calendar's name on a chip: all chips as wide as the widest, the name centred in the panel's light text, the chip tinted with the calendar's colour (36 % over the glass, a 55 % edge); the separate dot is gone. The nine calendar colours are soft pastels. All-day events say "All day" in the time column. Sections with nothing in them, and the lines around them, are left out. The single-calendar icon is gone; the headings say what the rows are.
 
+## 0.41
+
+**Settings look: Original or Metro** (Settings → Style → Settings, `settingsLook`, default Original; kept in the preferences and in backups).
+
+- **Metro overview**: the title is "settings" in thin lowercase Geist (the bundled OFL file, as 'Frame Metro'), and the group headings are lowercase too. Each group is a grid of two 228 px columns and three 216 px rows. The tiles are glass with a soft pastel tint (the calendar palette), 20 px corners, and on focus a light 4 px ring and a 3 % lift.
+  - Personalization: Background 2×2, showing the wallpaper; Layout and Style 1×1, Style showing "Aa" in the Home font.
+  - Home and time: Apps on Home, Wi‑Fi QR and Date and time, each 2×1. Apps on Home shows the first seven app icons; Date and time shows the time, redrawn every minute.
+  - System: Language 1×1 (EN/HU, OK switches it); System 1×1; Connections 2×2, listing Alexa, Spotify and the calendars with a teal dot when connected.
+- **Navigation**: Up, Down, Left and Right go to the nearest tile in that direction across all groups. A tile overlapping on the other axis wins, then the closest centre.
+- **Pivots**: a page opened from the overview shows its name and its group's other pages dimmed beside it, with a short underline under the current one. Above sits a small SETTINGS label, which is the Back row. On a row, Left and Right move to the previous or next page of the pivot, with no wrap. Back returns to the overview with that page's tile focused. The pivots are Background · Layout · Style, Wi‑Fi QR · Date and time, and Connections · System. Pages opened from another page (Rotation, Alexa, Spotify, Date details, Wallpaper) stand alone. An open list still closes with Left, as before.
+- **Rows**: the name is thin Geist 32 px with the current value under it (21 px, soft blue), the chevron on the right.
+- Original is unchanged.
+
