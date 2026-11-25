@@ -1087,6 +1087,8 @@ try {
     const firstShown = trace.find(f => f.sheetShown);
     check('The curtain covers Home before the sheet shows', !!firstShown && trace.filter(f => f.t < firstShown.t).some(f => f.curtain > 0.3 && f.curtain < 1) && firstShown.t >= 200, trace.filter((f, i) => i % 4 === 0));
     check('The sheet content then fades in on top', trace.some(f => f.sheetShown && f.view > 0.1 && f.view < 0.95) && trace[trace.length - 1].view === 1, trace.filter((f, i) => i % 4 === 0));
+    const shown = trace.filter(f => f.sheetShown);
+    check('The content only ever grows more visible: it starts hidden and never drops back', shown.length && shown[0].view <= 0.15 && shown.every((f, i) => i === 0 || f.view >= shown[i - 1].view - 0.02), shown.map(f => f.view));
     check('Home\'s clock never shows over the opening sheet', trace.filter(f => f.sheetShown).every(f => !f.clockOnTop), trace.filter(f => f.sheetShown && f.clockOnTop));
     await current.waitForTimeout(300);
     check('Afterwards the curtain is gone and the sheet is plain', await current.evaluate(() => !document.querySelector('.sheet-curtain').classList.contains('is-on') && !/is-waiting|is-revealing/.test(document.getElementById('sheet').className)));

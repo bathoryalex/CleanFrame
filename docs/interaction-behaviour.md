@@ -412,3 +412,8 @@ Events are one grid, so names, times and titles line up in columns across both d
 - **Apps on Home**: no Undo or Done. Every change is saved as it is made, and Back leaves; the bottom line shows "BACK Done". In the Metro look, Right past the last app goes on along the pivot.
 - **Dark icons on a light tile**: with Minimal icons, the picture icons (Nuvio, HBO Max, SmartThings, Internet …) turn dark on the focused or lifted tile like the drawn ones (Xbox, Nintendo), through `filter: brightness(0)` on those images only.
 
+## 0.49
+
+- **Sheet content without the hiccup.** A TV video of 0.48 showed the curtain fade in smoothly. Then the Settings content showed faintly, vanished for a frame, and faded in again: on the TV the CSS animation started a frame late, after the content had already been drawn once. The content is now at opacity 0 while the sheet waits, and the reveal is a transition from that value to 1 (220 ms), so it can only grow more visible. The curtain stays until 420 ms after the reveal, so a slow TV is not cut short. A check asserts the content starts hidden and never drops back. The browser never showed the hiccup, so the fix is in the method rather than measured on the TV.
+- **Native icons stay as they are**: the darkening on a light tile (0.48) applies only to Frame Home's own Minimal icon pictures. App icons supplied by the TV (`data-native-icon`, such as Disney+) are no longer turned black.
+

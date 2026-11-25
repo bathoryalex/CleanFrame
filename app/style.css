@@ -1468,4 +1468,8 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000}
 .sheet.is-revealing .view{animation:sheet-layer-in 200ms linear both}
 /* Apps on Home: monochrome icons that are pictures (Nuvio, HBO Max, SmartThings, Internet …) turn dark on
    a light, focused tile like the drawn ones (Xbox, Nintendo) do. */
-.i-minimal .ed-tile.is-focus .mark img,.i-minimal .ed-tile.is-lifted .mark img,.i-minimal .ed-add-tile.is-focus .mark img{filter:brightness(0);opacity:.86}
+.i-minimal .ed-tile.is-focus .mark img:not([data-native-icon]),.i-minimal .ed-tile.is-lifted .mark img:not([data-native-icon]),.i-minimal .ed-add-tile.is-focus .mark img:not([data-native-icon]){filter:brightness(0);opacity:.86}
+/* 0.49: the content fades with a transition from an opacity it already has (0 while the sheet waits), so a
+   slow first frame cannot show it, hide it and start again. */
+.sheet.is-waiting .view{opacity:0}
+.sheet.is-revealing .view{opacity:1;animation:none;transition:opacity 220ms linear}
