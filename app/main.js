@@ -3405,6 +3405,7 @@
   function renderSheet(t, sheet) {
     var v = V[t.id], key, wasHidden = sheetEl.hidden;
     sheetEl.hidden = !(sheet || isSettingsDetail(t));
+    if (sheetEl.hidden && sheetOpenUntil) { clearTimeout(sheetOpenTimer); sheetOpenUntil = 0; stage.classList.remove('sheet-opening'); sheetEl.classList.remove('is-opening'); sheetEl.classList.remove('is-pre'); }
     if (wasHidden && !sheetEl.hidden) {
       /* The sheet waits invisible for two frames, so its content is laid out and painted before the fade
          starts; then only opacity and a translate animate, on layers of their own. */
@@ -4238,7 +4239,7 @@
   QA.where = function () {
     var action = focusedAction(), active = stage.querySelectorAll('.is-focus[data-action]'), count = 0, name = '';
     /* While a sheet fades in, Home is only the picture underneath: its focus does not count. */
-    Array.prototype.forEach.call(active, function (el) { if (stage.classList.contains('sheet-opening') && homeEl.contains(el)) return; if (renderedAction(el)) { count++; if (el.getAttribute('data-action') === action) name = el.getAttribute('aria-label') || el.textContent.replace(/\s+/g, ' ').trim(); } });
+    Array.prototype.forEach.call(active, function (el) { if (stage.classList.contains('sheet-opening') && !sheetEl.hidden && homeEl.contains(el)) return; if (renderedAction(el)) { count++; if (el.getAttribute('data-action') === action) name = el.getAttribute('aria-label') || el.textContent.replace(/\s+/g, ' ').trim(); } });
     return { view: top().id, settingsGroup: top().id === 'wallpaper' ? 'wallpaper' : top().id === 'appearance' ? top().group : null, focus: name, focusAction: action, focusCount: count, wallpaper: S.wallShown, zone: top().f.zone || null };
   };
   QA.ready = function () { return fontsReady && !S.pending && !!S.shown && S.shown.bg === S.c.bg && S.shown.wall === S.c.wall && S.shown.font === S.c.font; };
