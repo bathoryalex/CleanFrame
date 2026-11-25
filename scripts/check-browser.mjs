@@ -615,7 +615,7 @@ try {
   });
   await run('Spotify: phone sign-in, now playing and the remote', async () => {
     await page(); await group('connections');
-    check('Connections lists Alexa and Spotify', same(await current.evaluate(() => [...document.querySelectorAll('[data-action^="conn."]')].map(e => e.getAttribute('data-action'))), ['conn.alexa', 'conn.spotify']));
+    check('Connections lists Alexa, Spotify and the calendar', same(await current.evaluate(() => [...document.querySelectorAll('[data-action^="conn."]')].map(e => e.getAttribute('data-action'))), ['conn.alexa', 'conn.spotify', 'conn.calendar']));
     await act('conn.spotify'); await current.waitForFunction(() => ShoreQA.state().settingsGroup === 'spotify');
     check('Spotify settings go back to Connections', /Connections|Kapcsolatok/.test(await current.locator('.setting-back').first().textContent()));
     await act('spotify.connect');
