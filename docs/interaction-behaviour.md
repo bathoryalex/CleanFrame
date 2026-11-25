@@ -417,3 +417,8 @@ Events are one grid, so names, times and titles line up in columns across both d
 - **Sheet content without the hiccup.** A TV video of 0.48 showed the curtain fade in smoothly. Then the Settings content showed faintly, vanished for a frame, and faded in again: on the TV the CSS animation started a frame late, after the content had already been drawn once. The content is now at opacity 0 while the sheet waits, and the reveal is a transition from that value to 1 (220 ms), so it can only grow more visible. The curtain stays until 420 ms after the reveal, so a slow TV is not cut short. A check asserts the content starts hidden and never drops back. The browser never showed the hiccup, so the fix is in the method rather than measured on the TV.
 - **Native icons stay as they are**: the darkening on a light tile (0.48) applies only to Frame Home's own Minimal icon pictures. App icons supplied by the TV (`data-native-icon`, such as Disney+) are no longer turned black.
 
+## 0.50
+
+- **The flash at the end of opening, found and fixed.** In a TV video of 0.49 the mean brightness of the picture showed the content fading in. Then, about 0.9 s after the key, it dropped sharply and faded back. That was the end of the opening: the sheet went back to its usual stacking, below the curtain (z-index 11), while the curtain was still fading out over 220 ms. For that moment the empty blurred backdrop covered the open sheet.
+- Now the curtain is switched off at once (no opacity or visibility transition), in the same step as the sheet drops back. The browser check traces every frame up to 1.3 s and fails if the curtain is visible while the sheet is not stacked above it. It fails on 0.49 (curtain at full opacity over the sheet at 665 ms) and passes now.
+

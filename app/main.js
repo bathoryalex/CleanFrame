@@ -4,7 +4,7 @@
 
   /* ---------- Bundled data ---------- */
   var ASSETS = 'assets/', ICONS = ASSETS + 'icons/', WP = ASSETS + 'wallpapers/';
-  var APP_VERSION = '0.49.0';
+  var APP_VERSION = '0.50.0';
   var CAP = 9, SCRIM_Y = 560, DOCK_BOTTOM = 1032; // the Dock sits 48 px above the bottom edge; names and actions go above it
   var DOCK_MODES = { both: { tw: 288, th: 200, pitch: 296 }, text: { tw: 288, th: 104, pitch: 296 }, icons: { tw: 200, th: 156, pitch: 206 } }; // icons-only tiles leave room under the icon for the focused app's name
   var GRID_ROW = 240, GRID_COL = 344, COLS = 5;
@@ -3435,12 +3435,14 @@
     }
     img = curtain.firstChild;
     if (S.c.bg === 'photo' && IMG.bg.src && img._src !== IMG.bg.src) { img._src = IMG.bg.src; img.src = IMG.bg.src; }
-    if (on !== undefined) curtain.className = 'sheet-curtain' + (on ? ' is-on' : '');
+    if (on !== undefined) curtain.className = 'sheet-curtain' + (on ? ' is-on' : ' is-instant');
   }
+  /* The curtain goes at once, with no fade, in the same step as the sheet drops back to its usual stacking:
+     fading out, it would sit above the open sheet for a moment and flash its empty backdrop (0.49 on the TV). */
   function endSheetOpening() {
     clearTimeout(sheetOpenTimer); clearTimeout(sheetRevealTimer); sheetOpenUntil = 0;
-    stage.classList.remove('sheet-opening'); sheetEl.classList.remove('is-waiting'); sheetEl.classList.remove('is-revealing');
     syncCurtain(false);
+    stage.classList.remove('sheet-opening'); sheetEl.classList.remove('is-waiting'); sheetEl.classList.remove('is-revealing');
   }
   function renderSheet(t, sheet) {
     var v = V[t.id], key, wasHidden = sheetEl.hidden;

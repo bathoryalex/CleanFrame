@@ -1473,3 +1473,5 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000}
    slow first frame cannot show it, hide it and start again. */
 .sheet.is-waiting .view{opacity:0}
 .sheet.is-revealing .view{opacity:1;animation:none;transition:opacity 220ms linear}
+/* 0.50: switched off, the curtain disappears at once (no opacity or visibility transition). */
+.sheet-curtain.is-instant,.sheet-curtain.is-instant .sheet-curtain-bg,.sheet-curtain.is-instant .sheet-curtain-shade{transition:none}

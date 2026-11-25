@@ -1080,8 +1080,9 @@ try {
       (function tick() {
         const sh = document.getElementById('sheet'), cur = document.querySelector('.sheet-curtain-shade'), v = document.getElementById('sheetView');
         const top = document.elementFromPoint(clock.left + clock.width / 2, clock.top + clock.height / 2);
-        out.push({ t: Math.round(performance.now() - t0), curtain: +getComputedStyle(cur).opacity, sheetShown: getComputedStyle(sh).visibility === 'visible' && !sh.hidden, view: +getComputedStyle(v).opacity, clockOnTop: !!(top && top.closest('.caption')) });
-        if (performance.now() - t0 < 750) requestAnimationFrame(tick); else done(out);
+        const cs = getComputedStyle(document.querySelector('.sheet-curtain'));
+        out.push({ t: Math.round(performance.now() - t0), curtain: +getComputedStyle(cur).opacity, curtainShown: cs.visibility === 'visible' && +getComputedStyle(cur).opacity > 0, sheetZ: getComputedStyle(sh).zIndex, sheetShown: getComputedStyle(sh).visibility === 'visible' && !sh.hidden, view: +getComputedStyle(v).opacity, clockOnTop: !!(top && top.closest('.caption')) });
+        if (performance.now() - t0 < 1300) requestAnimationFrame(tick); else done(out);
       })();
     }));
     const firstShown = trace.find(f => f.sheetShown);
@@ -1089,6 +1090,7 @@ try {
     check('The sheet content then fades in on top', trace.some(f => f.sheetShown && f.view > 0.1 && f.view < 0.95) && trace[trace.length - 1].view === 1, trace.filter((f, i) => i % 4 === 0));
     const shown = trace.filter(f => f.sheetShown);
     check('The content only ever grows more visible: it starts hidden and never drops back', shown.length && shown[0].view <= 0.15 && shown.every((f, i) => i === 0 || f.view >= shown[i - 1].view - 0.02), shown.map(f => f.view));
+    check('While the curtain is visible the open sheet always stacks above it (no flash of the empty backdrop at the end)', trace.filter(f => f.sheetShown && f.curtainShown).every(f => f.sheetZ === '12'), trace.filter(f => f.sheetShown && f.curtainShown && f.sheetZ !== '12'));
     check('Home\'s clock never shows over the opening sheet', trace.filter(f => f.sheetShown).every(f => !f.clockOnTop), trace.filter(f => f.sheetShown && f.clockOnTop));
     await current.waitForTimeout(300);
     check('Afterwards the curtain is gone and the sheet is plain', await current.evaluate(() => !document.querySelector('.sheet-curtain').classList.contains('is-on') && !/is-waiting|is-revealing/.test(document.getElementById('sheet').className)));
