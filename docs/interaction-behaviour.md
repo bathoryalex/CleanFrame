@@ -359,3 +359,14 @@ Events are one grid, so names, times and titles line up in columns across both d
 - **System pivot order**: System, then Connections, the order the tiles read.
 - **Tile values wrap** onto a second line instead of ending in "…".
 
+## 0.43
+
+- **Apps on Home and All apps in the card style.**
+  - Apps on Home: the rows are glass cards, and the focused or lifted one turns light like a Settings row (with Glass focus; Type focus keeps its bare, scaled look). The column headings and "Recently removed" / "Other installed apps" are small spaced capitals. Undo and Done are pill buttons.
+  - All apps: every app is a glass tile. The focused one has a light ring, and "On Home" is a small teal pill.
+  - With the Metro look the titles of both use the thin pivot face.
+- **Apps on Home joins the Home and time pivot** (Metro look): Apps on Home · Wi‑Fi QR · Date and time. The pivot strip uses short names. Left on Wi‑Fi QR opens Apps on Home. In Apps on Home, Right past the right edge goes on to Wi‑Fi QR: from Not on Home, from Done, or from Remove when there is nothing to add. Undo and Done move down beside the column headings to make room for the strip.
+- **Where Home starts to scroll**: the "Then scroll" line follows the dock that is set, at as many apps as it shows at once (seven in the Modern dock). With no more apps than that, the line is not shown. It was fixed after the fifth app.
+- **Type focus in the Modern dock**: no frame; the focused app is full brightness at 108 %, the others dimmed to 55 %. Before, it differed from Glass only by a 6 % scale, so it looked as if the setting did nothing there. In the Dock and Tiles layouts, and in the All apps and Apps on Home lists, it already changed the focus look.
+- **One hint for the overview**: the System card says "Open selected group" like the others. Language still says "Switch the language", because OK switches it directly.
+

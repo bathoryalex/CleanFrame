@@ -1033,6 +1033,29 @@ try {
     await current.evaluate(() => ShoreQA.activate('settings.group.typography')); await current.waitForTimeout(200); await act('choice.settingsLook.original'); await scene('settings'); await current.waitForTimeout(300);
     check('Original brings back the three columns of cards', await current.evaluate(() => /is-columns/.test(document.querySelector('.settings-grid').className) && !document.querySelector('.metro-tile')));
   });
+  await run('Apps on Home in the pivot, where Home starts to scroll, Type focus and one hint', async () => {
+    await page({ seed: baseline({ settingsLook: 'metro', dockStyle: 'modern' }) });
+    await scene('settings'); await current.waitForTimeout(300);
+    await current.evaluate(() => ShoreQA.activate('settings.group.wifiqr')); await current.waitForTimeout(300);
+    check('Home and time is a pivot of Apps on Home, Wi‑Fi QR and Date and time', same(await current.evaluate(() => [...document.querySelectorAll('.pivot-item')].map(e => e.textContent + (e.classList.contains('is-current') ? '*' : ''))), ['Apps on Home', 'Wi‑Fi QR*', 'Date and time']));
+    await nav('left'); await current.waitForTimeout(300);
+    const ed = await current.evaluate(() => ({ view: ShoreQA.where().view, items: [...document.querySelectorAll('.editor-title .pivot-item')].map(e => e.textContent + (e.classList.contains('is-current') ? '*' : '')) }));
+    check('Left from Wi‑Fi QR opens Apps on Home with the same pivot', ed.view === 'editor' && same(ed.items, ['Apps on Home*', 'Wi‑Fi QR', 'Date and time']), ed);
+    const cut = await current.evaluate(() => { const b = document.querySelector('.ed-order-break'); return { on: b.classList.contains('is-on'), top: parseInt(b.style.top, 10) }; });
+    check('In the Modern dock seven apps fit, so the scroll line sits after the seventh of eight', cut.on && cut.top === 264 + 7 * 80, cut);
+    await nav('right', 'right', 'right'); await current.waitForTimeout(300);
+    check('Right past Not on Home goes on to Wi‑Fi QR', (await state()).settingsGroup === 'wifiqr');
+    await nav('back'); await current.waitForTimeout(200);
+    check('Back from there returns to the overview on the Wi‑Fi QR tile', await current.evaluate(() => document.querySelector('.metro-tile.is-focus').getAttribute('data-id')) === 'wifiqr');
+    await current.evaluate(() => ShoreQA.activate('settings.group.system')); await nav('back'); await current.waitForTimeout(200);
+    const hints = await current.evaluate(() => document.querySelector('.settings-overview-hint').textContent);
+    check('The System tile shows the same hint as the other groups', /Open selected group/.test(hints), hints);
+    await page({ seed: baseline({ dockStyle: 'modern', home: ['hdmi-1', 'hdmi-2', 'nuvio', 'youtube', 'spotify', 'hbomax', 'smartthings'] }) });
+    await scene('settings'); await current.evaluate(() => ShoreQA.activate('settings.editor')); await current.waitForTimeout(300);
+    check('With seven apps, all of them fit the Modern dock and no scroll line shows', await current.evaluate(() => ShoreQA.state().home.length === 7 && !document.querySelector('.ed-order-break').classList.contains('is-on')));
+    await page({ seed: baseline({ dockStyle: 'modern', focus: 'type' }) }); await scene('home'); await current.waitForTimeout(300);
+    check('Type focus in the Modern dock dims the other apps', await current.evaluate(() => getComputedStyle(document.querySelector('.dock .tile:not(.is-focus) .tile-content')).opacity === '0.55'));
+  });
   await run('Spotify phone page sends the code back to the TV', async () => {
     const phone = await preview.browser.newPage({ viewport: { width: 390, height: 844 } }), posts = [];
     await phone.route('https://ntfy.sh/**', async route => { const r = route.request(); posts.push({ url: r.url(), body: r.postData(), tags: r.headers()['tags'] }); await route.fulfill({ status: 200, headers: { 'Access-Control-Allow-Origin': '*' }, body: '{}' }); });

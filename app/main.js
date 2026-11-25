@@ -4,7 +4,7 @@
 
   /* ---------- Bundled data ---------- */
   var ASSETS = 'assets/', ICONS = ASSETS + 'icons/', WP = ASSETS + 'wallpapers/';
-  var APP_VERSION = '0.42.0';
+  var APP_VERSION = '0.43.0';
   var CAP = 9, SCRIM_Y = 560, DOCK_BOTTOM = 1032; // the Dock sits 48 px above the bottom edge; names and actions go above it
   var DOCK_MODES = { both: { tw: 288, th: 200, pitch: 296 }, text: { tw: 288, th: 104, pitch: 296 }, icons: { tw: 200, th: 156, pitch: 206 } }; // icons-only tiles leave room under the icon for the focused app's name
   var GRID_ROW = 240, GRID_COL = 344, COLS = 5;
@@ -949,7 +949,9 @@
     return { recent: rec, rest: ALPHA.filter(function (id) { return !onHome(id) && rec.indexOf(id) < 0; }) };
   }
   function otherList() { var o = otherGroups(); return o.recent.concat(o.rest); }
-  function editorCut() { return 5; }
+  /* Where Home starts to scroll: as many apps as the current dock shows at once (seven in the Modern
+     dock, five in the Dock …); with no more apps than that the line is not shown at all. */
+  function editorCut() { return Math.max(1, dockGeom(S.c.home.length).vis); }
   function editorHomeY(i) { return i * ED_ROW + (i >= editorCut() ? 24 : 0); }
   function editorOtherY(j) {
     var o = otherGroups();
@@ -992,6 +994,9 @@
         return;
       }
       if (k === 'back') { closeEditor(t); return; }
+      /* Metro look: Right past the right edge (Done, Not on Home, or Remove with nothing to add) goes on
+         along the pivot to Wi‑Fi QR. */
+      if (metroOn() && k === 'right' && (f.zone === 'other' || (f.zone === 'head' && f.h === 1) || (f.zone === 'home' && f.part === 'remove' && !no)) && pivotTo(t, 1)) return;
       if (f.zone === 'head') {
         if (k === 'left' && f.h > 0) f.h--;
         else if (k === 'right' && f.h < 1) f.h++;
@@ -1129,19 +1134,23 @@
      the page before or after, in the order the tiles read (System sits above Connections). Pages opened
      from another page (Rotation, Alexa, Calendar …) stand alone. */
   var pivotSlide = { dir: '', n: 0, until: 0 };
-  var METRO_PIVOTS = [['background', 'layout', 'typography'], ['wifiqr', 'region'], ['system', 'connections']];
+  /* Short page names for the pivot strip (the page titles can be longer). */
+  var PIVOT_NAMES = { editor: 'Apps on Home', wifiqr: 'Wi‑Fi QR', region: 'Date and time' };
+  function pivotName(id) { return T(PIVOT_NAMES[id] || DETAIL_NAMES[id]); }
+  var METRO_PIVOTS = [['background', 'layout', 'typography'], ['editor', 'wifiqr', 'region'], ['system', 'connections']];
   function pivotOf(group) { var g = group === 'focus' ? 'typography' : group, out = [g]; METRO_PIVOTS.forEach(function (p) { if (p.indexOf(g) >= 0) out = p.filter(function (id) { return id !== 'connections' || FA || FS || FC; }); }); return out; }
   function pivotTo(t, dir) {
-    var list = pivotOf(t.group), i = list.indexOf(t.group === 'focus' ? 'typography' : t.group), to = list[i + dir], below;
+    var here = t.id === 'editor' ? 'editor' : t.group === 'focus' ? 'typography' : t.group, list = pivotOf(here), to = list[list.indexOf(here) + dir], below;
     if (!to) return false;
-    cancelLook(); S.err = null; pop();
+    if (t.id === 'editor') closeEditor(t); else { cancelLook(); S.err = null; pop(); }
     below = top(); if (below && below.id === 'settings') below.f.id = to;
-    S.settingsFocus = to; openAppearance(to);
+    S.settingsFocus = to;
+    if (to === 'editor') openEditor('settings'); else openAppearance(to);
     /* The new page slides in from the side it was reached from (title strip and rows, 320 ms). */
     pivotSlide = { dir: dir > 0 ? 'next' : 'prev', n: (pivotSlide.n || 0) + 1, until: Date.now() + 400 };
     return true;
   }
-  var DETAIL_NAMES = { calendar: 'Calendar', background: 'Background', layout: 'Layout', typography: 'Style', focus: 'Style', rotation: 'Rotation', region: 'Date and time', wifiqr: 'Wifi QR code settings', alexa: 'Alexa', spotify: 'Spotify', connections: 'Connections', dateinfo: 'Date details', system: 'System' };
+  var DETAIL_NAMES = { editor: 'Apps on Home', calendar: 'Calendar', background: 'Background', layout: 'Layout', typography: 'Style', focus: 'Style', rotation: 'Rotation', region: 'Date and time', wifiqr: 'Wifi QR code settings', alexa: 'Alexa', spotify: 'Spotify', connections: 'Connections', dateinfo: 'Date details', system: 'System' };
   var PARENT = { rotation: 'background', alexa: 'connections', spotify: 'connections', calendar: 'connections', dateinfo: 'region' };
   function backLabel(t) { return T(PARENT[t.group] ? DETAIL_NAMES[PARENT[t.group]] : 'Settings'); }
   function choice(axis, value, disabled) {
@@ -3369,6 +3378,7 @@
       sheetKey = key; slotEls = {};
       Array.prototype.forEach.call(sheetView.querySelectorAll('[data-slot]'), function (el) { slotEls[el.getAttribute('data-slot')] = el; });
     }
+    if (t.id !== 'editor') sheetView.className = 'view';
     FILLS[t.id](t, slotEls);
   }
   /* Settings pages are cards of rows. The heading of each card, by page and section. */
@@ -3450,7 +3460,7 @@
     if (metroOn()) {
       /* The page's name, then its pivot neighbours dimmed: the pages Left and Right lead to. */
       var piv = pivotOf(t.group), cur = t.group === 'focus' ? 'typography' : t.group;
-      setHTML(appearanceTitle, '<span class="pivot">' + piv.map(function (id) { return '<span class="pivot-item' + (id === cur ? ' is-current' : '') + '">' + esc(T(DETAIL_NAMES[id])) + '</span>'; }).join('') + '</span>');
+      setHTML(appearanceTitle, '<span class="pivot">' + piv.map(function (id) { return '<span class="pivot-item' + (id === cur ? ' is-current' : '') + '">' + esc(pivotName(id)) + '</span>'; }).join('') + '</span>');
     } else { appearanceTitle._html = null; appearanceTitle.textContent = T(DETAIL_NAMES[t.group]); }
     var at = detailLocation(t), selected = at.item, error = S.lookError, status = '', hint;
     function command(item, inner, cls) {
@@ -3504,7 +3514,7 @@
     }).join('');
     setHTML(el.list, html);
     el.list.className = 'settings-grid is-metro';
-    setHTML(el.hint, T(t.f.id === 'system' ? 'Open system settings' : t.f.id === 'lang' ? 'Switch the language' : 'Open selected group'));
+    setHTML(el.hint, T(t.f.id === 'lang' ? 'Switch the language' : 'Open selected group'));
     void R;
   }
   function renderWallpaper(t) {
@@ -3586,7 +3596,7 @@
         + '<div class="row-cue grid-before" data-slot="before" aria-hidden="true">' + icon('up') + '</div><div class="row-cue grid-after" data-slot="after" aria-hidden="true">' + icon('down') + '</div>';
     },
     editor: function () {
-      return '<h2 class="s-title">' + T('Apps on Home') + '</h2><p class="s-sub" data-slot="sub"></p><div class="s-head" data-slot="head"></div>'
+      return '<h2 class="s-title editor-title" data-slot="title">' + T('Apps on Home') + '</h2><p class="s-sub" data-slot="sub"></p><div class="s-head" data-slot="head"></div>'
         + '<p class="s-label z-home" data-slot="lh"></p><p class="s-label z-other">' + T('Not on Home') + '</p>'
         + '<div class="ed-home" data-slot="home"></div><div class="ed-order-break" data-slot="break">' + T('Then scroll') + '</div><div class="ed-other-view" data-slot="ov"><div class="ed-other" data-slot="other"></div></div><div class="ed-origin" data-slot="origin"></div>'
         + '<div class="row-cue editor-before" data-slot="otherBefore" aria-hidden="true">' + icon('up') + '</div><div class="row-cue editor-after" data-slot="otherAfter" aria-hidden="true">' + icon('down') + '</div>';
@@ -3651,6 +3661,7 @@
     apps: function (t, el) {
       var f = t.f, items = appsItems(), n = items.length, rows = Math.ceil(n / COLS), vis = 3, row = Math.floor(f.i / COLS);
       setHTML(el.title, T('All apps'));
+      el.title.className = 's-title apps-title';
       setHTML(el.sub, esc(catalog.loading ? T('Loading installed apps…') : catalog.error || (!n ? T('No installed apps found.') : '')));
       setHTML(el.head, headButtons(appsHead(), f.zone === 'head' ? 0 : -1, 'apps'));
       el.head.className = 's-head' + (f.zone === 'head' ? ' is-awake' : '');
@@ -3674,6 +3685,8 @@
       var entries = [], ys = [], y = 0, yf, minTop, maxTop = 0, rowEnd, before = false, afterRows = false;
       var hint = catalog.error ? catalog.error : catalog.loading ? T('Loading installed apps…') : f.zone === 'head' && f.h === 0 ? undoCaption() : f.zone === 'home' && f.part === 'remove' ? (H.length <= 1 ? LAST : T('{0} stays installed.', app(H[f.i]).name)) : '';
       setHTML(el.sub, editStatus(hint, t.lifted ? T('Moving {0}. OK places it, Back puts it back.', app(t.lifted.id).name) : ''));
+      setHTML(el.title, metroOn() ? '<span class="pivot">' + pivotOf('editor').map(function (id) { return '<span class="pivot-item' + (id === 'editor' ? ' is-current' : '') + '">' + esc(pivotName(id)) + '</span>'; }).join('') + '</span>' : esc(T('Apps on Home')));
+      sheetView.className = 'view' + (metroOn() ? ' is-metro' : '') + (metroOn() && Date.now() < pivotSlide.until ? ' slide-' + pivotSlide.dir + (pivotSlide.n % 2) : '');
       setHTML(el.head, headButtons([['undo', T('Undo'), S.undo.length ? '' : 'is-idle', 'undo'], ['done', T('Done'), '', 'check']], f.zone === 'head' ? f.h : -1, 'editor'));
       el.head.className = 's-head' + (f.zone === 'head' ? ' is-awake' : '');
       setHTML(el.lh, T('On Home') + ' <span class="s-count">' + T('{0} of {1}', S.c.home.length, CAP) + '</span>');
@@ -3746,7 +3759,7 @@
       }).join('');
       setHTML(el.list, html);
       el.list.className = 'settings-grid is-columns';
-      setHTML(el.hint, T(t.f.id === 'system' ? 'Open system settings' : t.f.id === 'lang' ? 'Switch the language' : 'Open selected group'));
+      setHTML(el.hint, T(t.f.id === 'lang' ? 'Switch the language' : 'Open selected group'));
     },
     message: function (t, el) {
       setHTML(el.acts, messageContent(t).actions.map(function (a, i) {
