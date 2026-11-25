@@ -370,3 +370,7 @@ Events are one grid, so names, times and titles line up in columns across both d
 - **Type focus in the Modern dock**: no frame; the focused app is full brightness at 108 %, the others dimmed to 55 %. Before, it differed from Glass only by a 6 % scale, so it looked as if the setting did nothing there. In the Dock and Tiles layouts, and in the All apps and Apps on Home lists, it already changed the focus look.
 - **One hint for the overview**: the System card says "Open selected group" like the others. Language still says "Switch the language", because OK switches it directly.
 
+## 0.44
+
+**Sheets open with a fade, like the Wi‑Fi QR card.** A sheet opened from Home (Settings, All apps, a message …) fades in over Home in 320 ms. Its content rises 24 px and grows from 98.5 % into place in 420 ms, starting 60 ms later. Home stays drawn underneath until then (`.sheet-opening` on the stage, about 560 ms), so the two cross-fade instead of cutting to black. Only opacity and transform are animated; nothing moves with reduced motion. Moving between sheets that are already open (Settings → Apps on Home) does not replay it.
+
