@@ -4,7 +4,7 @@
 
 A quieter home screen for Samsung TVs. Your apps, a photograph, the time and the weather, with an interface made for the TV remote.
 
-![Frame Home: the top Dock bar with the song on the left and five Alexa switches and icon-only controls on the right, a thin centred clock with seconds, the date, weather and indoor temperature, one glass panel with today's name days, then today's and tomorrow's events from two calendars, each on a name chip in its calendar's colour, and the Modern dock at the bottom with icons and names side by side](docs/images/frame-home-home.jpg)
+![Frame Home: the top Dock bar with the song on the left and five Alexa switches and icon-only controls on the right, a thin centred clock with seconds, the date, weather and indoor temperature, one glass panel with today's name days, then today's and tomorrow's events from two calendars, each on a name chip in its calendar's colour, and the Modern dock at the bottom with minimal white icons and names side by side](docs/images/frame-home-home.jpg)
 
 *Top Dock bar, thin 24-hour clock with seconds, one panel with name days and events from two calendars (each marked with its name and colour), and the Modern dock with icons and names. Rendered in the browser preview on the Desert stars wallpaper with sample Spotify, Alexa and calendar data. The screenshots below are from the browser preview too; the song, its lyrics and the cover (one of the bundled wallpapers) are samples.*
 
@@ -18,13 +18,13 @@ This repo uses [Nathan Clark's CleanFrame](https://github.com/nthnclrk/CleanFram
 
 | Settings — Original look | Settings — Metro look |
 | --- | --- |
-| ![Settings in the Original look: three framed columns, Personalization, Home and time, and System, each with three cards](docs/images/frame-home-settings.jpg) | ![Settings in the Metro look: lower-case group titles over live tiles of different sizes, a large Background tile with the wallpaper, Apps on Home with the app icons, the time, the language code and a Connections tile listing Alexa, Spotify and the calendars](docs/images/frame-home-settings-metro.jpg) |
+| ![Settings in the Original look: three framed columns, Personalization, Home and time, and System, each with three cards](docs/images/frame-home-settings.jpg) | ![Settings in the Metro look: lower-case group titles over live tiles of different sizes, a large Background tile with the wallpaper, Apps on Home with the minimal app icons, the time, the language code and a Connections tile listing Alexa, Spotify and the calendars](docs/images/frame-home-settings-metro.jpg) |
 
 | Metro pivot: Layout | Metro pivot: Apps on Home | Dock layout |
 | --- | --- | --- |
-| ![Metro pivot page: a steady ‹ Settings header over the pivot titles background, layout and style, the Bottom bar and Top bar dropdown rows on the left and a live preview of Home on the right](docs/images/frame-home-metro-layout.jpg) | ![Apps on Home in the Metro pivot: the apps on Home in a numbered row like the dock, a line where Home starts to scroll, and the installed apps that are not on Home listed below to add](docs/images/frame-home-apps-on-home.jpg) | ![Dock layout: one glass shelf with colour icons and names, the corner clock with weather and indoor temperature, the date, a glass panel with name days and today's calendar event, and the top-row cards](docs/images/frame-home-dock.jpg) |
+| ![Metro pivot page: a steady ‹ Settings header over the pivot titles background, layout and style, the Bottom bar and Top bar dropdown rows on the left and a live preview of Home on the right](docs/images/frame-home-metro-layout.jpg) | ![Apps on Home in the Metro pivot: the apps on Home in a numbered row like the dock, a line where Home starts to scroll, and the installed apps that are not on Home listed below to add](docs/images/frame-home-apps-on-home.jpg) | ![Dock layout: one glass shelf with minimal white icons and names, the corner clock with weather and indoor temperature, the date, a glass panel with name days and today's and tomorrow's events, the song card, and the top-row cards](docs/images/frame-home-dock.jpg) |
 
-Screenshots come from the browser preview with sample data (sample songs, apps, devices and calendar events). The fun fact is a sentence from the song's Wikipedia article (CC BY-SA); the cover is one of the bundled wallpapers.
+Screenshots come from the browser preview with sample data (sample songs, apps, devices and calendar events) and the minimal (white) icon style. The fun fact is a sentence from the song's Wikipedia article (CC BY-SA); the cover is one of the bundled wallpapers.
 
 ## What it does
 
