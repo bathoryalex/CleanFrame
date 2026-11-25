@@ -1384,3 +1384,57 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000}
 .sheet.is-opening{animation:sheet-in 300ms linear both;will-change:opacity}
 .sheet.is-opening .view{animation:sheet-rise 380ms cubic-bezier(.22,1,.28,1) 40ms both;will-change:transform,opacity}
 @media(prefers-reduced-motion:reduce){.pivot-strip .pivot-item,.pivot-bar{transition:none}}
+/* ---------- 0.46: Apps on Home, redesigned ----------
+   The Home apps in a row like the dock, a small menu under the chosen one, the apps to add in a grid,
+   one status line at the bottom. */
+.ed-label{position:absolute;left:140px;margin:0;font-size:20px;line-height:28px;font-weight:700;letter-spacing:1.6px;text-transform:uppercase;color:rgba(246,241,231,.55)}
+.ed-label .s-count{margin-left:10px;letter-spacing:.4px;text-transform:none;font-weight:600}
+.ed-label-home{top:240px}
+.ed-label-add{top:534px}
+.ed-row{position:absolute;left:112px;top:284px;width:1720px;height:176px}
+.ed-tile{position:absolute;left:0;top:0;width:176px;height:176px;border-radius:22px;background:rgba(255,255,255,.06);box-shadow:inset 0 0 0 1px rgba(255,255,255,.10);color:#f6f1e7;transition:transform 260ms cubic-bezier(.22,1,.28,1),background-color 140ms linear,color 140ms linear}
+.ed-tile.is-scrolled{opacity:.62}
+.ed-tile.is-focus,.ed-tile.is-lifted{background:#f6f1e7;color:#141618;opacity:1}
+.ed-tile.is-lifted{box-shadow:0 22px 50px rgba(4,8,10,.5)}
+.ed-num{position:absolute;left:14px;top:10px;font-size:18px;line-height:24px;font-weight:700;opacity:.55;font-variant-numeric:tabular-nums}
+.ed-mark{position:absolute;left:52px;top:28px;width:72px;height:72px;display:flex;align-items:center;justify-content:center}
+.ed-name{position:absolute;left:10px;right:10px;top:116px;text-align:center;font-size:22px;line-height:28px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ed-nudge{position:absolute;top:50px;width:28px;height:28px;opacity:0;color:#141618}
+.ed-nudge .ico{width:28px;height:28px;stroke-width:2}
+.ed-nudge-l{left:4px}.ed-nudge-r{right:4px}
+.ed-tile.is-lifted .ed-nudge{opacity:.75}
+.ed-cut{position:absolute;left:0;top:276px;width:2px;height:192px;display:none;pointer-events:none}
+.ed-cut.is-on{display:block}
+.ed-cut::before{content:"";position:absolute;left:0;top:8px;bottom:0;width:2px;border-radius:1px;background:rgba(246,241,231,.35)}
+.ed-cut span{position:absolute;left:-70px;top:-30px;width:142px;text-align:center;font-size:14px;line-height:20px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:rgba(246,241,231,.5)}
+.ed-menu{position:absolute;left:0;top:472px;width:340px;padding:8px;border-radius:20px;background:#1a1f23;box-shadow:inset 0 0 0 1px rgba(255,255,255,.14),0 24px 60px rgba(4,8,10,.6);display:none;z-index:5}
+.ed-menu.is-open{display:block}
+.ed-menu-item{display:flex;align-items:center;gap:14px;width:100%;min-height:60px;padding:0 16px;border:0;border-radius:14px;font:inherit;font-size:26px;font-weight:500;color:#f6f1e7;background:none;text-align:left}
+.ed-menu-item .ico{width:24px;height:24px;flex:none}
+.ed-menu-item.is-focus{background:#f6f1e7;color:#141618}
+.ed-menu-item.is-limit{color:var(--warn)}
+.ed-add-view{position:absolute;left:112px;top:578px;width:1720px;height:358px;overflow:hidden}
+.ed-add{position:absolute;left:0;top:0;transition:transform 220ms cubic-bezier(.22,1,.28,1)}
+.ed-add-tile{position:absolute;left:0;top:0;width:268px;height:104px;display:flex;align-items:center;gap:14px;padding:0 16px;border-radius:20px;background:rgba(255,255,255,.05);box-shadow:inset 0 0 0 1px rgba(255,255,255,.09);color:#f6f1e7}
+.ed-add-tile.is-focus{background:#f6f1e7;color:#141618}
+.ed-add-tile.is-full{opacity:.5}
+.ed-add-mark{flex:none;width:56px;height:56px;display:flex;align-items:center;justify-content:center}
+.ed-add-copy{flex:1;min-width:0;display:flex;flex-direction:column}
+.ed-add-name{font-size:24px;line-height:30px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ed-add-note{font-size:16px;line-height:20px;font-weight:600;opacity:.6}
+.ed-add-plus{flex:none;width:26px;height:26px;opacity:.5}
+.ed-add-plus .ico{width:26px;height:26px}
+.ed-view .editor-before,.ed-view .editor-after{left:940px;width:40px}
+.ed-view .editor-before{top:540px}
+.ed-view .editor-after{top:936px}
+.ed-status{position:absolute;left:140px;right:140px;top:976px;margin:0;display:flex;align-items:center;gap:28px;font-size:24px;line-height:34px;color:rgba(246,241,231,.78);white-space:nowrap}
+.ed-status .ed-keys{display:flex;align-items:center;gap:12px}
+.ed-status .ed-keys .remote-key+span{margin-right:14px}
+.ed-status .ed-note{min-width:0;overflow:hidden;text-overflow:ellipsis}
+.ed-status .ed-note:empty{display:none}
+/* Sheet fade, cheaper (0.46): only the sheet's own opacity animates, on a layer kept ready; the content
+   does not move. While it is built it sits at 0.001 rather than 0, so the TV paints it before the fade. */
+.sheet{will-change:opacity}
+.sheet.is-pre{opacity:.001}
+.sheet.is-opening{animation:sheet-in 260ms linear both}
+.sheet.is-opening .view{animation:none;will-change:auto}

@@ -307,8 +307,8 @@ const wallpaperListGeometry = () => current.evaluate(() => {
   });
   return { fullyVisible, partlyVisible, clippedParts, focus: ShoreQA.state().focusAction, bounds: { x: bounds.x, y: bounds.y, width: bounds.width, height: bounds.height }, top: ShoreQA.state().wallpaperPicker.top };
 });
-async function editor() { await scene('settings'); await act('settings.editor'); await current.waitForFunction(() => document.querySelector('[data-action^="editor.move."]')); await current.waitForFunction(() => !ShoreQA.state().catalog.loading); }
-async function remove(id) { await act('editor.move.' + id); await nav('back', 'right', 'ok'); }
+async function editor() { await scene('settings'); await act('settings.editor'); await current.waitForFunction(() => document.querySelector('[data-action^="editor.tile."]')); await current.waitForFunction(() => !ShoreQA.state().catalog.loading); }
+async function remove(id) { await act('editor.tile.' + id); await act('editor.remove.' + id); }
 async function library() { await scene('home'); await act('util.apps'); await current.waitForFunction(() => !ShoreQA.state().catalog.loading); }
 async function noLiveFilters() {
   return current.evaluate(() => [...document.querySelectorAll('#stage, #stage *')].filter(e => e.getClientRects().length).map(e => {
@@ -415,14 +415,18 @@ try {
     check('Focus follows removal into addable apps', (await state()).focusAction === 'editor.add.youtube', (await state()).focusAction);
     await nav('ok'); check('Second OK restores same position', same((await stored()).dock, start));
     await remove('youtube'); await act('editor.undo'); check('Undo persists previous membership', same((await stored()).dock, start));
-    await act('editor.move.youtube'); await nav('down'); check('Unfinished move does not write', same((await stored()).dock, start));
+    await act('editor.tile.youtube'); await act('editor.move.youtube'); await nav('right'); check('Unfinished move does not write', same((await stored()).dock, start));
     await nav('back'); check('Back cancels unfinished move', same((await state()).dock, start));
-    await act('editor.move.youtube'); await nav('down', 'ok');
-    const moved = start.slice(); [moved[1], moved[2]] = [moved[2], moved[1]];
+    await act('editor.tile.youtube'); await act('editor.move.youtube'); await nav('right', 'ok');
+    const moved = start.slice(), yi = start.indexOf('youtube'); [moved[yi], moved[yi + 1]] = [moved[yi + 1], moved[yi]];
     check('Placed move persists immediately', same((await stored()).dock, moved));
-    await act('editor.add.' + EXTRA); check('Nine-app cap prevents addition', (await state()).dock.length === 9 && !(await state()).dock.includes(EXTRA));
-    await remove('nuvio'); await act('editor.add.' + EXTRA);
+    // The fixture has nine installed apps, eight of them on Home: adding the ninth fills Home.
+    await act('editor.add.' + EXTRA);
     check('Native app can be pinned with stable ID', (await stored()).dock.includes(EXTRA) && (await state()).dock.length === 9);
+    check('With nine apps Home is full and nothing is left to add', await current.evaluate(() => !document.querySelector('.ed-add-tile')));
+    await remove('nuvio');
+    check('Removing one makes room: it is offered again to add', await current.evaluate(() => !!document.querySelector('[data-action="editor.add.nuvio"]')) && (await state()).dock.length === 8);
+    await act('editor.add.nuvio');
     check('Native pin retains readable metadata for failed discovery', (await stored()).appRecords.some(a => a.id === EXTRA && a.name === UNSAFE_NAME));
     await current.reload(); await ready(); check('Native pin survives reload', (await state()).dock.includes(EXTRA));
     await editor(); const ids = (await state()).dock;
@@ -1043,10 +1047,13 @@ try {
     check('The pivot header stays the same element and only its highlight moves; Apps on Home shows the SETTINGS label', await current.evaluate(() => document.querySelector('.pivot-head .pivot-item').__same === true && document.querySelector('.pivot-head').classList.contains('has-label') && /Settings/i.test(document.querySelector('.pivot-label').textContent)));
     const ed = await current.evaluate(() => ({ view: ShoreQA.where().view, items: [...document.querySelectorAll('.pivot-head .pivot-item')].map(e => e.textContent + (e.classList.contains('is-current') ? '*' : '')) }));
     check('Left from Wi‑Fi QR opens Apps on Home with the same pivot', ed.view === 'editor' && same(ed.items, ['Apps on Home*', 'Wi‑Fi QR', 'Date and time']), ed);
-    const cut = await current.evaluate(() => { const b = document.querySelector('.ed-order-break'); return { on: b.classList.contains('is-on'), top: parseInt(b.style.top, 10) }; });
-    check('In the Modern dock seven apps fit, so the scroll line sits after the seventh of eight', cut.on && cut.top === 264 + 7 * 80, cut);
-    await nav('right', 'right', 'right'); await current.waitForTimeout(300);
-    check('Right past Not on Home goes on to Wi‑Fi QR', (await state()).settingsGroup === 'wifiqr');
+    const cut = await current.evaluate(() => { const b = document.querySelector('.ed-cut'), tiles = [...document.querySelectorAll('.ed-tile')], r = e => e.getBoundingClientRect();
+      return { on: b.classList.contains('is-on'), between: r(b).left > r(tiles[6]).right && r(b).right < r(tiles[7]).left, scrolled: tiles.map(t => t.classList.contains('is-scrolled')).join() }; });
+    check('In the Modern dock seven apps fit, so the scroll line sits after the seventh of eight', cut.on && cut.between && cut.scrolled === 'false,false,false,false,false,false,false,true', cut);
+    await nav('up');
+    check('Up from the Home row reaches Done', (await call('where')).focusAction === 'editor.done');
+    await nav('right'); await current.waitForTimeout(300);
+    check('Right past Done goes on to Wi‑Fi QR', (await state()).settingsGroup === 'wifiqr');
     await nav('back'); await current.waitForTimeout(200);
     check('Back from there returns to the overview on the Wi‑Fi QR tile', await current.evaluate(() => document.querySelector('.metro-tile.is-focus').getAttribute('data-id')) === 'wifiqr');
     await current.evaluate(() => ShoreQA.activate('settings.group.connections')); await current.waitForTimeout(200); await act('conn.alexa'); await current.waitForTimeout(200);
@@ -1061,7 +1068,7 @@ try {
     check('The System tile shows the same hint as the other groups', /Open selected group/.test(hints), hints);
     await page({ seed: baseline({ dockStyle: 'modern', home: ['hdmi-1', 'hdmi-2', 'nuvio', 'youtube', 'spotify', 'hbomax', 'smartthings'] }) });
     await scene('settings'); await current.evaluate(() => ShoreQA.activate('settings.editor')); await current.waitForTimeout(300);
-    check('With seven apps, all of them fit the Modern dock and no scroll line shows', await current.evaluate(() => ShoreQA.state().home.length === 7 && !document.querySelector('.ed-order-break').classList.contains('is-on')));
+    check('With seven apps, all of them fit the Modern dock and no scroll line shows', await current.evaluate(() => ShoreQA.state().home.length === 7 && !document.querySelector('.ed-cut').classList.contains('is-on')));
     await page({ seed: baseline({ dockStyle: 'modern', focus: 'type' }) }); await scene('home'); await current.waitForTimeout(300);
     check('Type focus in the Modern dock dims the other apps', await current.evaluate(() => getComputedStyle(document.querySelector('.dock .tile:not(.is-focus) .tile-content')).opacity === '0.55'));
   });
@@ -2058,9 +2065,9 @@ try {
     check('A missing thumbnail does not prevent applying its full photo', (await state()).committed.wall === target.id && Object.values(await wallpaperBundle()).every(src => src.includes('/' + target.id)));
   });
   await run('Physical-key repeats and Back hierarchy', async () => {
-    await page(); await editor(); await remove('youtube');
+    await page(); await editor(); const before = (await state()).dock.length; await remove('youtube');
     await current.keyboard.down('Enter'); await current.keyboard.down('Enter');
-    check('Held OK restores once without removing again', (await state()).dock.includes('youtube') && (await state()).dock.length === 9);
+    check('Held OK restores once without removing again', (await state()).dock.includes('youtube') && (await state()).dock.length === before);
     await current.keyboard.up('Enter');
     await current.keyboard.down('Escape'); await current.keyboard.down('Escape');
     check('Held Back closes one layer only', (await call('where')).view === 'settings' && (await state()).focusAction === 'settings.editor');

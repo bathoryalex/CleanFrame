@@ -381,3 +381,14 @@ Events are one grid, so names, times and titles line up in columns across both d
 - **Pivots one level down**: Alexa · Spotify · Calendar under Connections (only those available). Back returns to Connections on the row of the page you ended on. Rotation and Date details stay single pages.
 - **Lighter sheet fade**: the sheet waits invisible for two frames while its content is laid out and painted, then fades (300 ms) while its content rises 20 px (380 ms). There is no scale any more: scaling made the TV re-draw the text on every frame. Both animated layers get `will-change`.
 
+## 0.46
+
+- **Apps on Home, redesigned.** The Home apps are one row of numbered tiles, in the order the dock shows them (short names, like the Modern dock). A thin line labelled THEN SCROLL marks where Home starts to scroll, and the tiles after it are dimmed.
+  - Left and Right move along the row. OK on an app opens a small menu under it: **Move** or **Remove from Home** ("Home needs one app" on the last one).
+  - Move: the tile lifts with arrows on its sides. Left and Right carry it, OK places it, Back puts it back.
+  - Below, **Add to Home** lists the installed apps that are not on Home, six to a row and three rows at a time, recently removed first (marked). OK adds one and focuses it on Home; a removed app goes back to its old place.
+  - Up from the row reaches Undo and Done. In the Metro look, Right past the last tile or past Done goes on along the pivot.
+  - What happened ("YouTube is in Recently removed. OK puts it back.") and what the keys do now sit on one line at the bottom. Before, the "… stays installed" text sat under the title and ran into the Metro pivot.
+  - The checks for moving and for held keys now pass. They had failed since the editor became a vertical list; two of them assumed nine apps on Home, while the fixture has eight.
+- **Cheaper sheet fade**: only the sheet's own opacity animates (260 ms) on a layer kept ready (`will-change: opacity` all the time). Its content no longer moves. While it is built it sits at opacity 0.001, so the TV paints it before the fade. Two frames pass before the fade starts.
+

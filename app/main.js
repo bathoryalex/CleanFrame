@@ -4,7 +4,7 @@
 
   /* ---------- Bundled data ---------- */
   var ASSETS = 'assets/', ICONS = ASSETS + 'icons/', WP = ASSETS + 'wallpapers/';
-  var APP_VERSION = '0.45.0';
+  var APP_VERSION = '0.46.0';
   var CAP = 9, SCRIM_Y = 560, DOCK_BOTTOM = 1032; // the Dock sits 48 px above the bottom edge; names and actions go above it
   var DOCK_MODES = { both: { tw: 288, th: 200, pitch: 296 }, text: { tw: 288, th: 104, pitch: 296 }, icons: { tw: 200, th: 156, pitch: 206 } }; // icons-only tiles leave room under the icon for the focused app's name
   var GRID_ROW = 240, GRID_COL = 344, COLS = 5;
@@ -112,6 +112,7 @@
     up: '<path d="m5 15.5 7-7 7 7"/>',
     down: '<path d="m5 8.5 7 7 7-7"/>',
     updown: '<path d="m7.5 9.5 4.5-4.5 4.5 4.5M7.5 14.5l4.5 4.5 4.5-4.5"/>',
+    minus2: '<path d="M6 12h12"/>',
     tv: '<rect x="3" y="4.5" width="18" height="12" rx="2"/><path d="M8.5 20h7"/>',
     speaker: '<rect x="6" y="2.8" width="12" height="18.4" rx="2.4"/><circle cx="12" cy="14.5" r="3.2"/><circle cx="12" cy="7.2" r="1"/>',
     volume: '<path d="M3.5 9.6h3.6L12 5.4v13.2l-4.9-4.2H3.5z"/><path d="M15.6 9.2a4 4 0 0 1 0 5.6"/><path d="M18.2 6.6a7.6 7.6 0 0 1 0 10.8"/>',
@@ -761,7 +762,7 @@
     var i = ensureSel();
     clearSession();
     refreshCatalog();
-    push({ id: 'editor', origin: origin, lifted: null, top: 0, otherReturn: { id: otherList()[0] || null, index: 0, top: 0 }, f: { zone: S.c.home.length ? 'home' : 'other', i: Math.max(0, i), part: 'name', h: 1, j: 0 } });
+    push({ id: 'editor', origin: origin, lifted: null, top: 0, otherReturn: { id: otherList()[0] || null, index: 0, top: 0 }, menu: false, f: { zone: S.c.home.length ? 'home' : 'add', i: Math.max(0, i), h: 1, j: 0, m: 0 } });
   }
   function openWallpaper() {
     var i = wallIndex(S.c.wall);
@@ -975,71 +976,89 @@
     }
     return best;
   }
+  /* Apps on Home (0.46). The Home apps in a row, in the order the dock shows them; OK on one opens a small
+     menu (Move, Remove from Home). Move: Left and Right carry it, OK places it, Back puts it back. Below,
+     the installed apps that are not on Home (recently removed first); OK adds one. Undo and Done above;
+     what happened, or what the keys do, on the line at the bottom. */
+  var ED = { tw: 176, th: 176, gap: 14, x: 112, y: 284, cols: 6, aw: 268, ah: 104, agap: 18, ay: 578, arow: 122, avis: 3 };
+  function edHomeX(i, n) { return ED.x + i * (ED.tw + ED.gap) + (n > editorCut() && i >= editorCut() ? 24 : 0); }
+  function edMenuItems(t) { var H = S.c.home; return [{ id: 'move', label: T('Move') }, { id: 'remove', label: T(H.length <= 1 ? LAST : 'Remove from Home') }]; }
   V.editor = {
     sheet: true,
     norm: function (t) {
       var f = t.f, nh = (t.lifted ? t.lifted.order : S.c.home).length, no = otherList().length;
-      f.i = clamp(f.i, 0, Math.max(0, nh - 1));
-      f.j = clamp(f.j, 0, Math.max(0, no - 1));
-      if (f.zone === 'home' && !nh) f.zone = no ? 'other' : 'head';
-      if (f.zone === 'other' && !no) f.zone = nh ? 'home' : 'head';
+      f.i = clamp(f.i || 0, 0, Math.max(0, nh - 1));
+      f.j = clamp(f.j || 0, 0, Math.max(0, no - 1));
+      if (f.zone === 'home' && !nh) f.zone = no ? 'add' : 'head';
+      if (f.zone === 'add' && !no) { f.zone = nh ? 'home' : 'head'; t.menu = false; }
+      if (f.zone !== 'home') t.menu = false;
     },
     key: function (t, k) {
-      var f = t.f, H = t.lifted ? t.lifted.order : S.c.home, O = otherList(), nh = H.length, no = O.length, d, tmp;
+      var f = t.f, H = t.lifted ? t.lifted.order : S.c.home, O = otherList(), nh = H.length, no = O.length, d, tmp, items;
       if (t.lifted) {
-        d = k === 'up' ? -1 : k === 'down' ? 1 : 0;
+        d = k === 'left' ? -1 : k === 'right' ? 1 : 0;
         if (d && f.i + d >= 0 && f.i + d < nh) { tmp = H[f.i + d]; H[f.i + d] = H[f.i]; H[f.i] = tmp; f.i += d; S.err = null; }
         else if (k === 'ok') editorPlace(t);
         else if (k === 'back') { f.i = t.lifted.from; t.lifted = null; S.err = null; }
         return;
       }
+      if (t.menu) {
+        items = edMenuItems(t);
+        if (k === 'up' && f.m > 0) f.m--;
+        else if (k === 'down' && f.m < items.length - 1) f.m++;
+        else if (k === 'back' || k === 'left') t.menu = false;
+        else if (k === 'ok') {
+          begin();
+          if (items[f.m].id === 'move') { t.menu = false; t.lifted = { id: H[f.i], from: f.i, order: H.slice(), snap: snap() }; }
+          else editorRemove(t, H[f.i]);
+        }
+        return;
+      }
       if (k === 'back') { closeEditor(t); return; }
-      /* Metro look: Right past the right edge (Done, Not on Home, or Remove with nothing to add) goes on
-         along the pivot to Wi‑Fi QR. */
-      if (metroOn() && k === 'right' && (f.zone === 'other' || (f.zone === 'head' && f.h === 1) || (f.zone === 'home' && f.part === 'remove' && !no)) && pivotTo(t, 1)) return;
       if (f.zone === 'head') {
         if (k === 'left' && f.h > 0) f.h--;
         else if (k === 'right' && f.h < 1) f.h++;
-        else if (k === 'down') { if (no) returnOther(t); else if (nh) f.zone = 'home'; }
+        else if (k === 'right' && metroOn()) pivotTo(t, 1);
+        else if (k === 'down') f.zone = nh ? 'home' : no ? 'add' : 'head';
         else if (k === 'ok') { begin(); if (f.h === 0) undoLast(null); else closeEditor(t); }
       } else if (f.zone === 'home') {
-        if (k === 'up') { if (f.i > 0) f.i--; else f.zone = 'head'; }
-        else if (k === 'down') { if (f.i < nh - 1) f.i++; }
-        else if (k === 'right') { if (f.part === 'name') f.part = 'remove'; else if (no) returnOther(t); }
-        else if (k === 'left') { if (f.part === 'remove') f.part = 'name'; }
-        else if (k === 'ok') {
-          begin();
-          if (f.part === 'name') t.lifted = { id: H[f.i], from: f.i, order: H.slice(), snap: snap() };
-          else editorRemove(t, H[f.i]);
-        }
+        if (k === 'left' && f.i > 0) f.i--;
+        else if (k === 'right' && f.i < nh - 1) f.i++;
+        else if (k === 'right' && metroOn()) pivotTo(t, 1);
+        else if (k === 'up') f.zone = 'head';
+        else if (k === 'down' && no) { f.zone = 'add'; f.j = clamp(Math.round((edHomeX(f.i, nh) - ED.x) / (ED.aw + ED.agap)) + (t.top || 0) * ED.cols, 0, no - 1); }
+        else if (k === 'ok' && nh) { t.menu = true; f.m = 0; }
       } else {
-        if (k === 'up') { if (f.j > 0) { f.j--; rememberOther(t); } else f.zone = 'head'; }
-        else if (k === 'down') { if (f.j < no - 1) { f.j++; rememberOther(t); } }
-        else if (k === 'left') { if (nh) { rememberOther(t); f.i = nearestHome(t, nh); f.zone = 'home'; f.part = 'name'; } }
+        if (k === 'left' && f.j % ED.cols > 0) f.j--;
+        else if (k === 'right' && f.j % ED.cols < ED.cols - 1 && f.j < no - 1) f.j++;
+        else if (k === 'down' && f.j + ED.cols < no) f.j += ED.cols;
+        else if (k === 'down' && Math.floor(f.j / ED.cols) < Math.floor((no - 1) / ED.cols)) f.j = no - 1;
+        else if (k === 'up' && f.j >= ED.cols) f.j -= ED.cols;
+        else if (k === 'up') { f.zone = nh ? 'home' : 'head'; f.i = clamp(Math.round((f.j % ED.cols) * (ED.aw + ED.agap) / (ED.tw + ED.gap)), 0, Math.max(0, nh - 1)); }
         else if (k === 'ok') { begin(); editorAdd(t, O[f.j]); }
       }
     },
     point: function (t, z, i) {
-      if (t.lifted) { if (z === 'name' && i === t.f.i) this.key(t, 'ok'); return; }
-      if (z === 'name' || z === 'remove') { t.f.zone = 'home'; t.f.i = i; t.f.part = z; }
-      else if (z === 'other') { t.f.zone = 'other'; t.f.j = i; rememberOther(t); }
+      if (t.lifted) { if (z === 'tile' && i === t.f.i) this.key(t, 'ok'); return; }
+      if (z === 'tile') { t.menu = false; t.f.zone = 'home'; t.f.i = i; this.key(t, 'ok'); return; }
+      if (z === 'menu' && t.menu) { t.f.m = i; this.key(t, 'ok'); return; }
+      t.menu = false;
+      if (z === 'add') { t.f.zone = 'add'; t.f.j = i; }
       else if (z === 'head') { t.f.zone = 'head'; t.f.h = i; }
       else return;
       this.key(t, 'ok');
     }
   };
-  /* Focus follows the app between zones, so a repeated OK toggles the same app. */
+  /* Focus follows the app: removed, it is focused among the apps to add (OK puts it back where it was);
+     added, it is focused on Home. A refused or failed removal keeps the menu open on Remove, so OK tries again. */
   function editorRemove(t, id) {
     if (!homeRemove(id)) return;
-    t.f.zone = 'other'; t.f.j = otherList().indexOf(id);
+    t.menu = false; t.f.zone = 'add'; t.f.j = Math.max(0, otherList().indexOf(id));
     S.note = T('{0} is in Recently removed. OK puts it back.', app(id).name);
   }
   function editorAdd(t, id) {
-    rememberOther(t);
     if (!homeAdd(id)) return;
-    var remaining = otherList(), at = clamp(t.otherReturn.index, 0, Math.max(0, remaining.length - 1));
-    t.otherReturn.id = remaining[at] || null; t.otherReturn.index = at;
-    t.f.zone = 'home'; t.f.i = S.c.home.indexOf(id); t.f.part = 'remove';
+    t.f.zone = 'home'; t.f.i = S.c.home.indexOf(id); t.menu = false;
     S.note = T('{0} is on Home, position {1}.', app(id).name, t.f.i + 1);
   }
   function editorPlace(t) {
@@ -3642,10 +3661,11 @@
         + '<div class="row-cue grid-before" data-slot="before" aria-hidden="true">' + icon('up') + '</div><div class="row-cue grid-after" data-slot="after" aria-hidden="true">' + icon('down') + '</div>';
     },
     editor: function () {
-      return '<h2 class="s-title editor-title" data-slot="title">' + T('Apps on Home') + '</h2><p class="s-sub" data-slot="sub"></p><div class="s-head" data-slot="head"></div>'
-        + '<p class="s-label z-home" data-slot="lh"></p><p class="s-label z-other">' + T('Not on Home') + '</p>'
-        + '<div class="ed-home" data-slot="home"></div><div class="ed-order-break" data-slot="break">' + T('Then scroll') + '</div><div class="ed-other-view" data-slot="ov"><div class="ed-other" data-slot="other"></div></div><div class="ed-origin" data-slot="origin"></div>'
-        + '<div class="row-cue editor-before" data-slot="otherBefore" aria-hidden="true">' + icon('up') + '</div><div class="row-cue editor-after" data-slot="otherAfter" aria-hidden="true">' + icon('down') + '</div>';
+      return '<h2 class="s-title editor-title" data-slot="title">' + T('Apps on Home') + '</h2><div class="s-head" data-slot="head"></div>'
+        + '<p class="ed-label ed-label-home" data-slot="lh"></p><div class="ed-row" data-slot="home"></div><div class="ed-cut" data-slot="cut"><span>' + T('Then scroll') + '</span></div><div class="ed-menu" data-slot="menu" role="menu"></div>'
+        + '<p class="ed-label ed-label-add">' + T('Add to Home') + '</p><div class="ed-add-view" data-slot="ov"><div class="ed-add" data-slot="other"></div></div>'
+        + '<div class="row-cue editor-before" data-slot="otherBefore" aria-hidden="true">' + icon('up') + '</div><div class="row-cue editor-after" data-slot="otherAfter" aria-hidden="true">' + icon('down') + '</div>'
+        + '<p class="ed-status" data-slot="sub" aria-live="polite"></p>';
     },
     settings: function () { return '<h2 class="s-title settings-page-title">' + T('Settings') + '</h2><div class="settings-grid" data-slot="list"></div><p class="settings-overview-hint"><span class="remote-key">OK</span><span data-slot="hint"></span></p>'; },
     message: function (t) {
@@ -3727,65 +3747,57 @@
       el.after.className = 'row-cue grid-after' + (rows - t.top > vis ? ' is-on' : '');
     },
     editor: function (t, el) {
-      var f = t.f, H = t.lifted ? t.lifted.order : S.c.home, O = otherGroups(), list = O.recent.concat(O.rest), full = S.c.home.length >= CAP;
-      var entries = [], ys = [], y = 0, yf, minTop, maxTop = 0, rowEnd, before = false, afterRows = false;
-      var hint = catalog.error ? catalog.error : catalog.loading ? T('Loading installed apps…') : f.zone === 'head' && f.h === 0 ? undoCaption() : f.zone === 'home' && f.part === 'remove' ? (H.length <= 1 ? LAST : T('{0} stays installed.', app(H[f.i]).name)) : '';
-      setHTML(el.sub, editStatus(hint, t.lifted ? T('Moving {0}. OK places it, Back puts it back.', app(t.lifted.id).name) : ''));
+      var f = t.f, H = t.lifted ? t.lifted.order : S.c.home, O = otherGroups(), list = O.recent.concat(O.rest), n = H.length, cut = editorCut(), rows, keys = '', status, mi, mx;
       setHTML(el.title, esc(T('Apps on Home')));
-      sheetView.className = 'view' + (metroOn() ? ' is-metro' : '') + (metroOn() && Date.now() < pivotSlide.until ? ' slide-' + pivotSlide.dir + (pivotSlide.n % 2) : '');
-      setHTML(el.head, headButtons([['undo', T('Undo'), S.undo.length ? '' : 'is-idle', 'undo'], ['done', T('Done'), '', 'check']], f.zone === 'head' ? f.h : -1, 'editor'));
+      sheetView.className = 'view ed-view' + (metroOn() ? ' is-metro' : '') + (metroOn() && Date.now() < pivotSlide.until ? ' slide-' + pivotSlide.dir + (pivotSlide.n % 2) : '');
+      setHTML(el.head, headButtons([['undo', T('Undo'), S.undo.length ? '' : 'is-idle', 'undo'], ['done', T('Done'), '', 'check']], f.zone === 'head' && !t.menu ? f.h : -1, 'editor'));
       el.head.className = 's-head' + (f.zone === 'head' ? ' is-awake' : '');
-      setHTML(el.lh, T('On Home') + ' <span class="s-count">' + T('{0} of {1}', S.c.home.length, CAP) + '</span>');
-      el['break'].className = 'ed-order-break' + (H.length > editorCut() ? ' is-on' : '');
-      el['break'].style.top = (264 + editorCut() * ED_ROW) + 'px';
-
-      keyed(el.home, H.map(function (id) { return { key: id, id: id }; }), function (row, it, i) {
-        var a = app(it.id), here = f.zone === 'home' && i === f.i, lifted = !!t.lifted && i === f.i;
-        setContent(row, it.id, '<div class="er-name" role="button"><span class="panel-content"><span class="er-num"></span>' + smallMark(a) + '<span class="er-text">' + esc(a.name) + '</span><span class="er-move">' + icon('updown') + '</span></span></div><div class="er-rm" role="button"><span></span></div>');
-        row.className = 'er' + (here ? ' is-active' : '') + (lifted ? ' is-lifted' : '');
-        row.style.transform = 'translate3d(' + (lifted ? 16 : 0) + 'px,' + editorHomeY(i) + 'px,0)';
-        row.querySelector('.er-num').textContent = String(i + 1);
-        row.firstChild.className = 'er-name' + (here && (f.part === 'name' || lifted) ? ' is-focus' : '');
-        row.lastChild.className = 'er-rm' + (here && f.part === 'remove' && !lifted ? ' is-focus' : '') + (H.length <= 1 ? ' is-limit' : '');
-        row.lastChild.firstChild.textContent = T(H.length <= 1 ? LAST : 'Remove from Home');
-        attrs(row.firstChild, 'name', i, 'editor.move.' + it.id);
-        attrs(row.lastChild, 'remove', i, 'editor.remove.' + it.id);
+      setHTML(el.lh, esc(T('On Home')) + ' <span class="s-count">' + esc(T('{0} of {1}', S.c.home.length, CAP)) + '</span>');
+      /* The Home row: tiles slide when one is moved or removed. */
+      keyed(el.home, H.map(function (id) { return { key: id, id: id }; }), function (tile, it, i) {
+        var a = app(it.id), focus = f.zone === 'home' && i === f.i, lifted = !!t.lifted && i === f.i;
+        setContent(tile, it.id + '|' + S.c.iconStyle, '<span class="ed-num"></span><span class="ed-mark">' + appMark(a, 72, 72, 60) + '</span><span class="ed-name">' + esc(shortName(a.name)) + '</span><span class="ed-nudge ed-nudge-l">' + icon('left') + '</span><span class="ed-nudge ed-nudge-r">' + icon('right') + '</span>');
+        tile.className = 'ed-tile' + (focus ? ' is-focus' : '') + (lifted ? ' is-lifted' : '') + (i >= cut && n > cut ? ' is-scrolled' : '');
+        tile.style.transform = 'translate3d(' + (edHomeX(i, n) - ED.x) + 'px,' + (lifted ? -14 : 0) + 'px,0)';
+        tile.firstChild.textContent = String(i + 1);
+        tile.setAttribute('role', 'button'); tile.setAttribute('aria-label', a.name);
+        attrs(tile, 'tile', i, 'editor.tile.' + it.id);
       });
-      el.origin.className = 'ed-origin' + (t.lifted && t.lifted.from !== f.i ? ' is-on' : '');
-      if (t.lifted) el.origin.style.transform = 'translate3d(0,' + (264 + editorHomeY(t.lifted.from) + 16) + 'px,0)';
-
-      if (O.recent.length) { entries.push({ key: 'sep-recent', sep: T('Recently removed'), y: y }); y += ED_SEP; }
-      O.recent.forEach(function (id) { entries.push({ key: id, id: id, y: y }); ys.push(y); y += ED_ROW; });
-      if (O.recent.length && O.rest.length) { entries.push({ key: 'sep-rest', sep: T('Other installed apps'), y: y }); y += ED_SEP; }
-      O.rest.forEach(function (id) { entries.push({ key: id, id: id, y: y }); ys.push(y); y += ED_ROW; });
-      if (f.zone === 'other' && ys.length) {
-        yf = ys[f.j] - (O.recent.length && (f.j === 0 || f.j === O.recent.length) ? ED_SEP : 0);
-        if (yf < t.top) t.top = yf;
-        if (ys[f.j] + 72 > t.top + ED_VIEW) {
-          minTop = ys[f.j] + 72 - ED_VIEW;
-          entries.some(function (it) { if (it.y < minTop) return false; t.top = it.y; return true; });
-        }
-      }
-      entries.some(function (it) { if (it.y < Math.max(0, y - ED_VIEW)) return false; maxTop = it.y; return true; });
-      t.top = clamp(t.top, 0, maxTop);
-      keyed(el.other, entries, function (row, it) {
-        var j, focus, a;
-        row.style.transform = 'translate3d(0,' + it.y + 'px,0)';
-        rowEnd = it.y + (it.sep ? ED_SEP : 72);
-        row.style.visibility = it.y >= t.top && rowEnd <= t.top + ED_VIEW ? 'visible' : 'hidden';
-        before = before || it.y < t.top; afterRows = afterRows || rowEnd > t.top + ED_VIEW;
-        if (it.sep) { setContent(row, 'sep|' + it.sep, esc(it.sep)); row.className = 'eo-sep'; return; }
-        j = list.indexOf(it.id); focus = f.zone === 'other' && j === f.j; a = app(it.id);
-        setContent(row, it.id, '<span class="panel-content">' + smallMark(a) + '<span class="eo-text">' + esc(a.name) + '</span><span class="eo-verb"></span></span>');
-        row.querySelector('.eo-verb').innerHTML = focus ? '<span class="verb' + (full ? ' is-off' : '') + '">' + T(full ? 'Home is full' : 'Add to Home') + '</span>' : '';
-        row.className = 'eo' + (focus ? ' is-focus' : '');
-        row.setAttribute('role', 'button');
-        attrs(row, 'other', j, 'editor.add.' + it.id);
+      el.cut.className = 'ed-cut' + (n > cut ? ' is-on' : '');
+      el.cut.style.transform = 'translate3d(' + (edHomeX(cut, n) - 19) + 'px,0,0)';
+      /* The menu of the focused Home app, under it. */
+      if (t.menu && f.zone === 'home' && H[f.i]) {
+        mx = Math.min(edHomeX(f.i, n), 1832 - 340);
+        setHTML(el.menu, edMenuItems(t).map(function (m, i) {
+          return '<button type="button" tabindex="-1" class="ed-menu-item' + (i === f.m ? ' is-focus' : '') + (m.id === 'remove' && n <= 1 ? ' is-limit' : '') + '" data-z="menu" data-i="' + i + '" data-action="editor.' + m.id + '.' + H[f.i] + '">' + icon(m.id === 'move' ? 'updown' : 'minus2') + '<span>' + esc(m.label) + '</span></button>';
+        }).join(''));
+        el.menu.className = 'ed-menu is-open'; el.menu.style.transform = 'translate3d(' + mx + 'px,0,0)';
+      } else { setHTML(el.menu, ''); el.menu.className = 'ed-menu'; }
+      /* Apps to add, six to a row, three rows at a time. */
+      rows = Math.ceil(list.length / ED.cols);
+      if (f.zone === 'add') { mi = Math.floor(f.j / ED.cols); if (mi < (t.top || 0)) t.top = mi; if (mi > (t.top || 0) + ED.avis - 1) t.top = mi - ED.avis + 1; }
+      t.top = clamp(t.top || 0, 0, Math.max(0, rows - ED.avis));
+      keyed(el.other, list.map(function (id) { return { key: id, id: id }; }), function (tile, it, j) {
+        var a = app(it.id), r = Math.floor(j / ED.cols), recent = O.recent.indexOf(it.id) >= 0;
+        setContent(tile, it.id + '|' + recent + '|' + S.c.iconStyle, '<span class="ed-add-mark">' + smallMark(a) + '</span><span class="ed-add-copy"><span class="ed-add-name">' + esc(a.name) + '</span>' + (recent ? '<span class="ed-add-note">' + esc(T('Recently removed')) + '</span>' : '') + '</span><span class="ed-add-plus">' + icon('plus') + '</span>');
+        tile.className = 'ed-add-tile' + (f.zone === 'add' && j === f.j ? ' is-focus' : '') + (S.c.home.length >= CAP ? ' is-full' : '');
+        tile.style.transform = 'translate3d(' + ((j % ED.cols) * (ED.aw + ED.agap)) + 'px,' + (r * ED.arow) + 'px,0)';
+        tile.style.visibility = r >= t.top && r < t.top + ED.avis ? 'visible' : 'hidden';
+        tile.setAttribute('role', 'button'); tile.setAttribute('aria-label', T('Add {0}', a.name));
+        attrs(tile, 'add', j, 'editor.add.' + it.id);
       });
-      el.other.style.transform = 'translate3d(0,' + (-t.top) + 'px,0)';
-      el.ov.className = 'ed-other-view';
-      el.otherBefore.className = 'row-cue editor-before' + (before ? ' is-on' : '');
-      el.otherAfter.className = 'row-cue editor-after' + (afterRows ? ' is-on' : '');
+      el.other.style.transform = 'translate3d(0,' + (-t.top * ED.arow) + 'px,0)';
+      el.ov.className = 'ed-add-view' + (list.length ? '' : ' is-empty');
+      el.otherBefore.className = 'row-cue editor-before' + (t.top > 0 ? ' is-on' : '');
+      el.otherAfter.className = 'row-cue editor-after' + (t.top + ED.avis < rows ? ' is-on' : '');
+      /* The bottom line: what just happened, or what the keys do here. */
+      status = catalog.error ? esc(catalog.error) : catalog.loading ? esc(T('Loading installed apps…')) : editStatus('', '');
+      if (t.lifted) keys = '<span class="remote-key">◀ ▶</span><span>' + esc(T('Move {0}', app(t.lifted.id).name)) + '</span><span class="remote-key">OK</span><span>' + esc(T('Place')) + '</span><span class="remote-key">BACK</span><span>' + esc(T('Cancel')) + '</span>';
+      else if (t.menu) keys = '<span class="remote-key">OK</span><span>' + esc(T('Choose')) + '</span><span class="remote-key">BACK</span><span>' + esc(T('Close')) + '</span>';
+      else if (f.zone === 'home') keys = '<span class="remote-key">OK</span><span>' + esc(T('Move or remove')) + '</span>';
+      else if (f.zone === 'add') keys = '<span class="remote-key">OK</span><span>' + esc(T(S.c.home.length >= CAP ? FULL : 'Add to Home')) + '</span>';
+      else if (f.h === 0) keys = '<span class="remote-key">OK</span><span>' + esc(undoCaption()) + '</span>';
+      setHTML(el.sub, (status && status !== '' ? '<span class="ed-note">' + status + '</span>' : '') + '<span class="ed-keys">' + keys + '</span>');
     },
     settings: function (t, el) {
       var html = '', byId = {};
