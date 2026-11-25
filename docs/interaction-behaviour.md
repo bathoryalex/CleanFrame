@@ -392,3 +392,8 @@ Events are one grid, so names, times and titles line up in columns across both d
   - The checks for moving and for held keys now pass. They had failed since the editor became a vertical list; two of them assumed nine apps on Home, while the fixture has eight.
 - **Cheaper sheet fade**: only the sheet's own opacity animates (260 ms) on a layer kept ready (`will-change: opacity` all the time). Its content no longer moves. While it is built it sits at opacity 0.001, so the TV paints it before the fade. Two frames pass before the fade starts.
 
+## 0.47
+
+- **Sheets open like the Wi‑Fi QR card.** A TV video showed the real problem: during the fade, Home's clock and dock showed through the incoming Settings or All apps content, so two busy pictures mixed. Now the sheet's blurred backdrop (on Dark, its solid colour) fades in first and covers Home (220 ms). Only then does the content fade in (200 ms, starting at 170 ms), and Home is hidden again at about 460 ms. Measured in the browser frame by frame: backdrop 0 → 1 by 260 ms; content 0 until then, 1 by 450 ms. Opacity only.
+- **Metro icon tiles** (Layout, Wi‑Fi QR, System) draw their icon large and thin (80 px, 1.05 stroke) at the top left, like "Aa" on Style and "EN" on Language, instead of a small icon on a glass chip.
+

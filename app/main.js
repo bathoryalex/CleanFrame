@@ -4,7 +4,7 @@
 
   /* ---------- Bundled data ---------- */
   var ASSETS = 'assets/', ICONS = ASSETS + 'icons/', WP = ASSETS + 'wallpapers/';
-  var APP_VERSION = '0.46.0';
+  var APP_VERSION = '0.47.0';
   var CAP = 9, SCRIM_Y = 560, DOCK_BOTTOM = 1032; // the Dock sits 48 px above the bottom edge; names and actions go above it
   var DOCK_MODES = { both: { tw: 288, th: 200, pitch: 296 }, text: { tw: 288, th: 104, pitch: 296 }, icons: { tw: 200, th: 156, pitch: 206 } }; // icons-only tiles leave room under the icon for the focused app's name
   var GRID_ROW = 240, GRID_COL = 344, COLS = 5;
@@ -3430,10 +3430,10 @@
          starts; then only opacity and a translate animate, on layers of their own. */
       clearTimeout(sheetOpenTimer);
       sheetEl.classList.remove('is-opening'); sheetEl.classList.add('is-pre');
-      sheetOpenUntil = Date.now() + 700; stage.classList.add('sheet-opening');
+      sheetOpenUntil = Date.now() + 460; stage.classList.add('sheet-opening');
       var raf = window.requestAnimationFrame || function (f) { return setTimeout(f, 16); };
       raf(function () { raf(function () { sheetEl.classList.remove('is-pre'); sheetEl.classList.add('is-opening'); }); });
-      sheetOpenTimer = setTimeout(function () { sheetEl.classList.remove('is-opening'); sheetEl.classList.remove('is-pre'); stage.classList.remove('sheet-opening'); }, 760);
+      sheetOpenTimer = setTimeout(function () { sheetEl.classList.remove('is-opening'); sheetEl.classList.remove('is-pre'); stage.classList.remove('sheet-opening'); }, 480);
     }
     sheetView.hidden = !sheet;
     if (sheet) sheetView.setAttribute('aria-modal', 'true');

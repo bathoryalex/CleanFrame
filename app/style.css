@@ -1438,3 +1438,18 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000}
 .sheet.is-pre{opacity:.001}
 .sheet.is-opening{animation:sheet-in 260ms linear both}
 .sheet.is-opening .view{animation:none;will-change:auto}
+/* 0.47: the sheet opens like the Wi-Fi QR card. First its blurred backdrop (or, on Dark, its solid colour)
+   fades in over Home and covers it (220 ms); only then does its content fade in (200 ms from 170 ms), so
+   Home's clock and dock never show through the Settings or All apps content. */
+@keyframes sheet-layer-in{from{opacity:0}to{opacity:1}}
+.sheet::before{content:"";position:absolute;left:0;top:0;width:1920px;height:1080px;background:#0f1416;opacity:0}
+.sheet.is-pre,.sheet.is-opening{opacity:1;background:transparent;animation:none}
+.sheet.is-pre .sheet-bg,.sheet.is-pre .sheet-veil,.sheet.is-pre::before,.sheet.is-pre .view{opacity:0}
+.sheet.is-opening::before{animation:sheet-layer-in 220ms linear both}
+.bg-photo .sheet.is-opening::before,.bg-photo .sheet.is-pre::before{display:none}
+.sheet.is-opening .sheet-bg,.sheet.is-opening .sheet-veil{animation:sheet-layer-in 220ms linear both;will-change:opacity}
+.sheet.is-opening .view{animation:sheet-layer-in 200ms linear 170ms both;will-change:opacity}
+.sheet{will-change:auto}
+/* Metro tiles: every icon tile draws its icon large and thin like "Aa" and "EN", without a glass chip. */
+.mt-icon{left:18px;top:14px;width:auto;height:auto;border-radius:0;background:none}
+.mt-icon .ico{width:80px;height:80px;stroke-width:1.05}
