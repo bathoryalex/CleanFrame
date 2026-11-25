@@ -1024,7 +1024,7 @@ try {
     await nav('left', 'left');
     check('Left goes back through Layout to Background', (await state()).settingsGroup === 'background');
     await nav('right');
-    check('Moving along the pivot slides the new page in', await current.evaluate(() => /slide-next[01]/.test(document.getElementById('appearance').className) && getComputedStyle(document.querySelector('#appearance .settings-title')).animationName.startsWith('pv-next')));
+    check('Moving along the pivot keeps the header in place and slides the rows in softly', await current.evaluate(() => /slide-next[01]/.test(document.getElementById('appearance').className) && getComputedStyle(document.querySelector('#appearance .appearance-rows')).animationName.startsWith('pv-soft-next') && getComputedStyle(document.querySelector('#appearance .settings-title')).animationName === 'none' && document.querySelectorAll('.pivot-head .pivot-item').length === 3));
     await nav('right', 'back'); await current.waitForTimeout(300);
     check('Back returns to the overview with the page you ended on focused', (await state()).view === 'settings' && await at() === 'typography', await state());
     await current.evaluate(() => ShoreQA.activate('settings.group.system')); await current.waitForTimeout(200);
@@ -1038,8 +1038,10 @@ try {
     await scene('settings'); await current.waitForTimeout(300);
     await current.evaluate(() => ShoreQA.activate('settings.group.wifiqr')); await current.waitForTimeout(300);
     check('Home and time is a pivot of Apps on Home, Wi‑Fi QR and Date and time', same(await current.evaluate(() => [...document.querySelectorAll('.pivot-item')].map(e => e.textContent + (e.classList.contains('is-current') ? '*' : ''))), ['Apps on Home', 'Wi‑Fi QR*', 'Date and time']));
+    await current.evaluate(() => { document.querySelector('.pivot-head .pivot-item').__same = true; });
     await nav('left'); await current.waitForTimeout(300);
-    const ed = await current.evaluate(() => ({ view: ShoreQA.where().view, items: [...document.querySelectorAll('.editor-title .pivot-item')].map(e => e.textContent + (e.classList.contains('is-current') ? '*' : '')) }));
+    check('The pivot header stays the same element and only its highlight moves; Apps on Home shows the SETTINGS label', await current.evaluate(() => document.querySelector('.pivot-head .pivot-item').__same === true && document.querySelector('.pivot-head').classList.contains('has-label') && /Settings/i.test(document.querySelector('.pivot-label').textContent)));
+    const ed = await current.evaluate(() => ({ view: ShoreQA.where().view, items: [...document.querySelectorAll('.pivot-head .pivot-item')].map(e => e.textContent + (e.classList.contains('is-current') ? '*' : '')) }));
     check('Left from Wi‑Fi QR opens Apps on Home with the same pivot', ed.view === 'editor' && same(ed.items, ['Apps on Home*', 'Wi‑Fi QR', 'Date and time']), ed);
     const cut = await current.evaluate(() => { const b = document.querySelector('.ed-order-break'); return { on: b.classList.contains('is-on'), top: parseInt(b.style.top, 10) }; });
     check('In the Modern dock seven apps fit, so the scroll line sits after the seventh of eight', cut.on && cut.top === 264 + 7 * 80, cut);
@@ -1047,6 +1049,13 @@ try {
     check('Right past Not on Home goes on to Wi‑Fi QR', (await state()).settingsGroup === 'wifiqr');
     await nav('back'); await current.waitForTimeout(200);
     check('Back from there returns to the overview on the Wi‑Fi QR tile', await current.evaluate(() => document.querySelector('.metro-tile.is-focus').getAttribute('data-id')) === 'wifiqr');
+    await current.evaluate(() => ShoreQA.activate('settings.group.connections')); await current.waitForTimeout(200); await act('conn.alexa'); await current.waitForTimeout(200);
+    check('Pages under Connections are a pivot too: Alexa, Spotify, Calendar', same(await current.evaluate(() => [...document.querySelectorAll('.pivot-head .pivot-item')].map(e => e.textContent + (e.classList.contains('is-current') ? '*' : ''))), ['Alexa*', 'Spotify', 'Calendar']));
+    await nav('right'); await current.waitForTimeout(200);
+    check('Right moves from Alexa to Spotify', (await state()).settingsGroup === 'spotify');
+    await nav('back'); await current.waitForTimeout(200);
+    check('Back returns to Connections on the Spotify row', (await state()).settingsGroup === 'connections' && (await call('where')).focusAction === 'conn.spotify', await call('where'));
+    await nav('back'); await current.waitForTimeout(200);
     await current.evaluate(() => ShoreQA.activate('settings.group.system')); await nav('back'); await current.waitForTimeout(200);
     const hints = await current.evaluate(() => document.querySelector('.settings-overview-hint').textContent);
     check('The System tile shows the same hint as the other groups', /Open selected group/.test(hints), hints);

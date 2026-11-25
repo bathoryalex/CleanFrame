@@ -1353,3 +1353,34 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000}
 .sheet.is-opening .view{animation:sheet-view-in 420ms cubic-bezier(.22,1,.28,1) 60ms both}
 @media(prefers-reduced-motion:reduce){.sheet.is-opening,.sheet.is-opening .view{animation:none}}
 .is-sheet.sheet-opening .home,.is-sheet.sheet-opening .bg{visibility:visible}
+/* ---------- 0.45: one steady pivot header; softer page change; lighter sheet fade ---------- */
+.pivot-head{position:absolute;left:132px;top:38px;z-index:30;pointer-events:none;visibility:hidden;opacity:0}
+.pivot-head.is-on{visibility:visible;opacity:1}
+.pivot-label{display:none;margin-left:12px;height:40px;font-size:20px;line-height:40px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:rgba(246,241,231,.6)}
+.pivot-label::before{content:"‹";display:inline-block;margin-right:12px;font-weight:400;letter-spacing:0}
+.pivot-head.has-label .pivot-label{display:block}
+.pivot-strip{position:absolute;left:0;top:46px;display:flex;gap:36px;white-space:nowrap;font-family:'Frame Metro',Manrope,sans-serif;font-weight:200;font-size:80px;line-height:100px;letter-spacing:-1.6px;text-transform:lowercase}
+.pivot-strip .pivot-item{position:relative;color:rgba(246,241,231,.28);transition:color 360ms cubic-bezier(.22,1,.28,1)}
+.pivot-strip .pivot-item.is-current{color:#f6f1e7}
+.pivot-strip .pivot-item.is-current::after{content:none}
+.pivot-bar{position:absolute;left:0;bottom:-6px;width:56px;height:4px;border-radius:2px;background:rgba(157,184,232,.9);transition:transform 360ms cubic-bezier(.22,1,.28,1);will-change:transform}
+.pivot-strip.is-fresh .pivot-item,.pivot-strip.is-fresh .pivot-bar{transition:none}
+.appearance.is-metro .settings-title,.look-metro .view.is-metro .editor-title{visibility:hidden}
+/* The page's rows come in softly from the side moved towards: 40 px, from 35 % to full, 300 ms. */
+@keyframes pv-soft-next-a{from{opacity:.35;transform:translate3d(40px,0,0)}to{opacity:1;transform:translate3d(0,0,0)}}
+@keyframes pv-soft-next-b{from{opacity:.35;transform:translate3d(40px,0,0)}to{opacity:1;transform:translate3d(0,0,0)}}
+@keyframes pv-soft-prev-a{from{opacity:.35;transform:translate3d(-40px,0,0)}to{opacity:1;transform:translate3d(0,0,0)}}
+@keyframes pv-soft-prev-b{from{opacity:.35;transform:translate3d(-40px,0,0)}to{opacity:1;transform:translate3d(0,0,0)}}
+.appearance.slide-next0 .settings-title,.appearance.slide-next1 .settings-title,.appearance.slide-prev0 .settings-title,.appearance.slide-prev1 .settings-title,
+.view.slide-next0 .editor-title,.view.slide-next1 .editor-title,.view.slide-prev0 .editor-title,.view.slide-prev1 .editor-title{animation:none}
+.appearance.slide-next0 .appearance-rows,.view.slide-next0 .ed-home,.view.slide-next0 .ed-other-view,.view.slide-next0 .s-label{animation:pv-soft-next-a 300ms cubic-bezier(.22,1,.28,1) both}
+.appearance.slide-next1 .appearance-rows,.view.slide-next1 .ed-home,.view.slide-next1 .ed-other-view,.view.slide-next1 .s-label{animation:pv-soft-next-b 300ms cubic-bezier(.22,1,.28,1) both}
+.appearance.slide-prev0 .appearance-rows,.view.slide-prev0 .ed-home,.view.slide-prev0 .ed-other-view,.view.slide-prev0 .s-label{animation:pv-soft-prev-a 300ms cubic-bezier(.22,1,.28,1) both}
+.appearance.slide-prev1 .appearance-rows,.view.slide-prev1 .ed-home,.view.slide-prev1 .ed-other-view,.view.slide-prev1 .s-label{animation:pv-soft-prev-b 300ms cubic-bezier(.22,1,.28,1) both}
+/* Sheet fade: invisible for two frames while it is built, then opacity and a 20 px rise only (no scale,
+   which made the TV re-draw the text every frame), each on its own layer. */
+@keyframes sheet-rise{from{opacity:0;transform:translate3d(0,20px,0)}to{opacity:1;transform:translate3d(0,0,0)}}
+.sheet.is-pre{opacity:0}
+.sheet.is-opening{animation:sheet-in 300ms linear both;will-change:opacity}
+.sheet.is-opening .view{animation:sheet-rise 380ms cubic-bezier(.22,1,.28,1) 40ms both;will-change:transform,opacity}
+@media(prefers-reduced-motion:reduce){.pivot-strip .pivot-item,.pivot-bar{transition:none}}

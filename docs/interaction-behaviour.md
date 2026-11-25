@@ -374,3 +374,10 @@ Events are one grid, so names, times and titles line up in columns across both d
 
 **Sheets open with a fade, like the Wi‑Fi QR card.** A sheet opened from Home (Settings, All apps, a message …) fades in over Home in 320 ms. Its content rises 24 px and grows from 98.5 % into place in 420 ms, starting 60 ms later. Home stays drawn underneath until then (`.sheet-opening` on the stage, about 560 ms), so the two cross-fade instead of cutting to black. Only opacity and transform are animated; nothing moves with reduced motion. Moving between sheets that are already open (Settings → Apps on Home) does not replay it.
 
+## 0.45
+
+- **One steady pivot header** (Metro look). A single header element, outside the pages, shows the pivot for every Settings page and for Apps on Home. Moving along a pivot no longer re-draws or animates the names: the current name brightens (360 ms colour transition) and the underline slides under it (transform). Only the rows change, coming in 40 px from the side moved towards, from 35 % opacity, in 300 ms. Before, the whole title strip slid in from 160 px out of full transparency, which jumped and flickered.
+- **SETTINGS above Apps on Home**: the header shows the small "‹ SETTINGS" label where the Back row sits on the other pages, so the pivot line stays at the same height when you move between Apps on Home and Wi‑Fi QR.
+- **Pivots one level down**: Alexa · Spotify · Calendar under Connections (only those available). Back returns to Connections on the row of the page you ended on. Rotation and Date details stay single pages.
+- **Lighter sheet fade**: the sheet waits invisible for two frames while its content is laid out and painted, then fades (300 ms) while its content rises 20 px (380 ms). There is no scale any more: scaling made the TV re-draw the text on every frame. Both animated layers get `will-change`.
+

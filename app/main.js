@@ -4,7 +4,7 @@
 
   /* ---------- Bundled data ---------- */
   var ASSETS = 'assets/', ICONS = ASSETS + 'icons/', WP = ASSETS + 'wallpapers/';
-  var APP_VERSION = '0.44.0';
+  var APP_VERSION = '0.45.0';
   var CAP = 9, SCRIM_Y = 560, DOCK_BOTTOM = 1032; // the Dock sits 48 px above the bottom edge; names and actions go above it
   var DOCK_MODES = { both: { tw: 288, th: 200, pitch: 296 }, text: { tw: 288, th: 104, pitch: 296 }, icons: { tw: 200, th: 156, pitch: 206 } }; // icons-only tiles leave room under the icon for the focused app's name
   var GRID_ROW = 240, GRID_COL = 344, COLS = 5;
@@ -1137,18 +1137,52 @@
   /* Short page names for the pivot strip (the page titles can be longer). */
   var PIVOT_NAMES = { editor: 'Apps on Home', wifiqr: 'Wi‑Fi QR', region: 'Date and time' };
   function pivotName(id) { return T(PIVOT_NAMES[id] || DETAIL_NAMES[id]); }
-  var METRO_PIVOTS = [['background', 'layout', 'typography'], ['editor', 'wifiqr', 'region'], ['system', 'connections']];
-  function pivotOf(group) { var g = group === 'focus' ? 'typography' : group, out = [g]; METRO_PIVOTS.forEach(function (p) { if (p.indexOf(g) >= 0) out = p.filter(function (id) { return id !== 'connections' || FA || FS || FC; }); }); return out; }
+  var METRO_PIVOTS = [['background', 'layout', 'typography'], ['editor', 'wifiqr', 'region'], ['system', 'connections'], ['alexa', 'spotify', 'calendar']];
+  function pivotAvailable(id) { return id === 'connections' ? !!(FA || FS || FC) : id === 'alexa' ? !!FA : id === 'spotify' ? !!FS : id === 'calendar' ? !!FC : true; }
+  function pivotOf(group) { var g = group === 'focus' ? 'typography' : group, out = [g]; METRO_PIVOTS.forEach(function (p) { if (p.indexOf(g) >= 0) out = p.filter(pivotAvailable); }); return out; }
   function pivotTo(t, dir) {
     var here = t.id === 'editor' ? 'editor' : t.group === 'focus' ? 'typography' : t.group, list = pivotOf(here), to = list[list.indexOf(here) + dir], below;
     if (!to) return false;
     if (t.id === 'editor') closeEditor(t); else { cancelLook(); S.err = null; pop(); }
-    below = top(); if (below && below.id === 'settings') below.f.id = to;
-    S.settingsFocus = to;
+    below = top();
+    if (below && below.id === 'settings') { below.f.id = to; S.settingsFocus = to; }
+    /* Alexa · Spotify · Calendar: back on Connections, the row of the page you ended on is focused. */
+    if (below && below.id === 'appearance' && below.group === 'connections') { below.f.action = 'conn.' + to; S.detailFocus.connections = 'conn.' + to; }
     if (to === 'editor') openEditor('settings'); else openAppearance(to);
-    /* The new page slides in from the side it was reached from (title strip and rows, 320 ms). */
+    /* The rows of the new page slide a little from the side moved towards; the pivot header stays and
+       only its highlight and underline move (renderPivotHead). */
     pivotSlide = { dir: dir > 0 ? 'next' : 'prev', n: (pivotSlide.n || 0) + 1, until: Date.now() + 400 };
     return true;
+  }
+  /* Metro look: one pivot header for every Settings page and Apps on Home. It stays in place while you
+     move along a pivot, so the names do not jump: the current name brightens and the underline slides to
+     it. Above it, on Apps on Home, a SETTINGS label in the place where the Back row is on the other pages. */
+  var pivotHead = null;
+  function renderPivotHead(t) {
+    var cur = null, list, key, strip, items, bar, el, i;
+    if (!pivotHead) {
+      pivotHead = document.createElement('div'); pivotHead.className = 'pivot-head'; pivotHead.setAttribute('aria-hidden', 'true');
+      pivotHead.innerHTML = '<span class="pivot-label"></span><span class="pivot-strip"></span>';
+      stage.appendChild(pivotHead);
+    }
+    if (metroOn() && t.id === 'editor') cur = 'editor';
+    else if (metroOn() && t.id === 'appearance') cur = t.group === 'focus' ? 'typography' : t.group;
+    if (!cur) { pivotHead.className = 'pivot-head'; pivotHead._key = ''; return; }
+    list = pivotOf(cur); key = list.join('|') + '|' + S.c.lang;
+    strip = pivotHead.lastChild;
+    pivotHead.firstChild.textContent = t.id === 'editor' ? T('Settings') : '';
+    if (pivotHead._key !== key) {
+      pivotHead._key = key;
+      strip.innerHTML = list.map(function (id) { return '<span class="pivot-item" data-id="' + id + '">' + esc(pivotName(id)) + '</span>'; }).join('') + '<i class="pivot-bar"></i>';
+      strip.className = 'pivot-strip is-fresh';
+    } else strip.className = 'pivot-strip';
+    items = strip.querySelectorAll('.pivot-item'); bar = strip.querySelector('.pivot-bar');
+    for (i = 0; i < items.length; i++) {
+      el = items[i];
+      el.className = 'pivot-item' + (el.getAttribute('data-id') === cur ? ' is-current' : '');
+      if (el.getAttribute('data-id') === cur) bar.style.transform = 'translate3d(' + (el.offsetLeft + 4) + 'px,0,0)';
+    }
+    pivotHead.className = 'pivot-head is-on' + (t.id === 'editor' ? ' has-label' : '');
   }
   var DETAIL_NAMES = { editor: 'Apps on Home', calendar: 'Calendar', background: 'Background', layout: 'Layout', typography: 'Style', focus: 'Style', rotation: 'Rotation', region: 'Date and time', wifiqr: 'Wifi QR code settings', alexa: 'Alexa', spotify: 'Spotify', connections: 'Connections', dateinfo: 'Date details', system: 'System' };
   var PARENT = { rotation: 'background', alexa: 'connections', spotify: 'connections', calendar: 'connections', dateinfo: 'region' };
@@ -2755,6 +2789,7 @@
     if (!sheet) renderHome(t);
     renderSheet(t, sheet);
     renderAppearance(t);
+    renderPivotHead(t);
     renderWifiOverlay(t);
     renderNowPlayingOverlay(t);
     renderFocusStatus(t);
@@ -3371,11 +3406,14 @@
     var v = V[t.id], key, wasHidden = sheetEl.hidden;
     sheetEl.hidden = !(sheet || isSettingsDetail(t));
     if (wasHidden && !sheetEl.hidden) {
+      /* The sheet waits invisible for two frames, so its content is laid out and painted before the fade
+         starts; then only opacity and a translate animate, on layers of their own. */
       clearTimeout(sheetOpenTimer);
-      sheetEl.classList.remove('is-opening'); void sheetEl.offsetWidth; sheetEl.classList.add('is-opening');
-      /* Home stays drawn underneath until the sheet has faded in. */
-      sheetOpenUntil = Date.now() + 560; stage.classList.add('sheet-opening');
-      sheetOpenTimer = setTimeout(function () { sheetEl.classList.remove('is-opening'); stage.classList.remove('sheet-opening'); }, 600);
+      sheetEl.classList.remove('is-opening'); sheetEl.classList.add('is-pre');
+      sheetOpenUntil = Date.now() + 700; stage.classList.add('sheet-opening');
+      var raf = window.requestAnimationFrame || function (f) { return setTimeout(f, 16); };
+      raf(function () { raf(function () { sheetEl.classList.remove('is-pre'); sheetEl.classList.add('is-opening'); }); });
+      sheetOpenTimer = setTimeout(function () { sheetEl.classList.remove('is-opening'); sheetEl.classList.remove('is-pre'); stage.classList.remove('sheet-opening'); }, 760);
     }
     sheetView.hidden = !sheet;
     if (sheet) sheetView.setAttribute('aria-modal', 'true');
@@ -3467,11 +3505,8 @@
     V.appearance.norm(t);
     appearanceEl.className = 'appearance settings-v2 detail-' + t.group + (PREVIEW_GROUPS[t.group] ? '' : ' no-preview') + (metroOn() ? ' is-metro' : '') + (metroOn() && Date.now() < pivotSlide.until ? ' slide-' + pivotSlide.dir + (pivotSlide.n % 2) : '');
     appearanceRows.className = 'appearance-rows';
-    if (metroOn()) {
-      /* The page's name, then its pivot neighbours dimmed: the pages Left and Right lead to. */
-      var piv = pivotOf(t.group), cur = t.group === 'focus' ? 'typography' : t.group;
-      setHTML(appearanceTitle, '<span class="pivot">' + piv.map(function (id) { return '<span class="pivot-item' + (id === cur ? ' is-current' : '') + '">' + esc(pivotName(id)) + '</span>'; }).join('') + '</span>');
-    } else { appearanceTitle._html = null; appearanceTitle.textContent = T(DETAIL_NAMES[t.group]); }
+    /* With the Metro look the pivot header (renderPivotHead) shows the page's name instead. */
+    appearanceTitle._html = null; appearanceTitle.textContent = T(DETAIL_NAMES[t.group]);
     var at = detailLocation(t), selected = at.item, error = S.lookError, status = '', hint;
     function command(item, inner, cls) {
       var applied = item.axis && S.c[item.axis] === item.value;
@@ -3695,7 +3730,7 @@
       var entries = [], ys = [], y = 0, yf, minTop, maxTop = 0, rowEnd, before = false, afterRows = false;
       var hint = catalog.error ? catalog.error : catalog.loading ? T('Loading installed apps…') : f.zone === 'head' && f.h === 0 ? undoCaption() : f.zone === 'home' && f.part === 'remove' ? (H.length <= 1 ? LAST : T('{0} stays installed.', app(H[f.i]).name)) : '';
       setHTML(el.sub, editStatus(hint, t.lifted ? T('Moving {0}. OK places it, Back puts it back.', app(t.lifted.id).name) : ''));
-      setHTML(el.title, metroOn() ? '<span class="pivot">' + pivotOf('editor').map(function (id) { return '<span class="pivot-item' + (id === 'editor' ? ' is-current' : '') + '">' + esc(pivotName(id)) + '</span>'; }).join('') + '</span>' : esc(T('Apps on Home')));
+      setHTML(el.title, esc(T('Apps on Home')));
       sheetView.className = 'view' + (metroOn() ? ' is-metro' : '') + (metroOn() && Date.now() < pivotSlide.until ? ' slide-' + pivotSlide.dir + (pivotSlide.n % 2) : '');
       setHTML(el.head, headButtons([['undo', T('Undo'), S.undo.length ? '' : 'is-idle', 'undo'], ['done', T('Done'), '', 'check']], f.zone === 'head' ? f.h : -1, 'editor'));
       el.head.className = 's-head' + (f.zone === 'head' ? ' is-awake' : '');
