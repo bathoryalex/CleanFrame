@@ -1009,6 +1009,7 @@ try {
         now: (d => (d.getHours()) + ':' + String(d.getMinutes()).padStart(2, '0'))(new Date()) }; });
     check('The overview is live tiles in three groups, with a thin lowercase title', /is-metro/.test(ov.cls) && ov.groups.length === 3 && same(ov.sizes, ['large', 'wide', 'small', 'large']) && ov.title === 'lowercase', ov);
     check('Live tiles show the picture, the time and the app icons', ov.photo && ov.time === ov.now && ov.apps >= 6, ov);
+    check('Tile values wrap rather than end in an ellipsis', await current.evaluate(() => [...document.querySelectorAll('.mt-value')].every(e => getComputedStyle(e).textOverflow !== 'ellipsis' && e.scrollWidth <= e.clientWidth + 1)));
     const at = () => current.evaluate(() => document.querySelector('.metro-tile.is-focus').getAttribute('data-id'));
     const path = [];
     for (const k of ['up', 'down', 'right', 'right', 'up', 'right', 'left', 'up']) { await nav(k); path.push(await at()); }
@@ -1022,9 +1023,14 @@ try {
     check('The last page stays put', (await state()).settingsGroup === 'typography');
     await nav('left', 'left');
     check('Left goes back through Layout to Background', (await state()).settingsGroup === 'background');
-    await nav('right', 'right', 'back'); await current.waitForTimeout(300);
+    await nav('right');
+    check('Moving along the pivot slides the new page in', await current.evaluate(() => /slide-next[01]/.test(document.getElementById('appearance').className) && getComputedStyle(document.querySelector('#appearance .settings-title')).animationName.startsWith('pv-next')));
+    await nav('right', 'back'); await current.waitForTimeout(300);
     check('Back returns to the overview with the page you ended on focused', (await state()).view === 'settings' && await at() === 'typography', await state());
-    await nav('ok'); await act('choice.settingsLook.original'); await scene('settings'); await current.waitForTimeout(300);
+    await current.evaluate(() => ShoreQA.activate('settings.group.system')); await current.waitForTimeout(200);
+    check('The System pivot reads like the tiles: System, then Connections', same(await current.evaluate(() => [...document.querySelectorAll('.pivot-item')].map(e => e.textContent)), ['System', 'Connections']));
+    await nav('back'); await current.waitForTimeout(200);
+    await current.evaluate(() => ShoreQA.activate('settings.group.typography')); await current.waitForTimeout(200); await act('choice.settingsLook.original'); await scene('settings'); await current.waitForTimeout(300);
     check('Original brings back the three columns of cards', await current.evaluate(() => /is-columns/.test(document.querySelector('.settings-grid').className) && !document.querySelector('.metro-tile')));
   });
   await run('Spotify phone page sends the code back to the TV', async () => {
@@ -1075,6 +1081,9 @@ try {
     await act('region.dateinfo');
     check('Date details open from Date and time', (await state()).settingsGroup === 'dateinfo');
     await act('choice.holidays.on'); await act('choice.namedays.on');
+    check('Date details point to Connections for calendars', await current.evaluate(() => /Set in Connections/.test((document.querySelector('[data-action="dateinfo.calendars"]') || {}).textContent || '') && !document.querySelector('[data-action="calendar.connect"]')));
+    await act('dateinfo.calendars');
+    check('The calendars row opens Connections → Calendar', (await state()).settingsGroup === 'calendar');
     await act('calendar.connect');
     await current.waitForFunction(() => document.querySelector('.phone-qr') && document.querySelector('.phone-qr')._payload);
     const url = await current.evaluate(() => document.querySelector('.phone-qr')._payload), frag = new URLSearchParams(url.split('#')[1]);
@@ -1110,8 +1119,8 @@ try {
     await current.reload(); await ready(); await current.waitForFunction(() => document.querySelectorAll('.cap-cal').length === 2);
     const rows = await current.evaluate(() => [...document.querySelectorAll('.cap-cal')].map(e => [e.querySelector('.cap-cal-who') && e.querySelector('.cap-cal-who').textContent, e.querySelector('.cap-cal-who') && getComputedStyle(e.querySelector('.cap-cal-who')).backgroundColor]));
     check('With two calendars each event shows its calendar by name and colour', rows.length === 2 && rows.some(r => r[0] === 'Ági') && rows.some(r => /Calendar 1|1\. naptár/.test(r[0])) && rows[0][1] !== rows[1][1], rows);
-    await group('region'); await act('region.dateinfo');
-    check('Date details lists the calendars and offers another', await current.evaluate(() => !!document.querySelector('[data-action="calendar.item.c1"]') && !!document.querySelector('[data-action="calendar.item.c2"]') && !!document.querySelector('[data-action="calendar.connect"]')));
+    await group('connections'); await act('conn.calendar');
+    check('Connections → Calendar lists the calendars and offers another', await current.evaluate(() => !!document.querySelector('[data-action="calendar.item.c1"]') && !!document.querySelector('[data-action="calendar.item.c2"]') && !!document.querySelector('[data-action="calendar.connect"]')));
     await act('calendar.item.c1'); await act('alexa.row.0');
     for (let i = 0; i < 4; i++) await act('wifi.act.0');
     const typed = async ch => { const a = await current.evaluate(c => { const e = [...document.querySelectorAll('[data-action^="wifi.char."]')].find(x => x.textContent === c); return e && e.getAttribute('data-action'); }, ch); await act(a); };
@@ -1126,7 +1135,7 @@ try {
       return { heads: [...p.querySelectorAll('.cap-when')].map(e => e.textContent), timeLefts: times.map(e => Math.round(r(e).left)), titleLefts: titles.map(e => Math.round(r(e).left)), whoLeft: whos.map(e => Math.round(r(e).left)), whoWidth: whos.map(e => Math.round(r(e).width)), whoInk: whos.length ? getComputedStyle(whos[0]).color : '', sepBetween: !!p.querySelector('.cap-day + .cap-sep + .cap-events') || !p.querySelector('.cap-day') }; });
     check('Events sit under a TODAY heading with names, times and titles in aligned columns', layout.heads[0] === 'Today' && new Set(layout.timeLefts).size === 1 && new Set(layout.titleLefts).size === 1 && new Set(layout.whoLeft).size === 1 && new Set(layout.whoWidth).size === 1 && layout.whoInk !== 'rgb(17, 22, 26)' && layout.sepBetween, layout);
     // A colour of one's own for a calendar's dot.
-    await group('region'); await act('region.dateinfo'); await act('calendar.item.c2');
+    await group('connections'); await act('conn.calendar'); await act('calendar.item.c2');
     const swatches = await current.evaluate(() => [...document.querySelectorAll('.alexa-row .cal-swatch')].length);
     check('A calendar offers dot colours with its default ticked', swatches >= 4 && await current.evaluate(() => /Pink|Rózsaszín/.test([...document.querySelectorAll('.alexa-row.is-applied')].map(e => e.textContent).join())), swatches);
     const yellow = await current.evaluate(() => { const r = [...document.querySelectorAll('.alexa-row')].find(e => /Yellow|Sárga/.test(e.textContent)); return r && r.getAttribute('data-action'); });

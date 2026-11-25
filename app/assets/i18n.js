@@ -270,6 +270,7 @@ window.CleanFrameI18n = {
     'Busy': 'Elfoglalt',
     'Tomorrow': 'Holnap',
     'Settings look': 'Beállítások kinézete',
+    'Set in Connections': 'A Kapcsolatoknál állítható',
     'Original': 'Eredeti',
     'Metro': 'Metro',
     'Other pages': 'Többi oldal',

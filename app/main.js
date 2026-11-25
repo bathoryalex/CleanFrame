@@ -4,7 +4,7 @@
 
   /* ---------- Bundled data ---------- */
   var ASSETS = 'assets/', ICONS = ASSETS + 'icons/', WP = ASSETS + 'wallpapers/';
-  var APP_VERSION = '0.41.0';
+  var APP_VERSION = '0.42.0';
   var CAP = 9, SCRIM_Y = 560, DOCK_BOTTOM = 1032; // the Dock sits 48 px above the bottom edge; names and actions go above it
   var DOCK_MODES = { both: { tw: 288, th: 200, pitch: 296 }, text: { tw: 288, th: 104, pitch: 296 }, icons: { tw: 200, th: 156, pitch: 206 } }; // icons-only tiles leave room under the icon for the focused app's name
   var GRID_ROW = 240, GRID_COL = 344, COLS = 5;
@@ -734,7 +734,7 @@
   function openSettings() { push({ id: 'settings', f: { id: S.settingsFocus } }); }
   function openAppearance(group) {
     var axis = { background: 'bg', layout: 'layout', typography: 'font', focus: 'focus', region: 'lang' }[group];
-    var action = S.detailFocus[group] || (axis ? 'choice.' + axis + '.' + S.c[axis] : group === 'rotation' ? 'rotation.' + S.c.mode : group === 'alexa' ? (alexaOn() ? 'alexa.list.readings' : 'alexa.connect') : group === 'spotify' ? (spotifyOn() ? 'choice.spotifyShow.' + S.c.spotifyShow : 'spotify.connect') : group === 'connections' ? (FA ? 'conn.alexa' : 'conn.spotify') : group === 'dateinfo' ? 'choice.holidays.' + S.c.holidays : group === 'system' ? (FB && BACKUP_PAGE ? 'backup.create' : 'system.samsung') : 'wifi.edit.ssid');
+    var action = S.detailFocus[group] || (axis ? 'choice.' + axis + '.' + S.c[axis] : group === 'rotation' ? 'rotation.' + S.c.mode : group === 'alexa' ? (alexaOn() ? 'alexa.list.readings' : 'alexa.connect') : group === 'spotify' ? (spotifyOn() ? 'choice.spotifyShow.' + S.c.spotifyShow : 'spotify.connect') : group === 'connections' ? (FA ? 'conn.alexa' : 'conn.spotify') : group === 'dateinfo' ? 'choice.holidays.' + S.c.holidays : group === 'calendar' ? (FC && FC.connected() ? 'choice.calShow.' + S.c.calShow : 'calendar.connect') : group === 'system' ? (FB && BACKUP_PAGE ? 'backup.create' : 'system.samsung') : 'wifi.edit.ssid');
     push({ id: 'appearance', group: group, f: { action: action } });
   }
   function openWifiField(field) {
@@ -1059,7 +1059,7 @@
       { id: 'region', icon: 'clock', label: T('Date and time'), value: T(PREF_NAMES[S.c.clock]) + (S.c.clockPos === 'corner' ? '' : ', ' + T(PREF_NAMES[S.c.clockPos])) },
       /* Two languages: OK on the tile switches between them, no page needed. */
       { id: 'lang', icon: 'lang', label: T('Language'), value: PREF_NAMES[S.c.lang], toggle: true }
-    ].concat(FA || FS ? [{ id: 'connections', icon: 'alexa', label: T('Connections'), value: connectionsSummary() }] : []).concat([
+    ].concat(FA || FS || FC ? [{ id: 'connections', icon: 'alexa', label: T('Connections'), value: connectionsSummary() }] : []).concat([
       { id: 'system', icon: 'home', label: T('System'), value: FB && BACKUP_PAGE ? T('Backup, Samsung Home') : T('Samsung Home') }]);
   }
   function settingsIds() { return settingsRows().map(function (r) { return r.id; }); }
@@ -1126,19 +1126,23 @@
     else openAppearance(id);
   }
   /* Metro look: pages of one Settings group sit side by side as a pivot; Left and Right on a row move to
-     the page before or after. Pages opened from another page (Rotation, Alexa …) stand alone. */
-  var METRO_PIVOTS = [['background', 'layout', 'typography'], ['wifiqr', 'region'], ['connections', 'system']];
-  function pivotOf(group) { var g = group === 'focus' ? 'typography' : group, out = [g]; METRO_PIVOTS.forEach(function (p) { if (p.indexOf(g) >= 0) out = p.filter(function (id) { return id !== 'connections' || FA || FS; }); }); return out; }
+     the page before or after, in the order the tiles read (System sits above Connections). Pages opened
+     from another page (Rotation, Alexa, Calendar …) stand alone. */
+  var pivotSlide = { dir: '', n: 0, until: 0 };
+  var METRO_PIVOTS = [['background', 'layout', 'typography'], ['wifiqr', 'region'], ['system', 'connections']];
+  function pivotOf(group) { var g = group === 'focus' ? 'typography' : group, out = [g]; METRO_PIVOTS.forEach(function (p) { if (p.indexOf(g) >= 0) out = p.filter(function (id) { return id !== 'connections' || FA || FS || FC; }); }); return out; }
   function pivotTo(t, dir) {
     var list = pivotOf(t.group), i = list.indexOf(t.group === 'focus' ? 'typography' : t.group), to = list[i + dir], below;
     if (!to) return false;
     cancelLook(); S.err = null; pop();
     below = top(); if (below && below.id === 'settings') below.f.id = to;
     S.settingsFocus = to; openAppearance(to);
+    /* The new page slides in from the side it was reached from (title strip and rows, 320 ms). */
+    pivotSlide = { dir: dir > 0 ? 'next' : 'prev', n: (pivotSlide.n || 0) + 1, until: Date.now() + 400 };
     return true;
   }
-  var DETAIL_NAMES = { background: 'Background', layout: 'Layout', typography: 'Style', focus: 'Style', rotation: 'Rotation', region: 'Date and time', wifiqr: 'Wifi QR code settings', alexa: 'Alexa', spotify: 'Spotify', connections: 'Connections', dateinfo: 'Date details', system: 'System' };
-  var PARENT = { rotation: 'background', alexa: 'connections', spotify: 'connections', dateinfo: 'region' };
+  var DETAIL_NAMES = { calendar: 'Calendar', background: 'Background', layout: 'Layout', typography: 'Style', focus: 'Style', rotation: 'Rotation', region: 'Date and time', wifiqr: 'Wifi QR code settings', alexa: 'Alexa', spotify: 'Spotify', connections: 'Connections', dateinfo: 'Date details', system: 'System' };
+  var PARENT = { rotation: 'background', alexa: 'connections', spotify: 'connections', calendar: 'connections', dateinfo: 'region' };
   function backLabel(t) { return T(PARENT[t.group] ? DETAIL_NAMES[PARENT[t.group]] : 'Settings'); }
   function choice(axis, value, disabled) {
     return { action: axis === 'mode' ? 'rotation.' + value : axis === 'wifiSec' ? 'wifi.sec.' + value : 'choice.' + axis + '.' + value, axis: axis, value: value, disabled: !!disabled,
@@ -1188,6 +1192,7 @@
     if (t.group === 'spotify') return spotifySections();
     if (t.group === 'connections') return connectionsSections();
     if (t.group === 'dateinfo') return dateinfoSections();
+    if (t.group === 'calendar') return calendarSections();
     if (t.group === 'wifiqr') return [
       { id: 'ssid', title: T('Network name'), items: [{ action: 'wifi.edit.ssid', label: S.c.wifiSsid || T('Add network name'), description: T('SSID shown in the QR code') }] },
       { id: 'pass', title: T('Password'), items: [{ action: 'wifi.edit.pass', label: S.c.wifiPass ? T('Change password') : T('Add password'), description: S.c.wifiPass ? T('Saved (hidden)') : T('Optional for open networks') }] },
@@ -1280,6 +1285,8 @@
     else if (item.action === 'calendar.signout') openMessage('calendarOut');
     else if (/^calendar\.item\./.test(item.action)) openAlexaList('calendar', { cal: item.action.slice(14) });
     else if (item.action === 'conn.spotify') openAppearance('spotify');
+    else if (item.action === 'conn.calendar') openAppearance('calendar');
+    else if (item.action === 'dateinfo.calendars') openCalendarSettings();
     else if (/^alexa\.list\./.test(item.action)) openAlexaList(item.action.slice(11));
     else if (item.action === 'alexa.signout') alexaSignOut();
     else if (item.action === 'wifi.edit.ssid') openWifiField('ssid');
@@ -2065,9 +2072,10 @@
   function connectionsSections() {
     return [{ id: 'connections', title: '', items: [].concat(FA ? [{ action: 'conn.alexa', label: 'Alexa', description: !alexaOn() ? T('Not connected') : summary(S.c.alexaReadings.map(function (r) { return r.name; }).concat(liveTargets().map(targetName)).filter(function (n, i, a) { return n && a.indexOf(n) === i; }), 'Connected') }] : [])
       .concat(FS ? [{ action: 'conn.spotify', label: 'Spotify', description: !spotifyOn() ? T('Not connected') : spot.now ? spot.now.title + (spot.now.artist ? ' · ' + spot.now.artist : '') : T('Connected') }] : [])
+      .concat(FC ? [{ action: 'conn.calendar', label: T('Calendar'), description: !FC.connected() ? T('Not connected') : summary(FC.list().map(function (c) { return c.name || T('Calendar {0}', c.index + 1); }), 'Connected') }] : [])
       .concat([{ action: 'alexa.list.keys', label: T('Remote buttons'), description: summary(SLOTS.filter(function (c) { return S.c.alexaKeys[c]; }).map(function (c) { return slotShort(c) + ': ' + targetName(S.c.alexaKeys[c]); }), 'Colour buttons, CH +, CH −, Guide') }]) }];
   }
-  function connectionsSummary() { var on = []; if (alexaOn()) on.push('Alexa'); if (spotifyOn()) on.push('Spotify'); return on.length ? on.join(', ') : T('Not connected'); }
+  function connectionsSummary() { var on = []; if (alexaOn()) on.push('Alexa'); if (spotifyOn()) on.push('Spotify'); if (FC && FC.connected()) on.push(T('Calendar')); return on.length ? on.join(', ') : T('Not connected'); }
   function spotifyForget() {
     var keys = {};
     FS.forget(); clearTimeout(spot.timer); spot.timer = null; spot.now = null; spot.err = '';
@@ -3044,19 +3052,35 @@
     if (S.c.holidays === 'on') { loadHolidays(new Date().getFullYear(), function () { render(); }); }
     calendarPoll(true);
   }
+  /* Date details: holidays and name days. Calendars are set up under Connections (0.42); a row here says
+     so and takes you there. */
   function dateinfoSections() {
     var sections = [
       { id: 'holidays', title: T('Hungarian holidays'), horizontal: true, items: options('holidays', PREF_VALUES.holidays) },
       { id: 'namedays', title: T('Name days'), horizontal: true, items: options('namedays', PREF_VALUES.namedays) }
     ];
     function options(axis, values) { return values.map(function (v) { return choice(axis, v); }); }
-    if (!FC) return sections;
-    if (!FC.connected()) sections.push({ id: 'calendar', title: T('Calendar'), items: [{ action: 'calendar.connect', label: T('Connect a calendar'), description: T('Google or Outlook, from your phone') }] });
-    else sections.push({ id: 'calShow', title: T('Calendar on Home'), horizontal: true, items: options('calShow', PREF_VALUES.calShow) },
+    if (FC) sections.push({ id: 'calendarlink', title: T('Calendars'), items: [{ action: 'dateinfo.calendars', label: T('Calendars'), description: T('Set in Connections') }] });
+    return sections;
+  }
+  /* Connections → Calendar: whether events show on Home, the calendars (name, colour, disconnect) and adding one. */
+  function calendarSections() {
+    function options(axis, values) { return values.map(function (v) { return choice(axis, v); }); }
+    if (!FC.connected()) return [{ id: 'calendar', title: T('Calendar'), items: [{ action: 'calendar.connect', label: T('Connect a calendar'), description: T('Google or Outlook, from your phone') }] }];
+    return [{ id: 'calShow', title: T('Calendar on Home'), horizontal: true, items: options('calShow', PREF_VALUES.calShow) },
       { id: 'calendars', title: T('Calendars'), items: FC.list().map(function (c) { return { action: 'calendar.item.' + c.id, label: c.name || T('Calendar {0}', c.index + 1), description: c.name ? '' : T('Give it a name') }; })
         .concat(FC.list().length < FC.max ? [{ action: 'calendar.connect', label: T('Add another calendar') }] : []),
-        reason: cal.err ? T('Couldn’t read the calendar ({0}).', cal.err) : FC.loadedAt() ? T('Read at {0}', fmtHM(FC.loadedAt())) : T('Reading…') });
-    return sections;
+        reason: cal.err ? T('Couldn’t read the calendar ({0}).', cal.err) : FC.loadedAt() ? T('Read at {0}', fmtHM(FC.loadedAt())) : T('Reading…') }];
+  }
+  /* From Date details to Connections → Calendar, as if opened from the Settings overview, so Back leads
+     through Connections to Settings. */
+  function openCalendarSettings() {
+    var t;
+    cancelLook(); S.err = null;
+    while (S.stack.length > 1 && (t = top()) && t.id !== 'settings') pop();
+    if (top().id === 'settings') top().f.id = 'connections';
+    S.settingsFocus = 'connections';
+    openAppearance('connections'); openAppearance('calendar');
   }
   function dateInfoSummary() {
     var on = [];
@@ -3421,7 +3445,7 @@
     appearanceEl.setAttribute('aria-modal', 'true');
     if (t.id === 'wallpaper') { renderWallpaper(t); return; }
     V.appearance.norm(t);
-    appearanceEl.className = 'appearance settings-v2 detail-' + t.group + (PREVIEW_GROUPS[t.group] ? '' : ' no-preview') + (metroOn() ? ' is-metro' : '');
+    appearanceEl.className = 'appearance settings-v2 detail-' + t.group + (PREVIEW_GROUPS[t.group] ? '' : ' no-preview') + (metroOn() ? ' is-metro' : '') + (metroOn() && Date.now() < pivotSlide.until ? ' slide-' + pivotSlide.dir + (pivotSlide.n % 2) : '');
     appearanceRows.className = 'appearance-rows';
     if (metroOn()) {
       /* The page's name, then its pivot neighbours dimmed: the pages Left and Right lead to. */
@@ -3447,7 +3471,7 @@
     }
     setHTML(appearanceStatus, status);
     hint = t.drop ? T('Apply · Back closes the list') : selected.select ? T('Show the choices') : '';
-    if (!hint) hint = selected.disabled ? '' : selected.action === 'settings.back' ? T('Return to {0}', backLabel(t)) : T(selected.action === 'settings.retry' ? 'Retry this change' : selected.axis ? 'Apply selected setting' : selected.action === 'background.wallpaper' ? 'Choose a wallpaper' : selected.action === 'background.rotation' ? 'Choose a rotation interval' : selected.action === 'background.custom' || selected.action === 'alexa.connect' || selected.action === 'spotify.connect' ? 'Show the QR code' : /^(alexa\.list|conn)\./.test(selected.action) || selected.action === 'region.dateinfo' ? 'Open' : selected.action === 'calendar.connect' ? 'Show the QR code' : selected.action === 'spotify.signout' ? 'Sign out of Spotify' : selected.action === 'alexa.signout' ? 'Sign out of Alexa' : 'Open on the TV');
+    if (!hint) hint = selected.disabled ? '' : selected.action === 'settings.back' ? T('Return to {0}', backLabel(t)) : T(selected.action === 'settings.retry' ? 'Retry this change' : selected.axis ? 'Apply selected setting' : selected.action === 'background.wallpaper' ? 'Choose a wallpaper' : selected.action === 'background.rotation' ? 'Choose a rotation interval' : selected.action === 'background.custom' || selected.action === 'alexa.connect' || selected.action === 'spotify.connect' ? 'Show the QR code' : /^(alexa\.list|conn)\./.test(selected.action) || selected.action === 'region.dateinfo' || selected.action === 'dateinfo.calendars' ? 'Open' : selected.action === 'calendar.connect' ? 'Show the QR code' : selected.action === 'spotify.signout' ? 'Sign out of Spotify' : selected.action === 'alexa.signout' ? 'Sign out of Alexa' : 'Open on the TV');
     setHTML(appearanceDesc, (hint ? '<span class="remote-key">OK</span><span>' + esc(hint) + '</span>' : '')
       + (metroOn() && !t.drop && pivotOf(t.group).length > 1 ? '<span class="remote-key pivot-key">◀ ▶</span><span>' + esc(T('Other pages')) + '</span>' : ''));
   }

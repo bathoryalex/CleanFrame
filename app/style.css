@@ -1280,3 +1280,25 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000}
 .appearance.is-metro.settings-v2 .set-row.is-focus .set-value{color:#3b5fa8}
 .appearance.is-metro.settings-v2 .set-row>.ico,.appearance.is-metro.settings-v2 .set-row>.setting-swatch,.appearance.is-metro.settings-v2 .set-row>.setting-tick{grid-row:1 / span 2}
 .appearance.is-metro .pivot-key{margin-left:18px;min-width:0;padding:0 8px}
+/* 0.42: tile values wrap onto a second line instead of ending in "…". */
+.mt-value{white-space:normal;overflow:visible;text-overflow:clip;display:block}
+.mt-name{text-overflow:clip}
+/* 0.42: moving along a pivot slides: the title strip and the rows come in from the side you moved to
+   (two keyframe names per side, so a second move restarts the animation). */
+@keyframes pv-next-a{from{opacity:0;transform:translate3d(160px,0,0)}to{opacity:1;transform:translate3d(0,0,0)}}
+@keyframes pv-next-b{from{opacity:0;transform:translate3d(160px,0,0)}to{opacity:1;transform:translate3d(0,0,0)}}
+@keyframes pv-prev-a{from{opacity:0;transform:translate3d(-160px,0,0)}to{opacity:1;transform:translate3d(0,0,0)}}
+@keyframes pv-prev-b{from{opacity:0;transform:translate3d(-160px,0,0)}to{opacity:1;transform:translate3d(0,0,0)}}
+@keyframes pv-rows-next-a{from{opacity:0;transform:translate3d(70px,0,0)}to{opacity:1;transform:translate3d(0,0,0)}}
+@keyframes pv-rows-next-b{from{opacity:0;transform:translate3d(70px,0,0)}to{opacity:1;transform:translate3d(0,0,0)}}
+@keyframes pv-rows-prev-a{from{opacity:0;transform:translate3d(-70px,0,0)}to{opacity:1;transform:translate3d(0,0,0)}}
+@keyframes pv-rows-prev-b{from{opacity:0;transform:translate3d(-70px,0,0)}to{opacity:1;transform:translate3d(0,0,0)}}
+.appearance.slide-next0 .settings-title{animation:pv-next-a 320ms cubic-bezier(.22,1,.28,1) both}
+.appearance.slide-next1 .settings-title{animation:pv-next-b 320ms cubic-bezier(.22,1,.28,1) both}
+.appearance.slide-prev0 .settings-title{animation:pv-prev-a 320ms cubic-bezier(.22,1,.28,1) both}
+.appearance.slide-prev1 .settings-title{animation:pv-prev-b 320ms cubic-bezier(.22,1,.28,1) both}
+.appearance.slide-next0 .appearance-rows{animation:pv-rows-next-a 320ms cubic-bezier(.22,1,.28,1) 30ms both}
+.appearance.slide-next1 .appearance-rows{animation:pv-rows-next-b 320ms cubic-bezier(.22,1,.28,1) 30ms both}
+.appearance.slide-prev0 .appearance-rows{animation:pv-rows-prev-a 320ms cubic-bezier(.22,1,.28,1) 30ms both}
+.appearance.slide-prev1 .appearance-rows{animation:pv-rows-prev-b 320ms cubic-bezier(.22,1,.28,1) 30ms both}
+@media(prefers-reduced-motion:reduce){.appearance[class*=" slide-"] .settings-title,.appearance[class*=" slide-"] .appearance-rows{animation:none}}

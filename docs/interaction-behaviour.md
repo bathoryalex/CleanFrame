@@ -323,7 +323,7 @@ Sentence choice for the song fact is now scored instead of taking the first matc
 
 - **Tomorrow in the evening**: the day panel shows today's events that are still on (all-day events count all day), at most three. From 18:00 it also shows tomorrow's first two under a TOMORROW heading, with at most two of today's above. When today has nothing left, tomorrow's first three show at any time, as before. Before, an all-day event today kept tomorrow's events off Home all day.
 - **Event size**: calendar events are 20 px, as large as the calendar's name chip (they were 26–28 px, larger than the name days above them).
-- **Calendar colours**: each calendar's dot colour can be chosen in Date details → the calendar → Colour on Home: blue, pink, green, yellow, orange, red, purple, teal or white. The default stays by position (blue, pink, green). The colour is kept with the calendar (`cleanframe.calendar.v1`, so backups carry it).
+- **Calendar colours**: each calendar's dot colour can be chosen in Date details → the calendar → Colour on Home (Connections → Calendar since 0.42): blue, pink, green, yellow, orange, red, purple, teal or white. The default stays by position (blue, pink, green). The colour is kept with the calendar (`cleanframe.calendar.v1`, so backups carry it).
 
 ## 0.39.1
 
@@ -351,4 +351,11 @@ Events are one grid, so names, times and titles line up in columns across both d
 - **Pivots**: a page opened from the overview shows its name and its group's other pages dimmed beside it, with a short underline under the current one. Above sits a small SETTINGS label, which is the Back row. On a row, Left and Right move to the previous or next page of the pivot, with no wrap. Back returns to the overview with that page's tile focused. The pivots are Background · Layout · Style, Wi‑Fi QR · Date and time, and Connections · System. Pages opened from another page (Rotation, Alexa, Spotify, Date details, Wallpaper) stand alone. An open list still closes with Left, as before.
 - **Rows**: the name is thin Geist 32 px with the current value under it (21 px, soft blue), the chevron on the right.
 - Original is unchanged.
+
+## 0.42
+
+- **Calendars moved to Connections.** Connections lists Calendar beside Alexa and Spotify (its value names the connected calendars). Its page holds Calendar on Home, the calendars (name, colour, disconnect), Add another calendar and when it was last read. Date details keep the holidays and name days, plus a **Calendars** row ("Set in Connections"). OK on it goes to Connections → Calendar as if opened from the Settings overview, so Back leads through Connections to Settings. The Connections card and tile also count the calendar.
+- **Pivot slide** (Metro look): moving to another page slides the title strip in by 160 px and the rows by 70 px, with a fade, from the side you moved towards (320 ms, transform and opacity only; none with reduced motion).
+- **System pivot order**: System, then Connections, the order the tiles read.
+- **Tile values wrap** onto a second line instead of ending in "…".
 
