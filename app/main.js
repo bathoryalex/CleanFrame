@@ -4,7 +4,7 @@
 
   /* ---------- Bundled data ---------- */
   var ASSETS = 'assets/', ICONS = ASSETS + 'icons/', WP = ASSETS + 'wallpapers/';
-  var APP_VERSION = '0.47.0';
+  var APP_VERSION = '0.48.0';
   var CAP = 9, SCRIM_Y = 560, DOCK_BOTTOM = 1032; // the Dock sits 48 px above the bottom edge; names and actions go above it
   var DOCK_MODES = { both: { tw: 288, th: 200, pitch: 296 }, text: { tw: 288, th: 104, pitch: 296 }, icons: { tw: 200, th: 156, pitch: 206 } }; // icons-only tiles leave room under the icon for the focused app's name
   var GRID_ROW = 240, GRID_COL = 344, COLS = 5;
@@ -53,7 +53,7 @@
   }
   // The slot joins the gallery before preferences are read, so a saved choice of it survives.
   (function () { try { var saved = JSON.parse(localStorage.getItem(KEY) || 'null'); if (FCW && saved && saved.customAt) addCustomWall(saved.customTone); } catch (e) { /* none saved */ } }());
-  var QA = window.ShoreQA = { minuteMs: window.ShoreQA && window.ShoreQA.minuteMs || 60000 };
+  var QA = window.ShoreQA = { minuteMs: window.ShoreQA && window.ShoreQA.minuteMs || 60000, instantSheets: !!(window.ShoreQA && window.ShoreQA.instantSheets) };
   var FONTS = {
     manrope: { name: 'Manrope', family: 'Manrope', display: 600, ui: 500, clock: 500 },
     montreal: { name: 'Neue Montreal', family: 'Study Montreal', display: 300, ui: 400, clock: 300 },
@@ -1025,7 +1025,6 @@
         if (k === 'left' && f.i > 0) f.i--;
         else if (k === 'right' && f.i < nh - 1) f.i++;
         else if (k === 'right' && metroOn()) pivotTo(t, 1);
-        else if (k === 'up') f.zone = 'head';
         else if (k === 'down' && no) { f.zone = 'add'; f.j = clamp(Math.round((edHomeX(f.i, nh) - ED.x) / (ED.aw + ED.agap)) + (t.top || 0) * ED.cols, 0, no - 1); }
         else if (k === 'ok' && nh) { t.menu = true; f.m = 0; }
       } else {
@@ -1034,7 +1033,7 @@
         else if (k === 'down' && f.j + ED.cols < no) f.j += ED.cols;
         else if (k === 'down' && Math.floor(f.j / ED.cols) < Math.floor((no - 1) / ED.cols)) f.j = no - 1;
         else if (k === 'up' && f.j >= ED.cols) f.j -= ED.cols;
-        else if (k === 'up') { f.zone = nh ? 'home' : 'head'; f.i = clamp(Math.round((f.j % ED.cols) * (ED.aw + ED.agap) / (ED.tw + ED.gap)), 0, Math.max(0, nh - 1)); }
+        else if (k === 'up' && nh) { f.zone = 'home'; f.i = clamp(Math.round((f.j % ED.cols) * (ED.aw + ED.agap) / (ED.tw + ED.gap)), 0, Math.max(0, nh - 1)); }
         else if (k === 'ok') { begin(); editorAdd(t, O[f.j]); }
       }
     },
@@ -3420,20 +3419,43 @@
      scrollers let transforms animate. */
   /* Opening a sheet from Home (Settings, All apps, a message …) fades it in over Home and lets its content
      settle into place, like the Wi‑Fi QR card, instead of cutting. Opacity and transform only. */
-  var sheetOpenTimer = null, sheetOpenUntil = 0;
+  /* Opening a sheet from Home (Settings, All apps …) the way the Wi‑Fi QR card opens, which is smooth on
+     the TV: a light, always-present curtain (the same pre-blurred picture and shade the sheet uses, or on
+     Dark its colour) fades in over Home first (220 ms, opacity only). The sheet is laid out meanwhile but
+     not painted (visibility: hidden); once the curtain covers Home it appears on top of it, identical
+     behind its content, and only its content fades in (200 ms). Then the curtain goes. Browser checks
+     open sheets at once (ShoreQA.instantSheets) so their steps do not wait on the animation. */
+  var sheetOpenTimer = null, sheetRevealTimer = null, sheetOpenUntil = 0, curtain = null;
+  function syncCurtain(on) {
+    var img;
+    if (!curtain) {
+      curtain = document.createElement('div'); curtain.className = 'sheet-curtain'; curtain.setAttribute('aria-hidden', 'true');
+      curtain.innerHTML = '<img class="sheet-curtain-bg" alt=""><div class="sheet-curtain-shade"></div>';
+      sheetEl.parentNode.insertBefore(curtain, sheetEl);
+    }
+    img = curtain.firstChild;
+    if (S.c.bg === 'photo' && IMG.bg.src && img._src !== IMG.bg.src) { img._src = IMG.bg.src; img.src = IMG.bg.src; }
+    if (on !== undefined) curtain.className = 'sheet-curtain' + (on ? ' is-on' : '');
+  }
+  function endSheetOpening() {
+    clearTimeout(sheetOpenTimer); clearTimeout(sheetRevealTimer); sheetOpenUntil = 0;
+    stage.classList.remove('sheet-opening'); sheetEl.classList.remove('is-waiting'); sheetEl.classList.remove('is-revealing');
+    syncCurtain(false);
+  }
   function renderSheet(t, sheet) {
     var v = V[t.id], key, wasHidden = sheetEl.hidden;
     sheetEl.hidden = !(sheet || isSettingsDetail(t));
-    if (sheetEl.hidden && sheetOpenUntil) { clearTimeout(sheetOpenTimer); sheetOpenUntil = 0; stage.classList.remove('sheet-opening'); sheetEl.classList.remove('is-opening'); sheetEl.classList.remove('is-pre'); }
-    if (wasHidden && !sheetEl.hidden) {
-      /* The sheet waits invisible for two frames, so its content is laid out and painted before the fade
-         starts; then only opacity and a translate animate, on layers of their own. */
-      clearTimeout(sheetOpenTimer);
-      sheetEl.classList.remove('is-opening'); sheetEl.classList.add('is-pre');
-      sheetOpenUntil = Date.now() + 460; stage.classList.add('sheet-opening');
-      var raf = window.requestAnimationFrame || function (f) { return setTimeout(f, 16); };
-      raf(function () { raf(function () { sheetEl.classList.remove('is-pre'); sheetEl.classList.add('is-opening'); }); });
-      sheetOpenTimer = setTimeout(function () { sheetEl.classList.remove('is-opening'); sheetEl.classList.remove('is-pre'); stage.classList.remove('sheet-opening'); }, 480);
+    syncCurtain();
+    if (sheetEl.hidden && sheetOpenUntil) endSheetOpening();
+    if (wasHidden && !sheetEl.hidden && !QA.instantSheets) {
+      endSheetOpening();
+      sheetOpenUntil = Date.now() + 700; stage.classList.add('sheet-opening');
+      sheetEl.classList.add('is-waiting');
+      syncCurtain(true);
+      sheetRevealTimer = setTimeout(function () {
+        sheetEl.classList.remove('is-waiting'); sheetEl.classList.add('is-revealing');
+        sheetOpenTimer = setTimeout(endSheetOpening, 230);
+      }, 240);
     }
     sheetView.hidden = !sheet;
     if (sheet) sheetView.setAttribute('aria-modal', 'true');
@@ -3661,7 +3683,7 @@
         + '<div class="row-cue grid-before" data-slot="before" aria-hidden="true">' + icon('up') + '</div><div class="row-cue grid-after" data-slot="after" aria-hidden="true">' + icon('down') + '</div>';
     },
     editor: function () {
-      return '<h2 class="s-title editor-title" data-slot="title">' + T('Apps on Home') + '</h2><div class="s-head" data-slot="head"></div>'
+      return '<h2 class="s-title editor-title" data-slot="title">' + T('Apps on Home') + '</h2>'
         + '<p class="ed-label ed-label-home" data-slot="lh"></p><div class="ed-row" data-slot="home"></div><div class="ed-cut" data-slot="cut"><span>' + T('Then scroll') + '</span></div><div class="ed-menu" data-slot="menu" role="menu"></div>'
         + '<p class="ed-label ed-label-add">' + T('Add to Home') + '</p><div class="ed-add-view" data-slot="ov"><div class="ed-add" data-slot="other"></div></div>'
         + '<div class="row-cue editor-before" data-slot="otherBefore" aria-hidden="true">' + icon('up') + '</div><div class="row-cue editor-after" data-slot="otherAfter" aria-hidden="true">' + icon('down') + '</div>'
@@ -3750,8 +3772,6 @@
       var f = t.f, H = t.lifted ? t.lifted.order : S.c.home, O = otherGroups(), list = O.recent.concat(O.rest), n = H.length, cut = editorCut(), rows, keys = '', status, mi, mx;
       setHTML(el.title, esc(T('Apps on Home')));
       sheetView.className = 'view ed-view' + (metroOn() ? ' is-metro' : '') + (metroOn() && Date.now() < pivotSlide.until ? ' slide-' + pivotSlide.dir + (pivotSlide.n % 2) : '');
-      setHTML(el.head, headButtons([['undo', T('Undo'), S.undo.length ? '' : 'is-idle', 'undo'], ['done', T('Done'), '', 'check']], f.zone === 'head' && !t.menu ? f.h : -1, 'editor'));
-      el.head.className = 's-head' + (f.zone === 'head' ? ' is-awake' : '');
       setHTML(el.lh, esc(T('On Home')) + ' <span class="s-count">' + esc(T('{0} of {1}', S.c.home.length, CAP)) + '</span>');
       /* The Home row: tiles slide when one is moved or removed. */
       keyed(el.home, H.map(function (id) { return { key: id, id: id }; }), function (tile, it, i) {
@@ -3796,7 +3816,7 @@
       else if (t.menu) keys = '<span class="remote-key">OK</span><span>' + esc(T('Choose')) + '</span><span class="remote-key">BACK</span><span>' + esc(T('Close')) + '</span>';
       else if (f.zone === 'home') keys = '<span class="remote-key">OK</span><span>' + esc(T('Move or remove')) + '</span>';
       else if (f.zone === 'add') keys = '<span class="remote-key">OK</span><span>' + esc(T(S.c.home.length >= CAP ? FULL : 'Add to Home')) + '</span>';
-      else if (f.h === 0) keys = '<span class="remote-key">OK</span><span>' + esc(undoCaption()) + '</span>';
+      if (!t.lifted && !t.menu) keys += '<span class="remote-key">BACK</span><span>' + esc(T('Done')) + '</span>';
       setHTML(el.sub, (status && status !== '' ? '<span class="ed-note">' + status + '</span>' : '') + '<span class="ed-keys">' + keys + '</span>');
     },
     settings: function (t, el) {

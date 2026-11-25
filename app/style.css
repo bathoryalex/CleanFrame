@@ -1453,3 +1453,19 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000}
 /* Metro tiles: every icon tile draws its icon large and thin like "Aa" and "EN", without a glass chip. */
 .mt-icon{left:18px;top:14px;width:auto;height:auto;border-radius:0;background:none}
 .mt-icon .ico{width:80px;height:80px;stroke-width:1.05}
+/* ---------- 0.48: the curtain a sheet opens behind (see renderSheet) ---------- */
+.sheet-curtain{position:absolute;left:0;top:0;width:1920px;height:1080px;z-index:11;pointer-events:none;visibility:hidden;transition:visibility 0s linear 240ms}
+.sheet-curtain.is-on{visibility:visible;transition-delay:0s}
+.sheet-curtain-bg,.sheet-curtain-shade{position:absolute;left:0;top:0;width:1920px;height:1080px;opacity:0;transition:opacity 220ms linear;will-change:opacity}
+.sheet-curtain-bg{max-width:none;object-fit:cover}
+.sheet-curtain-shade{background:rgba(8,12,14,.42)}
+.bg-dark .sheet-curtain-bg{display:none}
+.bg-dark .sheet-curtain-shade{background:#0f1416}
+.sheet-curtain.is-on .sheet-curtain-bg,.sheet-curtain.is-on .sheet-curtain-shade{opacity:1}
+/* While it opens, the sheet stacks above Home's clock and song (z-index 3) and the curtain. */
+.sheet.is-waiting{visibility:hidden;z-index:12}
+.sheet.is-revealing{z-index:12}
+.sheet.is-revealing .view{animation:sheet-layer-in 200ms linear both}
+/* Apps on Home: monochrome icons that are pictures (Nuvio, HBO Max, SmartThings, Internet …) turn dark on
+   a light, focused tile like the drawn ones (Xbox, Nintendo) do. */
+.i-minimal .ed-tile.is-focus .mark img,.i-minimal .ed-tile.is-lifted .mark img,.i-minimal .ed-add-tile.is-focus .mark img{filter:brightness(0);opacity:.86}

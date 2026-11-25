@@ -42,13 +42,14 @@ async function run(name, fn) {
 async function closePage() { if (current) { current.__closing = true; await current.close(); current = null; } }
 
 // Production still calls its unmodified device.js adapter.
-function installHarness({ seed, legacy, mock, catalog, minuteMs, catalogFailure, noFontAPI, storageFailure }) {
+function installHarness({ seed, legacy, mock, catalog, minuteMs, catalogFailure, noFontAPI, storageFailure, animatedSheets }) {
   if (!sessionStorage.getItem('__cleanframe_seeded')) {
     if (seed !== undefined) localStorage.setItem('cleanframe.home.v1', typeof seed === 'string' ? seed : JSON.stringify(seed));
     if (legacy !== undefined) localStorage.setItem('cleanframe.shore.v1', typeof legacy === 'string' ? legacy : JSON.stringify(legacy));
     sessionStorage.setItem('__cleanframe_seeded', '1');
   }
-  window.ShoreQA = { minuteMs };
+  // Sheets open at once in the checks; the run about the opening animation turns it on.
+  window.ShoreQA = { minuteMs, instantSheets: !animatedSheets };
   window.__failWrites = !!storageFailure;
   window.__storageAttempts = 0;
   const set = Storage.prototype.setItem;
@@ -414,7 +415,6 @@ try {
     check('Remove persists membership and keeps installation', !(await stored()).dock.includes('youtube') && (await current.evaluate(() => __tv.catalog.some(a => a.id === '9Ur5IzDKqV.TizenYouTube'))));
     check('Focus follows removal into addable apps', (await state()).focusAction === 'editor.add.youtube', (await state()).focusAction);
     await nav('ok'); check('Second OK restores same position', same((await stored()).dock, start));
-    await remove('youtube'); await act('editor.undo'); check('Undo persists previous membership', same((await stored()).dock, start));
     await act('editor.tile.youtube'); await act('editor.move.youtube'); await nav('right'); check('Unfinished move does not write', same((await stored()).dock, start));
     await nav('back'); check('Back cancels unfinished move', same((await state()).dock, start));
     await act('editor.tile.youtube'); await act('editor.move.youtube'); await nav('right', 'ok');
@@ -1050,10 +1050,10 @@ try {
     const cut = await current.evaluate(() => { const b = document.querySelector('.ed-cut'), tiles = [...document.querySelectorAll('.ed-tile')], r = e => e.getBoundingClientRect();
       return { on: b.classList.contains('is-on'), between: r(b).left > r(tiles[6]).right && r(b).right < r(tiles[7]).left, scrolled: tiles.map(t => t.classList.contains('is-scrolled')).join() }; });
     check('In the Modern dock seven apps fit, so the scroll line sits after the seventh of eight', cut.on && cut.between && cut.scrolled === 'false,false,false,false,false,false,false,true', cut);
-    await nav('up');
-    check('Up from the Home row reaches Done', (await call('where')).focusAction === 'editor.done');
-    await nav('right'); await current.waitForTimeout(300);
-    check('Right past Done goes on to Wi‑Fi QR', (await state()).settingsGroup === 'wifiqr');
+    check('Apps on Home has no Undo or Done: Back keeps what was changed', await current.evaluate(() => !document.querySelector('[data-action="editor.undo"],[data-action="editor.done"]')));
+    for (let k = 0; k < 9 && (await call('where')).view === 'editor'; k++) await nav('right');
+    await current.waitForTimeout(300);
+    check('Right past the last app goes on to Wi‑Fi QR', (await state()).settingsGroup === 'wifiqr');
     await nav('back'); await current.waitForTimeout(200);
     check('Back from there returns to the overview on the Wi‑Fi QR tile', await current.evaluate(() => document.querySelector('.metro-tile.is-focus').getAttribute('data-id')) === 'wifiqr');
     await current.evaluate(() => ShoreQA.activate('settings.group.connections')); await current.waitForTimeout(200); await act('conn.alexa'); await current.waitForTimeout(200);
@@ -1071,6 +1071,25 @@ try {
     check('With seven apps, all of them fit the Modern dock and no scroll line shows', await current.evaluate(() => ShoreQA.state().home.length === 7 && !document.querySelector('.ed-cut').classList.contains('is-on')));
     await page({ seed: baseline({ dockStyle: 'modern', focus: 'type' }) }); await scene('home'); await current.waitForTimeout(300);
     check('Type focus in the Modern dock dims the other apps', await current.evaluate(() => getComputedStyle(document.querySelector('.dock .tile:not(.is-focus) .tile-content')).opacity === '0.55'));
+  });
+  await run('Sheets open behind a curtain, like the Wi‑Fi QR card', async () => {
+    await page({ animatedSheets: true, seed: baseline({ settingsLook: 'metro' }) }); await scene('home'); await current.waitForTimeout(400);
+    const trace = await current.evaluate(() => new Promise(done => {
+      const out = [], t0 = performance.now(), clock = document.querySelector('.caption .clock').getBoundingClientRect();
+      ShoreQA.activate('util.settings');
+      (function tick() {
+        const sh = document.getElementById('sheet'), cur = document.querySelector('.sheet-curtain-shade'), v = document.getElementById('sheetView');
+        const top = document.elementFromPoint(clock.left + clock.width / 2, clock.top + clock.height / 2);
+        out.push({ t: Math.round(performance.now() - t0), curtain: +getComputedStyle(cur).opacity, sheetShown: getComputedStyle(sh).visibility === 'visible' && !sh.hidden, view: +getComputedStyle(v).opacity, clockOnTop: !!(top && top.closest('.caption')) });
+        if (performance.now() - t0 < 750) requestAnimationFrame(tick); else done(out);
+      })();
+    }));
+    const firstShown = trace.find(f => f.sheetShown);
+    check('The curtain covers Home before the sheet shows', !!firstShown && trace.filter(f => f.t < firstShown.t).some(f => f.curtain > 0.3 && f.curtain < 1) && firstShown.t >= 200, trace.filter((f, i) => i % 4 === 0));
+    check('The sheet content then fades in on top', trace.some(f => f.sheetShown && f.view > 0.1 && f.view < 0.95) && trace[trace.length - 1].view === 1, trace.filter((f, i) => i % 4 === 0));
+    check('Home\'s clock never shows over the opening sheet', trace.filter(f => f.sheetShown).every(f => !f.clockOnTop), trace.filter(f => f.sheetShown && f.clockOnTop));
+    await current.waitForTimeout(300);
+    check('Afterwards the curtain is gone and the sheet is plain', await current.evaluate(() => !document.querySelector('.sheet-curtain').classList.contains('is-on') && !/is-waiting|is-revealing/.test(document.getElementById('sheet').className)));
   });
   await run('Spotify phone page sends the code back to the TV', async () => {
     const phone = await preview.browser.newPage({ viewport: { width: 390, height: 844 } }), posts = [];

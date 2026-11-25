@@ -397,3 +397,18 @@ Events are one grid, so names, times and titles line up in columns across both d
 - **Sheets open like the Wi‑Fi QR card.** A TV video showed the real problem: during the fade, Home's clock and dock showed through the incoming Settings or All apps content, so two busy pictures mixed. Now the sheet's blurred backdrop (on Dark, its solid colour) fades in first and covers Home (220 ms). Only then does the content fade in (200 ms, starting at 170 ms), and Home is hidden again at about 460 ms. Measured in the browser frame by frame: backdrop 0 → 1 by 260 ms; content 0 until then, 1 by 450 ms. Opacity only.
 - **Metro icon tiles** (Layout, Wi‑Fi QR, System) draw their icon large and thin (80 px, 1.05 stroke) at the top left, like "Aa" on Style and "EN" on Language, instead of a small icon on a glass chip.
 
+## 0.48
+
+- **Sheets open behind a curtain, the way the Wi‑Fi QR card does.** A second TV video showed that 0.47 did not work there: Settings appeared at once, and All apps still mixed with Home. Two causes:
+  - Making the large sheet visible and animating it in the same moment was too much work for the TV.
+  - Home's clock and song (z-index 3) stacked above the sheet while Home stayed visible underneath.
+
+  Now:
+  1. A light curtain, always present like the Wi‑Fi QR backdrop, fades in over Home in 220 ms. It holds the same pre-blurred picture and shade as the sheet, or on Dark the sheet's colour.
+  2. Meanwhile the sheet is laid out but not painted (`visibility: hidden`), stacked at z-index 12 above Home and the curtain.
+  3. At 240 ms it appears, identical behind its content, and only the content fades in (200 ms). Then the curtain is switched off.
+
+  A check traces every frame: the curtain is part-way in before the sheet shows (not before 200 ms), the content then fades in, and Home's clock is never on top of the open sheet. The other browser checks open sheets at once (`ShoreQA.instantSheets`), so their steps do not wait on the animation.
+- **Apps on Home**: no Undo or Done. Every change is saved as it is made, and Back leaves; the bottom line shows "BACK Done". In the Metro look, Right past the last app goes on along the pivot.
+- **Dark icons on a light tile**: with Minimal icons, the picture icons (Nuvio, HBO Max, SmartThings, Internet …) turn dark on the focused or lifted tile like the drawn ones (Xbox, Nintendo), through `filter: brightness(0)` on those images only.
+
