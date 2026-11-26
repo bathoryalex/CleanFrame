@@ -1475,3 +1475,37 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000}
 .sheet.is-revealing .view{opacity:1;animation:none;transition:opacity 220ms linear}
 /* 0.50: switched off, the curtain disappears at once (no opacity or visibility transition). */
 .sheet-curtain.is-instant,.sheet-curtain.is-instant .sheet-curtain-bg,.sheet-curtain.is-instant .sheet-curtain-shade{transition:none}
+/* 0.51 Kifli: the next delivery, a card beside the song in the same glass. A green van; amber when
+   Kifli says the order is late; a tick for half an hour after Kifli reports it delivered. */
+.music{display:flex;align-items:stretch;gap:14px}
+.cap-kifli{display:flex;align-items:center;gap:16px;margin:14px 0 0 -14px;padding:10px 24px 10px 12px;border-radius:22px;white-space:nowrap;text-shadow:0 1px 3px rgba(0,0,0,.22);transition:background-color 140ms linear,box-shadow 160ms linear;text-align:left;pointer-events:auto}
+.music .cap-kifli{margin:0}
+.f-type .cap-kifli{transition:transform 160ms var(--ease)}
+.f-type .cap-kifli.is-focus{transform:scale(1.04)}
+.kifli-mark{flex:none;width:68px;height:68px;border-radius:12px;display:flex;align-items:center;justify-content:center;background:#a9d4a3;color:#16331d;box-shadow:0 6px 18px rgba(4,8,10,.22)}
+.kifli-mark .ico{width:40px;height:40px;stroke-width:1.8}
+.cap-kifli.is-late .kifli-mark{background:#efc98f;color:#3b2607}
+.cap-kifli.is-done .kifli-mark{background:rgba(255,255,255,.18);color:inherit}
+.kifli-text{display:flex;flex-direction:column}
+.kifli-k{font-size:22px;line-height:28px;opacity:.78}
+.kifli-t{font-size:30px;line-height:38px;font-weight:600;letter-spacing:-.3px;font-variant-numeric:tabular-nums}
+.has-clock-ink .cap-kifli:not(.is-focus),.has-adaptive-ink .cap-kifli:not(.is-focus){color:var(--tl-clock-ink,var(--tl-ink,var(--clock-ink,var(--ink))))}
+.l-dock .cap-kifli{background:rgba(12,16,18,.34);box-shadow:inset 0 0 0 1px rgba(255,255,255,.16);border-radius:16px;color:#f6f1e7}
+.bg-dark.l-dock .cap-kifli{background:rgba(255,255,255,.07);box-shadow:inset 0 0 0 1px rgba(255,255,255,.10)}
+.l-dock .cap-kifli.is-focus,.l-dock.f-type .cap-kifli.is-focus{transform:none;background:rgba(255,255,255,.14);box-shadow:inset 0 0 0 3px #fff,0 10px 28px rgba(4,8,10,.30)}
+.l-dock .caption .cap-kifli{margin:12px 0 0;align-self:flex-start}
+.stage.top-bar .music .cap-kifli{height:88px;padding:10px 24px 10px 10px;border-radius:16px;gap:14px;background:rgba(255,255,255,.07);box-shadow:none}
+.stage.top-bar .music .cap-kifli.is-focus{background:rgba(255,255,255,.18);box-shadow:inset 0 0 0 3px #fff,0 8px 22px rgba(4,8,10,.28)}
+.stage.top-bar .kifli-k{font-size:18px;line-height:23px}
+.stage.top-bar .kifli-t{font-size:26px;line-height:32px}
+/* The details sheet: Kifli's estimate large, its own message below, then when the TV last asked. */
+.kf{position:absolute;left:160px;top:170px;width:1180px;display:flex;flex-direction:column;align-items:flex-start;color:var(--ink,#f6f1e7)}
+.kf-k{font-size:26px;letter-spacing:.06em;text-transform:uppercase;opacity:.7}
+.kf-big{margin:10px 0 6px;font-size:112px;line-height:1.05;font-weight:600;letter-spacing:-2px;font-variant-numeric:tabular-nums}
+.kf-big.is-late{color:#f3cf96}
+.kf-slot{font-size:30px;opacity:.82}
+.kf-note{margin-top:44px;padding:26px 32px;border-radius:24px;background:rgba(255,255,255,.08);box-shadow:inset 0 0 0 1px rgba(255,255,255,.12);max-width:1180px}
+.kf-title{font-size:30px;font-weight:600;margin-bottom:8px}
+.kf-msg{font-size:26px;line-height:1.45;opacity:.85}
+.kf-meta{margin-top:26px;font-size:22px;opacity:.65}
+.kf .phone-acts{margin-top:40px}

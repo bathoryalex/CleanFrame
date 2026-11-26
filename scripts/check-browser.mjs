@@ -109,6 +109,7 @@ async function page(options = {}) {
     if (url.includes('/file/')) { const m = list.find(x => url.includes('/file/' + x.id + '.')); return m ? route.fulfill({ contentType: m.type || 'image/jpeg', headers: { 'Access-Control-Allow-Origin': '*' }, body: m.slice ? readFileSync(root + m.image).subarray(m.slice[0], m.slice[1]) : readFileSync(root + m.image) }) : route.fulfill({ status: 404 }); }
     if (url.includes('/framehome-cal-')) return route.fulfill({ contentType: 'application/x-ndjson', headers: { 'Access-Control-Allow-Origin': '*' }, body: current.__calMsg ? JSON.stringify({ id: 'c1', event: 'message', message: current.__calMsg }) + '\n' : '' });
     if (url.includes('/framehome-spotify-')) return route.fulfill({ contentType: 'application/x-ndjson', headers: { 'Access-Control-Allow-Origin': '*' }, body: current.__spotify && current.__spotify.code ? JSON.stringify({ id: 's1', event: 'message', message: JSON.stringify({ code: 'SPcode123' }) }) + '\n' : '' });
+    if (url.includes('/framehome-kifli-')) return route.fulfill({ contentType: 'application/x-ndjson', headers: { 'Access-Control-Allow-Origin': '*' }, body: current.__kifli && current.__kifli.code ? JSON.stringify({ id: 'k1', event: 'message', message: JSON.stringify({ code: 'KFcode123' }) }) + '\n' : '' });
     if (url.includes('/framehome-alexa-')) return route.fulfill({ contentType: 'application/x-ndjson', headers: { 'Access-Control-Allow-Origin': '*' }, body: current.__alexa && current.__alexa.code ? JSON.stringify({ id: 'a1', event: 'message', message: JSON.stringify({ code: 'ANtestCode123', domain: 'com' }) }) + '\n' : '' });
     const open = url.includes('poll=1') ? '' : JSON.stringify({ event: 'open' }) + '\n';
     const body = open + (relay && relay.ready() ? list.map(m => JSON.stringify({ id: m.id, time: 1, event: 'message', topic: 't', message: 'photo', tags: m.tags, title: m.title, attachment: { name: m.name || 'IMG_0001.jpg', type: m.type || 'image/jpeg', size: 1, url: 'https://ntfy.sh/file/' + m.id + '.jpg' } }) + '\n').join('') : '');
@@ -154,6 +155,33 @@ async function page(options = {}) {
     return route.fulfill({ status: 400, headers: amazon, body: '' });
   });
   // Spotify: token endpoint and the player API, answered locally.
+  // Kifli: a local stand-in for identity.kifli.hu (registration, tokens) and the MCP server (JSON-RPC).
+  const kday = (d => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'))(new Date());
+  current.__kifli = { code: false, registers: [], tokens: [], calls: [], sse: false, day: kday,
+    upcoming: { success: true, orders: [{ id: 1020000001, itemsCount: 25, deliveryType: 'COURIER', deliverySlot: { type: 'ON_TIME', timeRange: kday + ' 17:30-17:45' }, state: 'UPCOMING', items: [{ name: 'Sample bread' }], address: 'Sample street 1', deliveryNote: 'Sample note' }],
+      message: 'Found 1 upcoming orders.', deliveryAnnouncements: [{ type: 'positive', closable: false, title: 'Készül a rendelésed!', content: 'A termékeket most helyezzük a táskákba. A rendelésed várhatóan <span>17:22-kor</span> kézbesíti a futár. Nemsokára találkozunk!',
+        buttons: [{ text: 'A rendeléshez', link: '/felhasznalo/rendelesek?orderId=1020000001' }], updatedAt: '2026-11-26T13:49:19+01:00', isDelayed: false }] },
+    byId: { success: true, orders: [{ id: 1020000001, itemsCount: 25, state: 'DELIVERED', deliverySlot: { type: 'ON_TIME', timeRange: kday + ' 17:30-17:45' } }], message: 'Found 1 order.' } };
+  const kh = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type, accept, mcp-session-id, mcp-protocol-version', 'Access-Control-Allow-Methods': 'GET, POST', 'Access-Control-Expose-Headers': 'Mcp-Session-Id' };
+  await current.route('https://identity.kifli.hu/**', route => {
+    const r = route.request(), K = current.__kifli;
+    if (r.method() === 'OPTIONS') return route.fulfill({ status: 204, headers: kh });
+    if (r.url().endsWith('/connect/register')) { K.registers.push(JSON.parse(r.postData())); return route.fulfill({ status: 201, headers: kh, contentType: 'application/json', body: JSON.stringify({ client_id: 'fh-client-1', client_name: 'Frame Home' }) }); }
+    K.tokens.push(Object.fromEntries(new URLSearchParams(r.postData())));
+    return route.fulfill({ headers: kh, contentType: 'application/json', body: JSON.stringify({ access_token: 'KFaccess', refresh_token: 'KFrefresh', expires_in: 3600, token_type: 'Bearer' }) });
+  });
+  await current.route('https://mcp.kifli.hu/**', route => {
+    const r = route.request(), K = current.__kifli;
+    if (r.method() === 'OPTIONS') return route.fulfill({ status: 204, headers: kh });
+    const b = JSON.parse(r.postData() || '{}'), h = r.headers();
+    K.calls.push({ method: b.method, name: b.params && b.params.name, args: b.params && b.params.arguments, auth: h['authorization'], session: h['mcp-session-id'] || '', protocol: h['mcp-protocol-version'] || '' });
+    if (!b.id) return route.fulfill({ status: 202, headers: kh, body: '' });
+    if (b.method === 'initialize') return route.fulfill({ headers: { ...kh, 'Mcp-Session-Id': 'sess-1' }, contentType: 'application/json', body: JSON.stringify({ jsonrpc: '2.0', id: b.id, result: { protocolVersion: '2025-06-18', capabilities: { tools: {} }, serverInfo: { name: 'kifli', version: '1' } } }) });
+    const a = b.params.arguments || {}, data = a.order_id ? K.byId : K.upcoming;
+    const answer = JSON.stringify({ jsonrpc: '2.0', id: b.id, result: { content: [{ type: 'text', text: JSON.stringify({ result: data }) }] } });
+    if (K.sse) return route.fulfill({ headers: kh, contentType: 'text/event-stream', body: 'event: message\ndata: ' + answer + '\n\n' });
+    return route.fulfill({ headers: kh, contentType: 'application/json', body: answer });
+  });
   current.__spotify = { code: false, tokens: [], calls: [], playing: true, refuse: '' };
   const sp = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'content-type, authorization', 'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE' };
   await current.route('https://accounts.spotify.com/**', route => {
@@ -619,7 +647,7 @@ try {
   });
   await run('Spotify: phone sign-in, now playing and the remote', async () => {
     await page(); await group('connections');
-    check('Connections lists Alexa, Spotify and the calendar', same(await current.evaluate(() => [...document.querySelectorAll('[data-action^="conn."]')].map(e => e.getAttribute('data-action'))), ['conn.alexa', 'conn.spotify', 'conn.calendar']));
+    check('Connections lists Alexa, Spotify, the calendar and Kifli', same(await current.evaluate(() => [...document.querySelectorAll('[data-action^="conn."]')].map(e => e.getAttribute('data-action'))), ['conn.alexa', 'conn.spotify', 'conn.calendar', 'conn.kifli']));
     await act('conn.spotify'); await current.waitForFunction(() => ShoreQA.state().settingsGroup === 'spotify');
     check('Spotify settings go back to Connections', /Connections|Kapcsolatok/.test(await current.locator('.setting-back').first().textContent()));
     await act('spotify.connect');
@@ -1094,6 +1122,85 @@ try {
     check('Home\'s clock never shows over the opening sheet', trace.filter(f => f.sheetShown).every(f => !f.clockOnTop), trace.filter(f => f.sheetShown && f.clockOnTop));
     await current.waitForTimeout(300);
     check('Afterwards the curtain is gone and the sheet is plain', await current.evaluate(() => !document.querySelector('.sheet-curtain').classList.contains('is-on') && !/is-waiting|is-revealing/.test(document.getElementById('sheet').className)));
+  });
+  await run('Kifli: phone sign-in, the next delivery beside the song, details, delay and delivered', async () => {
+    await page(); await group('connections'); await act('conn.kifli');
+    await current.waitForFunction(() => ShoreQA.state().settingsGroup === 'kifli');
+    check('Kifli settings go back to Connections', /Connections|Kapcsolatok/.test(await current.locator('.setting-back').first().textContent()));
+    await act('kifli.connect');
+    await current.waitForFunction(() => document.querySelector('.phone-qr') && document.querySelector('.phone-qr')._payload);
+    const K = current.__kifli, url = await current.evaluate(() => document.querySelector('.phone-qr')._payload), frag = new URLSearchParams(url.split('#')[1]);
+    check('The TV registers itself once as a public client for the Kifli page', K.registers.length === 1 && same(K.registers[0].redirect_uris, ['https://bathoryalex.github.io/CleanFrame/kifli/']) && K.registers[0].token_endpoint_auth_method === 'none' && K.registers[0].client_name === 'Frame Home', K.registers);
+    check('The QR code opens the Kifli page with a channel, a challenge and the registered client id', url.startsWith('https://bathoryalex.github.io/CleanFrame/kifli/#t=framehome-kifli-') && /^[A-Za-z0-9_-]{43}$/.test(frag.get('c')) && frag.get('i') === 'fh-client-1', url);
+    K.code = true;
+    await current.waitForFunction(() => /Connected|Összekapcsolva/.test(document.querySelector('.phone-status').textContent), null, { timeout: 15000 });
+    const tok = K.tokens[0];
+    check('The code is exchanged with the verifier, the redirect address, the MCP resource and no secret', tok.grant_type === 'authorization_code' && tok.code === 'KFcode123' && tok.redirect_uri === 'https://bathoryalex.github.io/CleanFrame/kifli/'
+      && tok.client_id === 'fh-client-1' && tok.resource === 'https://mcp.kifli.hu/mcp' && createHash('sha256').update(tok.code_verifier).digest('base64url') === frag.get('c') && !tok.client_secret, tok);
+    check('Kifli tokens are stored apart from the preferences', await current.evaluate(() => /KFrefresh/.test(localStorage.getItem('cleanframe.kifli.v1') || '') && !/KFrefresh/.test(localStorage.getItem('cleanframe.home.v1'))));
+    await nav('ok'); await scene('home');
+    await current.waitForFunction(() => document.querySelector('.cap-kifli'));
+    check('MCP: initialize first, then fetch_orders for upcoming orders, with the token and the session', K.calls[0].method === 'initialize' && K.calls[0].auth === 'Bearer KFaccess' && K.calls[0].protocol === '2025-06-18'
+      && K.calls.some(c => c.method === 'tools/call' && c.args.order_type === 'upcoming' && c.session === 'sess-1') && K.calls.every(c => c.method === 'initialize' || c.method === 'notifications/initialized' || c.method === 'tools/call'), K.calls);
+    check('Only the read-only fetch_orders tool is called', K.calls.filter(c => c.method === 'tools/call').every(c => c.name === 'fetch_orders'), K.calls);
+    check('The card shows today and Kifli’s estimate', await current.evaluate(() => { const c = document.querySelector('.cap-kifli'); return /Kifli · (Today|Ma)/.test(c.querySelector('.kifli-k').textContent) && /(about|kb\.) 17:22/.test(c.querySelector('.kifli-t').textContent) && !!c.querySelector('.kifli-mark svg'); }));
+    check('The TV keeps no items, address or courier note', await current.evaluate(() => !/Sample (bread|street|note)/.test(JSON.stringify(localStorage)) && !/Sample (bread|street|note)/.test(document.body.innerHTML)));
+    await nav('up'); await nav('left');
+    check('Left from the first Home control focuses the Kifli card', (await call('where')).zone === 'kifli' && await current.evaluate(() => document.querySelector('.cap-kifli').classList.contains('is-focus')), await call('where'));
+    await nav('ok'); await current.waitForFunction(() => document.querySelector('.kf-big'));
+    check('OK opens the details: the estimate, the booked slot and Kifli’s own message', await current.evaluate(() => /(about|kb\.) 17:22/.test(document.querySelector('.kf-big').textContent) && /17:30–17:45/.test(document.querySelector('.kf-slot').textContent)
+      && document.querySelector('.kf-title').textContent === 'Készül a rendelésed!' && /várhatóan 17:22-kor kézbesíti/.test(document.querySelector('.kf-msg').textContent) && /25/.test(document.querySelector('.kf-meta').textContent)));
+    await nav('back');
+    check('Back closes the details', (await state()).view === 'home');
+    // Kifli says the order is late; the answer arrives as an event stream this time.
+    K.upcoming.deliveryAnnouncements[0].isDelayed = true; K.upcoming.deliveryAnnouncements[0].content = 'Sajnos késünk. A rendelésed várhatóan <span>17:58-kor</span> érkezik.'; K.sse = true;
+    await current.reload(); await ready(); await current.waitForFunction(() => document.querySelector('.cap-kifli.is-late'));
+    check('A late order turns the card amber and shows the new estimate', await current.evaluate(() => /(Delayed|Késik)/.test(document.querySelector('.kifli-k').textContent) && /17:58/.test(document.querySelector('.kifli-t').textContent)));
+    // Delivered: the order leaves the upcoming list and Kifli reports it delivered.
+    K.upcoming = { success: true, orders: [], message: 'Found 0 upcoming orders.', deliveryAnnouncements: [] }; K.sse = false;
+    await nav('up'); await nav('left'); await nav('ok');
+    await current.waitForFunction(() => document.querySelector('.cap-kifli.is-done') || /(Delivered|Kiszállítva)/.test((document.querySelector('.kf-big') || {}).textContent || ''), null, { timeout: 10000 });
+    check('After delivery Kifli is asked about that one order', K.calls.some(c => c.method === 'tools/call' && c.args.order_id === 1020000001));
+    await nav('back'); await current.waitForFunction(() => document.querySelector('.cap-kifli.is-done'));
+    check('The card says Delivered with a tick', await current.evaluate(() => /(Delivered|Kiszállítva)/.test(document.querySelector('.kifli-k').textContent) && !!document.querySelector('.cap-kifli.is-done .kifli-mark svg')));
+    await current.reload(); await ready(); await current.waitForTimeout(800);
+    check('With nothing on its way the card stays away', await current.evaluate(() => !document.querySelector('.cap-kifli')));
+    await group('connections'); await act('conn.kifli');
+    check('Settings say no delivery is on the way', await current.evaluate(() => /No delivery on the way|Nincs úton rendelés/.test(document.body.innerText)));
+    await act('kifli.signout'); await nav('right'); await nav('ok');
+    check('Sign out forgets the tokens but keeps the registration', await current.evaluate(() => { const k = JSON.parse(localStorage.getItem('cleanframe.kifli.v1')); return !k.refresh && !k.access && k.client === 'fh-client-1'; }));
+  });
+  await run('Kifli: the card shares the top Dock bar with the song', async () => {
+    await page({ seed: baseline({ topStyle: 'bar', controls: 'icons', clockPos: 'center', alexaSwitches: [{ id: 'amzn1.alexa.endpoint.lamp-1', name: 'Left lamp' }, { id: 'amzn1.alexa.endpoint.lamp-2', name: 'Right lamp' }, { id: 'amzn1.alexa.endpoint.lamp-3', name: 'Piano lamp' }, { id: 'amzn1.alexa.endpoint.plug-1', name: 'Fan' }] }) });
+    await current.evaluate(() => {
+      localStorage.setItem('cleanframe.alexa.v1', JSON.stringify({ serial: 'X', domain: 'com', site: 'com', refresh: 'Atzr|test', access: 'Atza|test', at: Date.now() }));
+      localStorage.setItem('cleanframe.spotify.v1', JSON.stringify({ refresh: 'AQtest', access: 'BQtest', until: Date.now() + 3600000 }));
+      localStorage.setItem('cleanframe.kifli.v1', JSON.stringify({ client: 'fh-client-1', redirect: 'https://bathoryalex.github.io/CleanFrame/kifli/', refresh: 'KFrefresh', access: 'KFaccess', until: Date.now() + 3600000 })); });
+    await current.reload(); await ready(); await current.waitForFunction(() => document.querySelector('.cap-music') && document.querySelector('.cap-kifli') && document.querySelector('.u-lamp'));
+    await current.waitForTimeout(300);
+    const r = await current.evaluate(() => { const b = e => { const x = e.getBoundingClientRect(); return { l: x.left, r: x.right, t: x.top, b: x.bottom }; };
+      return { music: b(document.querySelector('.cap-music')), kifli: b(document.querySelector('.cap-kifli')), util: b(document.querySelector('.utils .u')) }; });
+    check('Song, Kifli card and switches sit in one row without overlapping', r.music.r <= r.kifli.l && r.kifli.r <= r.util.l && Math.abs(r.music.t - r.kifli.t) < 2 && Math.abs(r.music.b - r.kifli.b) < 2, r);
+    await nav('up'); await nav('left');
+    check('Left from the first control reaches Kifli, then the song', (await call('where')).zone === 'kifli' && (await nav('left'), (await call('where')).zone === 'music'), await call('where'));
+    await nav('right');
+    check('Right from the song goes back to Kifli', (await call('where')).zone === 'kifli');
+  });
+  await run('Kifli phone page sends the code back to the TV', async () => {
+    const phone = await preview.browser.newPage({ viewport: { width: 390, height: 844 } }), posts = [];
+    await phone.route('https://ntfy.sh/**', async route => { const r = route.request(); posts.push({ url: r.url(), body: r.postData(), tags: r.headers()['tags'] }); await route.fulfill({ status: 200, headers: { 'Access-Control-Allow-Origin': '*' }, body: '{}' }); });
+    const pageUrl = 'file://' + root + 'docs/kifli/index.html', topic = 'framehome-kifli-abcdefghijklmnopqrst', challenge = 'B'.repeat(43);
+    try {
+      await phone.goto(pageUrl + '#t=' + topic + '&c=' + challenge + '&i=fh-client-1');
+      const go = new URL(await phone.getAttribute('#go', 'href'));
+      check('The sign-in link asks Kifli for a PKCE code for the MCP server, with the TV channel as state', go.origin + go.pathname === 'https://identity.kifli.hu/oauth2/authorize' && go.searchParams.get('code_challenge') === challenge
+        && go.searchParams.get('code_challenge_method') === 'S256' && go.searchParams.get('state') === topic && go.searchParams.get('client_id') === 'fh-client-1' && go.searchParams.get('resource') === 'https://mcp.kifli.hu/mcp' && go.searchParams.get('response_type') === 'code');
+      await phone.goto(pageUrl + '?code=KFcode-123_x&state=' + topic);
+      await phone.waitForFunction(() => /Done|Kész/.test(document.getElementById('status').textContent));
+      check('Back from Kifli the page posts only the code to the channel', posts.length === 1 && posts[0].url === 'https://ntfy.sh/' + topic && posts[0].body === '{"code":"KFcode-123_x"}' && posts[0].tags === 'frame-home-kifli', posts);
+      await phone.goto(pageUrl + '?code=KFcode&state=framehome-spotify-abcdefghijklmnopqrst');
+      check('A code for another channel is not sent', posts.length === 1);
+    } finally { await phone.close(); }
   });
   await run('Spotify phone page sends the code back to the TV', async () => {
     const phone = await preview.browser.newPage({ viewport: { width: 390, height: 844 } }), posts = [];

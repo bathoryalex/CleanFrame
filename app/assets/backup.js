@@ -20,7 +20,7 @@
 
   /* The storage keys that make up a backup. Weather and holiday caches are left out (they refill on
      their own), and only these exact names are ever written back on restore. */
-  var KEYS = ['cleanframe.home.v1', 'cleanframe.alexa.v1', 'cleanframe.spotify.v1', 'cleanframe.calendar.v1'];
+  var KEYS = ['cleanframe.home.v1', 'cleanframe.alexa.v1', 'cleanframe.spotify.v1', 'cleanframe.calendar.v1', 'cleanframe.kifli.v1'];
   var MAGIC = 'FHBK', VERSION = 1, ITERS = 20000, CHUNK = 1200;
 
   /* ---------- bytes and text ---------- */
@@ -112,7 +112,7 @@
   /* What a restore would change, for a short summary before the reload. */
   function describe(keys) {
     return { settings: !!(keys && keys['cleanframe.home.v1']), alexa: !!(keys && keys['cleanframe.alexa.v1']),
-      spotify: !!(keys && keys['cleanframe.spotify.v1']), calendar: !!(keys && keys['cleanframe.calendar.v1']) };
+      spotify: !!(keys && keys['cleanframe.spotify.v1']), calendar: !!(keys && keys['cleanframe.calendar.v1']), kifli: !!(keys && keys['cleanframe.kifli.v1']) };
   }
 
   /* ---------- relay: small numbered parts ---------- */

@@ -34,6 +34,7 @@ Screenshots come from the browser preview with sample data (sample songs, apps, 
 - **Backgrounds.** A photograph or dark. Seventeen bundled wallpapers with pre-rendered glass, optional rotation, and **Your picture**: send any photo or short looping video from your phone and it becomes the background (see below).
 - **Wi‑Fi QR.** A Home control (a Wi‑Fi icon with a small QR mark) that shows a QR code so guests can join your Wi‑Fi. The network name and password are entered on the TV and never leave it.
 - **Spotify.** What is playing on any of your Spotify devices, with the cover and progress, and a large Now playing screen with lyrics and seeking. The remote's Play/Pause button plays or pauses, Fast-forward and Rewind skip (see below).
+- **Kifli.** Your next Kifli grocery delivery on a card beside the song: the day, and Kifli's own estimated arrival ("about 17:22") or else the booked time slot; amber when Kifli says the order is late, a tick for half an hour after it is delivered. OK opens the details with Kifli's message. Read only, through Kifli's official MCP server.
 - **Alexa.** Up to three readings (temperature, humidity) beside the clock, up to four switches among the Home controls (six with the top Dock bar), named groups of lights, and remote buttons assigned to a light or a group. Works with any device in your Alexa app, including Matter devices paired to an Echo (see below).
 - **Remote buttons.** The red, green, yellow and blue buttons, CH +, CH − and Guide can each switch a light or group, control Spotify or open any app. A row of chips above the apps shows what they do.
 - **Back to Home.** Coming back to Frame Home from another app always lands on the Home screen with the apps focused. While Frame Home is already open, the TV does not tell the app that its Home button was pressed (checked with the remote test), so that button cannot close open panels; a remote button set to **Home screen** can.
@@ -85,6 +86,18 @@ Settings → **Connections** → **Spotify** → **Connect Spotify** shows a QR 
 - It uses the official [Spotify Web API](https://developer.spotify.com/documentation/web-api) with Authorization Code and PKCE, so there is no client secret. The app is registered at developer.spotify.com by the owner of this fork; its client id and the redirect URI (`https://bathoryalex.github.io/CleanFrame/spotify/`) are in [`app/fork.js`](app/fork.js). Since February 2026 a Development Mode app needs its owner to have Premium and allows five users. Liked Songs uses the `user-library-read` and `user-library-modify` scopes, added in 0.37: sign out of Spotify and connect again once to use the heart.
 - The code Spotify returns travels to the TV through ntfy.sh and is useless without the PKCE verifier that stays on the TV. Tokens are kept on the TV, apart from the preferences; **Sign out of Spotify** forgets them, and the access can be removed in your Spotify account settings.
 
+## Kifli
+
+Settings → **Connections** → **Kifli** → **Connect Kifli** shows a QR code. Scan it, tap **Sign in with Kifli** on the [sign-in page](docs/kifli/index.html), sign in and allow access; Kifli returns to the page, which sends the sign-in to the TV by itself.
+
+- **The card** sits beside the song (in the top Dock bar or the top row), or under it when the clock is in the corner. It shows *Kifli · Today* (or Tomorrow, or the date) and Kifli's estimate, for example *about 17:22*; without an estimate, the booked slot. It turns amber with *Delayed* when Kifli flags the order as late, and shows *Delivered* with a tick for half an hour once Kifli reports the order delivered. With nothing on its way there is no card. Settings → Kifli → *Next delivery on Home* hides it.
+- **OK on the card** opens the details: the estimate in large type, the day and the booked slot, Kifli's own message (for example *Készül a rendelésed!*), the number of items and when the TV last asked.
+- **What Kifli tells and what it doesn't.** The estimate is the time in Kifli's delivery message, which Kifli only sends while the order is being prepared or delivered. Kifli gives no courier position, so there is no map or live tracking.
+- **How often.** Every 2 minutes from two hours before the slot until two hours after it, every 5 minutes on the day, otherwise every 30 (15 with nothing ordered); never while Frame Home is hidden.
+- It uses Kifli's official [MCP server](https://www.kifli.hu/mcp-docs) (`https://mcp.kifli.hu/mcp`) and calls only its read-only `fetch_orders` tool. Sign-in is OAuth with PKCE against `identity.kifli.hu`: the TV registers itself there once as a public client named *Frame Home* (no secret), and the code Kifli returns travels to the TV through ntfy.sh, useless without the verifier that stays on the TV.
+- The TV keeps the tokens apart from the preferences, and from each answer only the order number, state, slot, item count and Kifli's message: no items, address or courier note. **Sign out of Kifli** forgets the tokens.
+- Tested in the browser preview against a local stand-in for Kifli's servers. Whether the TV runtime lets the sign-in through to `identity.kifli.hu` is only known on the TV.
+
 ## Date details
 
 Settings → Date and time → **Date details** (they also show when the date itself is off):
@@ -95,7 +108,7 @@ Settings → Date and time → **Date details** (they also show when the date it
 
 ## Backup and restore
 
-Settings → System → **Create a backup** saves everything the TV keeps — the look and layout, the Wi‑Fi QR, and the Alexa, Spotify and calendar sign-ins — as one encrypted file, so a reinstall (for example after a TV software update) does not mean setting it all up again.
+Settings → System → **Create a backup** saves everything the TV keeps — the look and layout, the Wi‑Fi QR, and the Alexa, Spotify, calendar and Kifli sign-ins — as one encrypted file, so a reinstall (for example after a TV software update) does not mean setting it all up again.
 
 You type a **pass-phrase** on the TV; the TV encrypts the file with it (key stretched from the pass-phrase with repeated SHA-256 over a random salt, body XORed with the keystream SHA-256(key | nonce | counter), a MAC to catch a wrong pass-phrase). A QR code opens the [backup page](docs/backup/index.html) on your phone, which receives the already-encrypted file through a private ntfy.sh channel (in small numbered parts) and lets you **save or share** it anywhere — Google Drive, Files, or email it to yourself. **Restore from a backup** shows a QR code to the same page; you pick the saved file, the page sends it back, and the TV asks for the pass-phrase, writes the settings back and reloads. The pass-phrase and the readable settings never leave the TV; the relay and the saved file only ever hold ciphertext, so keep the file *and* the pass-phrase safe — you need both.
 

@@ -30,7 +30,7 @@
   }
   window.FrameText = T;
   /* Saved preferences outside the appearance bundle: they apply at once and load nothing. */
-  var PREF_VALUES = { lang: ['en', 'hu'], clock: ['24', '12'], date: ['off', 'on'], clockPos: ['corner', 'center', 'large'], weather: ['off', 'now', 'day'], spotifyShow: ['on', 'off'], keyHints: ['auto', 'pressed', 'always', 'off'], switchStyle: ['both', 'icons', 'text'], clockStyle: ['classic', 'thin', 'led', 'flip'], seconds: ['off', 'on'], layoutView: ['dock', 'tiles', 'modern'], holidays: ['off', 'on'], namedays: ['off', 'on'], calShow: ['on', 'off'], topStyle: ['cards', 'bar'], settingsLook: ['original', 'metro'] };
+  var PREF_VALUES = { lang: ['en', 'hu'], clock: ['24', '12'], date: ['off', 'on'], clockPos: ['corner', 'center', 'large'], weather: ['off', 'now', 'day'], spotifyShow: ['on', 'off'], kifliShow: ['on', 'off'], keyHints: ['auto', 'pressed', 'always', 'off'], switchStyle: ['both', 'icons', 'text'], clockStyle: ['classic', 'thin', 'led', 'flip'], seconds: ['off', 'on'], layoutView: ['dock', 'tiles', 'modern'], holidays: ['off', 'on'], namedays: ['off', 'on'], calShow: ['on', 'off'], topStyle: ['cards', 'bar'], settingsLook: ['original', 'metro'] };
   var PREF_NAMES = { en: 'English', hu: 'Magyar', '24': '24-hour', '12': '12-hour', corner: 'Corner', center: 'Centre', large: 'Large', off: 'Off', on: 'On', now: 'Basic', day: 'Full', both: 'Both', icons: 'Icons', text: 'Text', classic: 'Classic', thin: 'Thin', led: 'LED', flip: 'Flip', list: 'List', dock: 'Dock', tiles: 'Tiles', modern: 'Modern dock', cards: 'Separate widgets', bar: 'Dock', original: 'Original', metro: 'Metro' };
   WALLS.forEach(function (w) { w.ut = w.ut || { tr: 'light', br: 'light' }; w.frostVeil = w.frostVeil || .12; });
   var MODES = [
@@ -45,6 +45,7 @@
   var CAL_PAGE = window.FrameFork && window.FrameFork.calendarPage || '';
   var BACKUP_PAGE = window.FrameFork && window.FrameFork.backupPage || '', FB = window.FrameBackup || null;
   var SPOTIFY_PAGE = window.FrameFork && window.FrameFork.spotify && window.FrameFork.spotify.page || '', FS = window.FrameSpotify && window.FrameSpotify.configured ? window.FrameSpotify : null;
+  var KIFLI_PAGE = window.FrameFork && window.FrameFork.kifli && window.FrameFork.kifli.page || '', FK = window.FrameKifli && window.FrameKifli.configured ? window.FrameKifli : null;
   var custom = { urls: null, stamp: 0, phase: 'idle', name: '', busy: false, queued: null, seen: {}, sets: {}, lost: false, percent: 0, stillMsg: null, link: 'idle', detail: '', relay: null };
   function addCustomWall(tone) {
     var w = wall(CUSTOM);
@@ -76,6 +77,7 @@
     groupDelete: { title: 'Delete this group?', line: 'The lights stay in Alexa; only the group is removed.', note: '', actions: [['stay', 'Cancel'], ['groupdel', 'Delete']] },
     calendarOut: { title: 'Disconnect the calendar?', line: 'Frame Home forgets your calendar address.', note: 'To stop the address working anywhere, reset it in Google Calendar or Outlook.', actions: [['stay', 'Cancel'], ['calendarout', 'Disconnect']] },
     spotifyOut: { title: 'Sign out of Spotify?', line: 'Frame Home forgets your Spotify sign-in.', note: 'You can also remove its access in your Spotify account settings.', actions: [['stay', 'Cancel'], ['spotifyout', 'Sign out']] },
+    kifliOut: { title: 'Sign out of Kifli?', line: 'Frame Home forgets your Kifli sign-in.', note: 'Your Kifli account and orders are not affected.', actions: [['stay', 'Cancel'], ['kifliout', 'Sign out']] },
     alexaOut: { title: 'Sign out of Alexa?', line: 'Frame Home forgets your Alexa sign-in.', note: 'You can also remove “Frame Home” from the devices in your Amazon account.', actions: [['stay', 'Cancel'], ['alexaout', 'Sign out']] }
   };
   var SVG = {
@@ -107,6 +109,7 @@
     indoor: '<path d="M4 11 12 4.5l8 6.5v8a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1Z"/><path d="M12 10.5v5.2"/><circle cx="12" cy="16.6" r="1.4"/>',
     undo: '<path d="M9 6 5 10l4 4"/><path d="M5 10h9.5a4.5 4.5 0 0 1 0 9H11"/>',
     check: '<path d="m5.5 12.5 4 4 9-9"/>',
+    van: '<path d="M2.5 6.5h11v9.5h-11zM13.5 9.5h4l3.5 3.8v2.7h-7.5"/><circle cx="6.5" cy="17.5" r="1.9"/><circle cx="17" cy="17.5" r="1.9"/>',
     left: '<path d="m14.5 5-7 7 7 7"/>',
     right: '<path d="m9.5 5 7 7-7 7"/>',
     up: '<path d="m5 15.5 7-7 7 7"/>',
@@ -525,7 +528,7 @@
       customAt: typeof s.customAt === 'number' && wall(CUSTOM) ? s.customAt : 0, customTone: s.customTone === 'light' ? 'light' : 'dark',
       relayTopic: safeId(s.relayTopic) ? s.relayTopic : '', relayAt: typeof s.relayAt === 'number' ? s.relayAt : 0, relaySince: safeId(s.relaySince) ? s.relaySince : '',
       alexaReadings: cleanReadings(s), alexaSwitches: cleanSwitches(s), alexaGroups: cleanGroups(s.alexaGroups), alexaKeys: cleanKeys(s.alexaKeys), alexaIcons: cleanIcons(s.alexaIcons), alexaNames: cleanNames(s.alexaNames),
-      spotifyShow: pick(s.spotifyShow, PREF_VALUES.spotifyShow, 'on'), keyHints: pick(s.keyHints === 'on' || s.keyHints === 'top' ? 'auto' : s.keyHints, PREF_VALUES.keyHints, 'auto'), switchStyle: pick(s.switchStyle, PREF_VALUES.switchStyle, 'both'),
+      spotifyShow: pick(s.spotifyShow, PREF_VALUES.spotifyShow, 'on'), kifliShow: pick(s.kifliShow, PREF_VALUES.kifliShow, 'on'), keyHints: pick(s.keyHints === 'on' || s.keyHints === 'top' ? 'auto' : s.keyHints, PREF_VALUES.keyHints, 'auto'), switchStyle: pick(s.switchStyle, PREF_VALUES.switchStyle, 'both'),
       clockStyle: pick(s.clockStyle, PREF_VALUES.clockStyle, 'classic'), seconds: pick(s.seconds, PREF_VALUES.seconds, 'off'), dockStyle: s.dockStyle === 'tiles' || s.dockStyle === 'modern' ? s.dockStyle : 'shelf',
       holidays: pick(s.holidays, PREF_VALUES.holidays, 'off'), namedays: pick(s.namedays, PREF_VALUES.namedays, 'off'), calShow: pick(s.calShow, PREF_VALUES.calShow, 'on'), topStyle: pick(s.topStyle, PREF_VALUES.topStyle, 'cards'), settingsLook: pick(s.settingsLook, PREF_VALUES.settingsLook, 'original')
     };
@@ -570,7 +573,7 @@
     c.wifiSsid = S.c.wifiSsid; c.wifiPass = S.c.wifiPass; c.wifiSec = S.c.wifiSec;
     c.lang = S.c.lang; c.clock = S.c.clock; c.clockPos = S.c.clockPos; c.date = S.c.date; c.weather = S.c.weather;
     c.customAt = S.c.customAt; c.customTone = S.c.customTone; c.relayTopic = S.c.relayTopic; c.relayAt = S.c.relayAt; c.relaySince = S.c.relaySince;
-    c.alexaReadings = S.c.alexaReadings; c.alexaSwitches = S.c.alexaSwitches; c.alexaGroups = S.c.alexaGroups; c.alexaKeys = S.c.alexaKeys; c.alexaIcons = S.c.alexaIcons; c.alexaNames = S.c.alexaNames; c.spotifyShow = S.c.spotifyShow; c.keyHints = S.c.keyHints; c.switchStyle = S.c.switchStyle; c.clockStyle = S.c.clockStyle; c.seconds = S.c.seconds; c.dockStyle = S.c.dockStyle; c.holidays = S.c.holidays; c.namedays = S.c.namedays; c.calShow = S.c.calShow; c.topStyle = S.c.topStyle; c.settingsLook = S.c.settingsLook;
+    c.alexaReadings = S.c.alexaReadings; c.alexaSwitches = S.c.alexaSwitches; c.alexaGroups = S.c.alexaGroups; c.alexaKeys = S.c.alexaKeys; c.alexaIcons = S.c.alexaIcons; c.alexaNames = S.c.alexaNames; c.spotifyShow = S.c.spotifyShow; c.kifliShow = S.c.kifliShow; c.keyHints = S.c.keyHints; c.switchStyle = S.c.switchStyle; c.clockStyle = S.c.clockStyle; c.seconds = S.c.seconds; c.dockStyle = S.c.dockStyle; c.holidays = S.c.holidays; c.namedays = S.c.namedays; c.calShow = S.c.calShow; c.topStyle = S.c.topStyle; c.settingsLook = S.c.settingsLook;
     return c;
   }
   function snap() { return { home: S.c.home.slice(), recent: S.c.recent.slice() }; }
@@ -735,7 +738,7 @@
   function openSettings() { push({ id: 'settings', f: { id: S.settingsFocus } }); }
   function openAppearance(group) {
     var axis = { background: 'bg', layout: 'layout', typography: 'font', focus: 'focus', region: 'lang' }[group];
-    var action = S.detailFocus[group] || (axis ? 'choice.' + axis + '.' + S.c[axis] : group === 'rotation' ? 'rotation.' + S.c.mode : group === 'alexa' ? (alexaOn() ? 'alexa.list.readings' : 'alexa.connect') : group === 'spotify' ? (spotifyOn() ? 'choice.spotifyShow.' + S.c.spotifyShow : 'spotify.connect') : group === 'connections' ? (FA ? 'conn.alexa' : 'conn.spotify') : group === 'dateinfo' ? 'choice.holidays.' + S.c.holidays : group === 'calendar' ? (FC && FC.connected() ? 'choice.calShow.' + S.c.calShow : 'calendar.connect') : group === 'system' ? (FB && BACKUP_PAGE ? 'backup.create' : 'system.samsung') : 'wifi.edit.ssid');
+    var action = S.detailFocus[group] || (axis ? 'choice.' + axis + '.' + S.c[axis] : group === 'rotation' ? 'rotation.' + S.c.mode : group === 'alexa' ? (alexaOn() ? 'alexa.list.readings' : 'alexa.connect') : group === 'spotify' ? (spotifyOn() ? 'choice.spotifyShow.' + S.c.spotifyShow : 'spotify.connect') : group === 'kifli' ? (kifliOn() ? 'choice.kifliShow.' + S.c.kifliShow : 'kifli.connect') : group === 'connections' ? (FA ? 'conn.alexa' : FS ? 'conn.spotify' : FC ? 'conn.calendar' : 'conn.kifli') : group === 'dateinfo' ? 'choice.holidays.' + S.c.holidays : group === 'calendar' ? (FC && FC.connected() ? 'choice.calShow.' + S.c.calShow : 'calendar.connect') : group === 'system' ? (FB && BACKUP_PAGE ? 'backup.create' : 'system.samsung') : 'wifi.edit.ssid');
     push({ id: 'appearance', group: group, f: { action: action } });
   }
   function openWifiField(field) {
@@ -780,10 +783,20 @@
       var f = t.f, h = S.c.home, U = utils(), x = axes(), i = ensureSel();
       if (hdmiBack(k)) return;
       if (f.zone === 'music') {
-        if (!musicVisible()) f.zone = 'apps';
+        if (!musicVisible()) f.zone = kifliVisible() ? 'kifli' : 'apps';
         else {
           if (k === 'ok') openNowPlaying();
+          else if (k === 'right') { if (kifliVisible()) f.zone = 'kifli'; else { f.zone = 'util'; f.u = 0; } }
+          else if (k === 'down' || k === 'back') f.zone = 'apps';
+          return;
+        }
+      }
+      if (f.zone === 'kifli') {
+        if (!kifliVisible()) f.zone = 'apps';
+        else {
+          if (k === 'ok') openKifli();
           else if (k === 'right') { f.zone = 'util'; f.u = 0; }
+          else if (k === 'left' && musicVisible()) f.zone = 'music';
           else if (k === 'down' || k === 'back') f.zone = 'apps';
           return;
         }
@@ -791,7 +804,7 @@
       if (f.zone === 'util') {
         f.u = clamp(f.u, 0, U.length - 1);
         if (k === x.prev && f.u > 0) f.u--;
-        else if (k === x.prev && musicVisible()) f.zone = 'music';
+        else if (k === x.prev && (kifliVisible() || musicVisible())) f.zone = kifliVisible() ? 'kifli' : 'music';
         else if (k === x.next && f.u < U.length - 1) f.u++;
         else if (k === x.inn || k === 'back') f.zone = 'apps';
         else if (k === 'ok') { S.lastUtil = f.u; utilAction(U[f.u]); return; }
@@ -808,6 +821,7 @@
     },
     point: function (t, z, i) {
       if (z === 'music') { t.f.zone = 'music'; openNowPlaying(); return; }
+      if (z === 'kifli') { t.f.zone = 'kifli'; openKifli(); return; }
       if (z === 'util') { t.f.zone = 'util'; t.f.u = i; S.lastUtil = i; }
       else if (z === 'app') { t.f.zone = 'apps'; setSel(S.c.home[i]); }
       else if (z === 'empty') t.f.zone = 'apps';
@@ -1082,7 +1096,7 @@
       { id: 'region', icon: 'clock', label: T('Date and time'), value: T(PREF_NAMES[S.c.clock]) + (S.c.clockPos === 'corner' ? '' : ', ' + T(PREF_NAMES[S.c.clockPos])) },
       /* Two languages: OK on the tile switches between them, no page needed. */
       { id: 'lang', icon: 'lang', label: T('Language'), value: PREF_NAMES[S.c.lang], toggle: true }
-    ].concat(FA || FS || FC ? [{ id: 'connections', icon: 'alexa', label: T('Connections'), value: connectionsSummary() }] : []).concat([
+    ].concat(FA || FS || FC || FK ? [{ id: 'connections', icon: 'alexa', label: T('Connections'), value: connectionsSummary() }] : []).concat([
       { id: 'system', icon: 'home', label: T('System'), value: FB && BACKUP_PAGE ? T('Backup, Samsung Home') : T('Samsung Home') }]);
   }
   function settingsIds() { return settingsRows().map(function (r) { return r.id; }); }
@@ -1155,8 +1169,8 @@
   /* Short page names for the pivot strip (the page titles can be longer). */
   var PIVOT_NAMES = { editor: 'Apps on Home', wifiqr: 'Wi‑Fi QR', region: 'Date and time' };
   function pivotName(id) { return T(PIVOT_NAMES[id] || DETAIL_NAMES[id]); }
-  var METRO_PIVOTS = [['background', 'layout', 'typography'], ['editor', 'wifiqr', 'region'], ['system', 'connections'], ['alexa', 'spotify', 'calendar']];
-  function pivotAvailable(id) { return id === 'connections' ? !!(FA || FS || FC) : id === 'alexa' ? !!FA : id === 'spotify' ? !!FS : id === 'calendar' ? !!FC : true; }
+  var METRO_PIVOTS = [['background', 'layout', 'typography'], ['editor', 'wifiqr', 'region'], ['system', 'connections'], ['alexa', 'spotify', 'calendar', 'kifli']];
+  function pivotAvailable(id) { return id === 'connections' ? !!(FA || FS || FC || FK) : id === 'kifli' ? !!FK : id === 'alexa' ? !!FA : id === 'spotify' ? !!FS : id === 'calendar' ? !!FC : true; }
   function pivotOf(group) { var g = group === 'focus' ? 'typography' : group, out = [g]; METRO_PIVOTS.forEach(function (p) { if (p.indexOf(g) >= 0) out = p.filter(pivotAvailable); }); return out; }
   function pivotTo(t, dir) {
     var here = t.id === 'editor' ? 'editor' : t.group === 'focus' ? 'typography' : t.group, list = pivotOf(here), to = list[list.indexOf(here) + dir], below;
@@ -1202,8 +1216,8 @@
     }
     pivotHead.className = 'pivot-head is-on' + (t.id === 'editor' ? ' has-label' : '');
   }
-  var DETAIL_NAMES = { editor: 'Apps on Home', calendar: 'Calendar', background: 'Background', layout: 'Layout', typography: 'Style', focus: 'Style', rotation: 'Rotation', region: 'Date and time', wifiqr: 'Wifi QR code settings', alexa: 'Alexa', spotify: 'Spotify', connections: 'Connections', dateinfo: 'Date details', system: 'System' };
-  var PARENT = { rotation: 'background', alexa: 'connections', spotify: 'connections', calendar: 'connections', dateinfo: 'region' };
+  var DETAIL_NAMES = { editor: 'Apps on Home', calendar: 'Calendar', background: 'Background', layout: 'Layout', typography: 'Style', focus: 'Style', rotation: 'Rotation', region: 'Date and time', wifiqr: 'Wifi QR code settings', alexa: 'Alexa', spotify: 'Spotify', kifli: 'Kifli', connections: 'Connections', dateinfo: 'Date details', system: 'System' };
+  var PARENT = { rotation: 'background', alexa: 'connections', spotify: 'connections', kifli: 'connections', calendar: 'connections', dateinfo: 'region' };
   function backLabel(t) { return T(PARENT[t.group] ? DETAIL_NAMES[PARENT[t.group]] : 'Settings'); }
   function choice(axis, value, disabled) {
     return { action: axis === 'mode' ? 'rotation.' + value : axis === 'wifiSec' ? 'wifi.sec.' + value : 'choice.' + axis + '.' + value, axis: axis, value: value, disabled: !!disabled,
@@ -1252,6 +1266,7 @@
     if (t.group === 'alexa') return alexaSections();
     if (t.group === 'spotify') return spotifySections();
     if (t.group === 'connections') return connectionsSections();
+    if (t.group === 'kifli') return kifliSections();
     if (t.group === 'dateinfo') return dateinfoSections();
     if (t.group === 'calendar') return calendarSections();
     if (t.group === 'wifiqr') return [
@@ -1314,6 +1329,7 @@
     if (axis === 'clockStyle' || axis === 'seconds') updateClock();
     if (axis === 'holidays' && value === 'on') loadHolidays(new Date().getFullYear(), function () { render(); });
     if (axis === 'spotifyShow') { if (value === 'off') spot.now = null; spotifyPoll(true); }
+    if (axis === 'kifliShow') kifliPoll(true);
   }
   function applyLanguage() {
     document.documentElement.lang = S.c.lang === 'hu' ? 'hu' : 'en';
@@ -1340,6 +1356,9 @@
     else if (item.action === 'alexa.connect') openPair('alexa');
     else if (item.action === 'spotify.connect') openPair('spotify');
     else if (item.action === 'spotify.signout') openMessage('spotifyOut');
+    else if (item.action === 'kifli.connect') openPair('kifli');
+    else if (item.action === 'kifli.signout') openMessage('kifliOut');
+    else if (item.action === 'conn.kifli') openAppearance('kifli');
     else if (item.action === 'conn.alexa') openAppearance('alexa');
     else if (item.action === 'region.dateinfo') openAppearance('dateinfo');
     else if (item.action === 'calendar.connect') openPair('calendar');
@@ -1437,6 +1456,7 @@
         else if (a === 'settings') { S.settingsFocus = 'wifiqr'; openSettings(); openAppearance('wifiqr'); }
         else if (a === 'alexaout') alexaForget();
         else if (a === 'spotifyout') spotifyForget();
+        else if (a === 'kifliout') kifliForget();
         else if (a === 'calendarout') calendarForget();
         else if (a === 'groupdel' && S.deleteGroup) { deleteGroup(S.deleteGroup); S.deleteGroup = null; }
       }
@@ -1718,12 +1738,14 @@
   var MUSIC_W = 570;
   /* The song sits in the top row when the clock is centred, and always in the top Dock bar. */
   function musicOnTop() { return S.c.clockPos !== 'corner' || S.c.topStyle === 'bar'; }
+  /* The Kifli card's width and the gap before it, when it shares the top row with the song. */
+  function kifliRoom() { var k = musicEl.querySelector('.cap-kifli'), sr = sceneEl.getBoundingClientRect(); return k ? Math.ceil(k.getBoundingClientRect().width / (sr.width / 1920 || 1)) + 14 : 0; }
   function fitMusic(inCorner) {
     var box = stage.querySelector('.cap-music'), first = utilsEl.querySelector('.u'), sr, scale, limit = MUSIC_W;
     if (!box) return;
     if (inCorner && first) {
       sr = sceneEl.getBoundingClientRect(); scale = sr.width / 1920 || 1;
-      limit = Math.max(320, Math.min(MUSIC_W, Math.floor((first.getBoundingClientRect().left - sr.left) / scale) - (S.c.topStyle === 'bar' ? 14 : 112) - 40));
+      limit = Math.max(320, Math.min(MUSIC_W, Math.floor((first.getBoundingClientRect().left - sr.left) / scale) - (S.c.topStyle === 'bar' ? 14 : 112) - 40 - kifliRoom()));
     }
     /* Always the same width, whatever the title, so the progress bar keeps its length. */
     if (box._limit !== limit) { box._limit = limit; box.style.width = limit + 'px'; box.style.maxWidth = limit + 'px'; }
@@ -2134,9 +2156,10 @@
     return [{ id: 'connections', title: '', items: [].concat(FA ? [{ action: 'conn.alexa', label: 'Alexa', description: !alexaOn() ? T('Not connected') : summary(S.c.alexaReadings.map(function (r) { return r.name; }).concat(liveTargets().map(targetName)).filter(function (n, i, a) { return n && a.indexOf(n) === i; }), 'Connected') }] : [])
       .concat(FS ? [{ action: 'conn.spotify', label: 'Spotify', description: !spotifyOn() ? T('Not connected') : spot.now ? spot.now.title + (spot.now.artist ? ' · ' + spot.now.artist : '') : T('Connected') }] : [])
       .concat(FC ? [{ action: 'conn.calendar', label: T('Calendar'), description: !FC.connected() ? T('Not connected') : summary(FC.list().map(function (c) { return c.name || T('Calendar {0}', c.index + 1); }), 'Connected') }] : [])
+      .concat(FK ? [{ action: 'conn.kifli', label: 'Kifli', description: !kifliOn() ? T('Not connected') : kif.next ? kifliLine(kif.next) : T('No delivery on the way') }] : [])
       .concat([{ action: 'alexa.list.keys', label: T('Remote buttons'), description: summary(SLOTS.filter(function (c) { return S.c.alexaKeys[c]; }).map(function (c) { return slotShort(c) + ': ' + targetName(S.c.alexaKeys[c]); }), 'Colour buttons, CH +, CH −, Guide') }]) }];
   }
-  function connectionsSummary() { var on = []; if (alexaOn()) on.push('Alexa'); if (spotifyOn()) on.push('Spotify'); if (FC && FC.connected()) on.push(T('Calendar')); return on.length ? on.join(', ') : T('Not connected'); }
+  function connectionsSummary() { var on = []; if (alexaOn()) on.push('Alexa'); if (spotifyOn()) on.push('Spotify'); if (FC && FC.connected()) on.push(T('Calendar')); if (kifliOn()) on.push('Kifli'); return on.length ? on.join(', ') : T('Not connected'); }
   function spotifyForget() {
     var keys = {};
     FS.forget(); clearTimeout(spot.timer); spot.timer = null; spot.now = null; spot.err = '';
@@ -2144,12 +2167,97 @@
     savePrefs({ alexaKeys: keys }, 'Spotify sign-out');
   }
 
+  /* ---------- Kifli: the next grocery delivery ----------
+     Read only, through Kifli's official MCP server (assets/kifli.js). The card sits beside the song:
+     the day, and Kifli's own estimate ("about 17:22") or else the booked slot. Kifli says nothing
+     about where the courier is, so neither does the card. */
+  var kif = { next: null, err: '', timer: null, pair: null, phase: 'idle', url: '', detail: '', at: 0, done: null, doneTimer: null };
+  function kifliOn() { return !!(FK && FK.connected()); }
+  function kifliErrText(err) { return err === 'revoked' ? T('The Kifli sign-in no longer works. Connect again in Settings.') : T('Kifli didn’t answer ({0}).', err); }
+  function kfTime(hm) { var p = String(hm || '').split(':'), h = +p[0]; if (S.c.clock === '12') h = h % 12 || 12; return p.length > 1 ? h + ':' + p[1] : ''; }
+  function kfDate(day) { var p = day.split('-'); return new Date(+p[0], +p[1] - 1, +p[2]); }
+  function kfAt(slot, hm) { var d = kfDate(slot.day), p = hm.split(':'); d.setHours(+p[0], +p[1], 0, 0); return d.getTime(); }
+  function kfDay(day) {
+    var d = kfDate(day), today = new Date(), diff;
+    today.setHours(0, 0, 0, 0); diff = Math.round((d.getTime() - today.getTime()) / 86400000);
+    if (diff === 0) return T('Today');
+    if (diff === 1) return T('Tomorrow');
+    return S.c.lang === 'hu' ? (MONTHS.hu[d.getMonth()] + ' ' + d.getDate() + '.') : d.getDate() + ' ' + MONTHS.en[d.getMonth()];
+  }
+  function kfSlot(n) { return kfTime(n.slot.from) + '–' + kfTime(n.slot.to); }
+  /* Kifli's estimate when it gives one, else the booked slot. */
+  function kfWhen(n) { return n.eta ? T('about {0}', kfTime(n.eta)) : kfSlot(n); }
+  function kifliLine(n) { return kfDay(n.slot.day) + ' · ' + kfWhen(n) + (n.delayed ? ' · ' + T('Delayed') : ''); }
+  function kifliDoneOn() { return !!(kif.done && Date.now() - kif.done.at < 30 * 60000); }
+  function kifliVisible() { return !!(kifliOn() && S.c.kifliShow !== 'off' && (kif.next || kifliDoneOn())); }
+  /* Every 2 minutes from two hours before the slot until two hours after it, every 5 on the day,
+     otherwise every 30 (15 with nothing ordered); nothing while hidden. */
+  function kifliDelay() {
+    var n = kif.next, now = Date.now(), start;
+    if (kif.err) return kif.err === 'revoked' ? 30 * 60000 : 5 * 60000;
+    if (!n) return 15 * 60000;
+    start = kfAt(n.slot, n.slot.from);
+    if (now > start - 2 * 3600000 && now < kfAt(n.slot, n.slot.to) + 2 * 3600000) return 2 * 60000;
+    return kfDay(n.slot.day) === T('Today') ? 5 * 60000 : 30 * 60000;
+  }
+  function kifliPoll(when) {
+    clearTimeout(kif.timer); kif.timer = null;
+    if (!kifliOn() || document.hidden || S.c.kifliShow === 'off') return;
+    kif.timer = setTimeout(function () {
+      kif.timer = null;
+      FK.next(function (err, n) {
+        var gone = !err && kif.next && (!n || n.id !== kif.next.id) ? kif.next : null;
+        if (err) kif.err = err; else { kif.err = ''; kif.next = n; kif.at = Date.now(); }
+        /* The order left the upcoming list: say "Delivered" for half an hour, but only if Kifli says so. */
+        if (gone) FK.delivered(gone.id, function (e, yes) {
+          if (e || !yes) return;
+          kif.done = { id: gone.id, at: Date.now() }; clearTimeout(kif.doneTimer);
+          kif.doneTimer = setTimeout(render, 30 * 60000 + 1000); render();
+        });
+        if (!kif.timer) kifliPoll(kifliDelay());
+        render();
+      });
+    }, when === true ? 0 : typeof when === 'number' ? when : 60000);
+  }
+  function kifliSections() {
+    if (!kifliOn()) return [{ id: 'kifli-account', title: T('Account'), items: [{ action: 'kifli.connect', label: T('Connect Kifli'), description: T('Sign in on your phone') }],
+      reason: T('Shows your next Kifli delivery beside the song: the day, and Kifli’s estimated arrival or the booked time slot. Frame Home only reads your orders.') }];
+    return [
+      { id: 'kifliShow', title: T('Next delivery on Home'), horizontal: true, items: [choice('kifliShow', 'on'), choice('kifliShow', 'off')],
+        reason: kif.next ? T('Next: {0}.', kifliLine(kif.next)) : T('No delivery on the way. The card appears when you have one.') },
+      { id: 'kifli-account', title: T('Account'), items: [{ action: 'kifli.signout', label: T('Sign out of Kifli'), description: T('Frame Home forgets the sign-in') }],
+        reason: kif.err ? kifliErrText(kif.err) : '' }
+    ];
+  }
+  function kifliForget() {
+    FK.forget(); clearTimeout(kif.timer); kif.timer = null; kif.next = null; kif.err = ''; kif.done = null;
+    render();
+  }
+  /* The Home card. OK on it opens the delivery details. */
+  function kifliHtml(focus) {
+    var n = kif.next, small, big;
+    if (!kifliVisible()) return '';
+    if (n) { small = n.delayed ? T('Delayed') : kfDay(n.slot.day); big = kfWhen(n); }
+    else { small = T('Delivered'); big = fmtHM(kif.done.at); }
+    return '<span class="cap-kifli' + (n && n.delayed ? ' is-late' : '') + (n ? '' : ' is-done') + (focus ? ' is-focus' : '') + '" data-z="kifli" data-i="0" data-action="home.kifli" role="button" aria-label="' + esc('Kifli: ' + small + ', ' + big) + '">'
+      + '<span class="kifli-mark">' + icon(n ? 'van' : 'check') + '</span><span class="kifli-text"><span class="kifli-k">Kifli · ' + esc(small) + '</span><span class="kifli-t">' + esc(big) + '</span></span></span>';
+  }
+  function openKifli() { push({ id: 'kifli', f: { b: 0 } }); kifliPoll(true); }
+  V.kifli = {
+    sheet: true,
+    key: function (t, k) { if (k === 'back' || k === 'ok') pop(); },
+    point: function (t, z) { if (z === 'act') this.key(t, 'ok'); }
+  };
+
   /* ---------- Phone sign-in screen, shared by Alexa and Spotify ---------- */
   function pairInfo(svc) {
     if (svc === 'calendar') return { st: cal, page: CAL_PAGE, title: 'Connect a calendar',
       steps: ['Scan the code with your phone.', 'Copy your calendar’s secret iCal address; the page shows where to find it in Google Calendar and Outlook.', 'Paste it on the page and send it.'],
       note: 'Your phone encrypts the address with a key from this QR code before it passes through ntfy.sh, so only this TV can read it. Frame Home only reads the calendar.',
       done: 'Connected. Your next events show under the date.' };
+    if (svc === 'kifli') return { st: kif, page: KIFLI_PAGE, title: 'Connect Kifli',
+      steps: ['Scan the code with your phone.', 'Sign in to Kifli on the page that opens and allow access.', 'Kifli returns to the page, which sends the sign-in to the TV by itself.'],
+      note: 'Your password goes only to Kifli. Frame Home only reads your upcoming delivery; it cannot order, change or cancel anything.', done: 'Connected. Your next delivery shows on Home beside the song.' };
     return svc === 'spotify' ? { st: spot, page: SPOTIFY_PAGE, title: 'Connect Spotify',
       steps: ['Scan the code with your phone.', 'Sign in to Spotify on the page that opens and allow access.', 'Spotify returns to the page, which sends the sign-in to the TV by itself.'],
       note: 'Your password goes only to Spotify. You can remove Frame Home’s access in your Spotify account settings.', done: 'Connected. What you play on Spotify now shows on Home.' }
@@ -2160,7 +2268,7 @@
   }
   function openPair(svc) {
     var p = pairInfo(svc), st = p.st;
-    if (svc === 'calendar' ? !FC : svc === 'spotify' ? !FS : !FA) return;
+    if (svc === 'calendar' ? !FC : svc === 'spotify' ? !FS : svc === 'kifli' ? !FK : !FA) return;
     if (st.pair) st.pair();
     st.phase = 'waiting'; st.url = ''; st.detail = '';
     if (!(top().id === 'pair' && top().mode === svc)) push({ id: 'pair', mode: svc, f: {} });
@@ -2168,10 +2276,10 @@
     function onCode() { st.phase = 'registering'; render(); }
     function done(err, id) {
       st.pair = null; st.phase = err ? 'failed' : 'done'; st.detail = err || ''; st.err = ''; st.added = err ? null : id || null;
-      if (svc === 'alexa') alexa.list = null; else if (svc === 'calendar') { if (!err) calendarPoll(15 * 60 * 1000); } else if (!err) spotifyPoll(true);
+      if (svc === 'alexa') alexa.list = null; else if (svc === 'calendar') { if (!err) calendarPoll(15 * 60 * 1000); } else if (svc === 'kifli') { if (!err) kifliPoll(true); } else if (!err) spotifyPoll(true);
       render();
     }
-    st.pair = svc === 'calendar' ? FC.pair(CAL_PAGE, RELAY, onUrl, onCode, done) : svc === 'spotify' ? FS.pair(RELAY, onUrl, onCode, done) : FA.pair(ALEXA_PAGE, RELAY, onUrl, onCode, done);
+    st.pair = svc === 'calendar' ? FC.pair(CAL_PAGE, RELAY, onUrl, onCode, done) : svc === 'spotify' ? FS.pair(RELAY, onUrl, onCode, done) : svc === 'kifli' ? FK.pair(RELAY, onUrl, onCode, done) : FA.pair(ALEXA_PAGE, RELAY, onUrl, onCode, done);
   }
   function closePair(svc) { var st = pairInfo(svc).st; if (st.pair) { st.pair(); st.pair = null; } pop(); }
   V.pair = {
@@ -3239,8 +3347,8 @@
     html += dayPanelHtml();
     /* With the clock in the centre, the song sits alone in the top-left corner. */
     var musicInCorner = musicOnTop();
-    if (musicInCorner) setHTML(musicEl, musicHtml(hs.zone === 'music'));
-    else { setHTML(musicEl, ''); html += musicHtml(hs.zone === 'music'); }
+    if (musicInCorner) setHTML(musicEl, musicHtml(hs.zone === 'music') + kifliHtml(hs.zone === 'kifli'));
+    else { setHTML(musicEl, ''); html += musicHtml(hs.zone === 'music') + kifliHtml(hs.zone === 'kifli'); }
     setHTML(keyLegend, keyLegendHtml());
     keyLegend.className = 'key-legend' + (legendOn() && legendRows().length ? ' is-on' : '');
     caption.setAttribute('data-weather', S.c.weather === 'off' || weather.temp === null ? '' : String(weather.temp));
@@ -3570,7 +3678,7 @@
     }
     setHTML(appearanceStatus, status);
     hint = t.drop ? T('Apply · Back closes the list') : selected.select ? T('Show the choices') : '';
-    if (!hint) hint = selected.disabled ? '' : selected.action === 'settings.back' ? T('Return to {0}', backLabel(t)) : T(selected.action === 'settings.retry' ? 'Retry this change' : selected.axis ? 'Apply selected setting' : selected.action === 'background.wallpaper' ? 'Choose a wallpaper' : selected.action === 'background.rotation' ? 'Choose a rotation interval' : selected.action === 'background.custom' || selected.action === 'alexa.connect' || selected.action === 'spotify.connect' ? 'Show the QR code' : /^(alexa\.list|conn)\./.test(selected.action) || selected.action === 'region.dateinfo' || selected.action === 'dateinfo.calendars' ? 'Open' : selected.action === 'calendar.connect' ? 'Show the QR code' : selected.action === 'spotify.signout' ? 'Sign out of Spotify' : selected.action === 'alexa.signout' ? 'Sign out of Alexa' : 'Open on the TV');
+    if (!hint) hint = selected.disabled ? '' : selected.action === 'settings.back' ? T('Return to {0}', backLabel(t)) : T(selected.action === 'settings.retry' ? 'Retry this change' : selected.axis ? 'Apply selected setting' : selected.action === 'background.wallpaper' ? 'Choose a wallpaper' : selected.action === 'background.rotation' ? 'Choose a rotation interval' : selected.action === 'background.custom' || selected.action === 'alexa.connect' || selected.action === 'spotify.connect' || selected.action === 'kifli.connect' ? 'Show the QR code' : /^(alexa\.list|conn)\./.test(selected.action) || selected.action === 'region.dateinfo' || selected.action === 'dateinfo.calendars' ? 'Open' : selected.action === 'calendar.connect' ? 'Show the QR code' : selected.action === 'spotify.signout' ? 'Sign out of Spotify' : selected.action === 'kifli.signout' ? 'Sign out of Kifli' : selected.action === 'alexa.signout' ? 'Sign out of Alexa' : 'Open on the TV');
     setHTML(appearanceDesc, (hint ? '<span class="remote-key">OK</span><span>' + esc(hint) + '</span>' : '')
       + (metroOn() && !t.drop && pivotOf(t.group).length > 1 ? '<span class="remote-key pivot-key">◀ ▶</span><span>' + esc(T('Other pages')) + '</span>' : ''));
   }
@@ -3588,7 +3696,7 @@
       if (r.id === 'editor') return '<span class="mt-apps">' + S.c.home.slice(0, 7).map(function (id) { return app(id) ? smallMark(app(id)) : ''; }).join('') + '</span>';
       if (r.id === 'connections') {
         n = FC && FC.list ? FC.list().length : 0;
-        return '<span class="mt-list">' + [FA ? [T('Alexa'), alexaOn()] : null, FS ? [T('Spotify'), spotifyOn()] : null, FC ? [n > 1 ? T('Calendars · {0}', n) : T('Calendar'), n > 0] : null]
+        return '<span class="mt-list">' + [FA ? [T('Alexa'), alexaOn()] : null, FS ? [T('Spotify'), spotifyOn()] : null, FC ? [n > 1 ? T('Calendars · {0}', n) : T('Calendar'), n > 0] : null, FK ? [kifliOn() && kif.next ? 'Kifli · ' + kfWhen(kif.next) : 'Kifli', kifliOn()] : null]
           .filter(Boolean).map(function (x) { return '<span class="mt-item' + (x[1] ? ' is-on' : '') + '"><i></i>' + esc(x[0]) + (x[1] ? '' : '<em>' + esc(T('Not connected')) + '</em>') + '</span>'; }).join('') + '</span>';
       }
       return '<span class="mt-icon">' + icon(r.icon) + '</span>';
@@ -3735,6 +3843,11 @@
         + '<div class="np-lyrics" data-slot="lyrics" aria-live="off"></div><div class="np-devices" data-slot="devices" role="dialog"></div>'
         + '<div class="np-factpanel" data-slot="factpanel" role="dialog" data-z="npfact" data-i="0"></div></div>';
     },
+    kifli: function () {
+      return '<div class="kf"><p class="kf-k">' + esc('Kifli · ' + T('Next delivery')) + '</p><h2 class="kf-big" data-slot="big"></h2><p class="kf-slot" data-slot="slot"></p>'
+        + '<div class="kf-note" data-slot="note"><p class="kf-title" data-slot="title"></p><p class="kf-msg" data-slot="msg"></p></div><p class="kf-meta" data-slot="meta"></p>'
+        + '<div class="phone-acts" data-slot="acts"></div></div>';
+    },
     alexalist: function () {
       return '<div class="alexa-pick"><h2 class="s-title" data-slot="title"></h2><p class="s-sub" data-slot="sub"></p><div class="alexa-list" data-slot="list"></div>'
         + '<div class="row-cue alexa-before" data-slot="before" aria-hidden="true">' + icon('up') + '</div><div class="row-cue alexa-after" data-slot="after" aria-hidden="true">' + icon('down') + '</div></div>';
@@ -3868,6 +3981,17 @@
       setHTML(el.url, esc(p.page.replace(/^https:\/\//, '').replace(/\/$/, '')));
       setHTML(el.status, '<span class="phone-dot is-' + dot + '"></span>' + esc(text));
       setHTML(el.acts, '<button type="button" tabindex="-1" class="btn is-focus" data-z="act" data-i="0" data-action="pair.ok"><span>' + T(st.phase === 'done' ? 'Done' : st.phase === 'failed' ? 'Try again' : 'Close') + '</span></button>');
+    },
+    kifli: function (t, el) {
+      var n = kif.next;
+      el.big.className = 'kf-big' + (n && n.delayed ? ' is-late' : '');
+      setHTML(el.big, esc(n ? kfWhen(n) : kifliDoneOn() ? T('Delivered') : T('No delivery on the way')));
+      setHTML(el.slot, esc(n ? kfDay(n.slot.day) + ' · ' + T('Booked slot {0}', kfSlot(n)) + (n.delayed ? ' · ' + T('Delayed') : '') : kifliDoneOn() ? T('Kifli reports it delivered (checked at {0}).', fmtHM(kif.done.at)) : ''));
+      setHTML(el.title, esc(n && n.title || ''));
+      setHTML(el.msg, esc(n && n.message || (n ? T('Kifli has not sent an estimate yet. The booked slot is shown.') : '')));
+      el.note.hidden = !n;
+      setHTML(el.meta, esc([n && n.items ? T('{0} items', n.items) : '', kif.at ? T('Checked at {0}', fmtHM(kif.at)) : '', kif.err ? kifliErrText(kif.err) : ''].filter(Boolean).join(' · ')));
+      setHTML(el.acts, '<button type="button" tabindex="-1" class="btn is-focus" data-z="act" data-i="0" data-action="kifli.close"><span>' + T('Close') + '</span></button>');
     },
     backup: function (t, el) {
       var exp = t.mode === 'export';
@@ -4220,7 +4344,7 @@
       pauseRotation(); clearTimeout(clockTimer); stopRelay(); syncVideo(); clearTimeout(alexa.timer); alexa.timer = null; clearTimeout(spot.timer); spot.timer = null; clearTimeout(secondTimer); clearTimeout(cal.timer);
       if (S.hdmiInApp) { S.hdmiInApp = false; if (FrameDevice.hideHdmiView) FrameDevice.hideHdmiView(); }
     }
-    else { goHome(); release(); after(); updateClock(); focusStage(); startRelay(); alexaPoll(true); spotifyPoll(true); showLegend(6000, true); dateDetails(); }
+    else { goHome(); release(); after(); updateClock(); focusStage(); startRelay(); alexaPoll(true); spotifyPoll(true); kifliPoll(true); showLegend(6000, true); dateDetails(); }
   });
   /* The remote's Home button (and any return to the app) always lands on the Home screen: every open
      panel is closed the way Back would close it, and focus goes to the apps (the last app stays
@@ -4302,7 +4426,7 @@
     setLook({}, { transient: true, startup: true });
     norm(); render(); fit(); focusStage(); updateClock(); syncRotation();
     refreshWeather(function () { render(); syncRotation(); });
-    alexaPoll(true); spotifyPoll(true); showLegend(6000, true); dateDetails();
+    alexaPoll(true); spotifyPoll(true); kifliPoll(true); showLegend(6000, true); dateDetails();
   }
   if (FCW && S.c.customAt) { FCW.persist(); loadCustom(function () { start(); startRelay(); }); } else { start(); startRelay(); }
 })();

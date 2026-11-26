@@ -10,7 +10,7 @@
       var text = '', json = null;
       try { text = x.responseText || ''; } catch (e) { text = ''; }
       try { json = JSON.parse(text); } catch (e) { json = null; }
-      done({ status: x.status, json: json, text: text });
+      done({ status: x.status, json: json, text: text, header: function (n) { try { return x.getResponseHeader(n); } catch (e) { return null; } } });
     }
     try {
       x.open(o.method || 'GET', o.url, true);
