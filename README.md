@@ -18,13 +18,13 @@ This repo uses [Nathan Clark's CleanFrame](https://github.com/nthnclrk/CleanFram
 
 | Settings — Original look | Settings — Metro look |
 | --- | --- |
-| ![Settings in the Original look: three framed columns, Personalization, Home and time, and System, each with three cards](docs/images/frame-home-settings.jpg) | ![Settings in the Metro look: lower-case group titles over live tiles of different sizes, a large Background tile with the wallpaper, Apps on Home with the minimal app icons, the time, the language code and a Connections tile listing Alexa, Spotify and the calendars](docs/images/frame-home-settings-metro.jpg) |
+| ![Settings in the Original look: three framed columns, Personalization, Home and time, and System, each with three cards](docs/images/frame-home-settings.jpg) | ![Settings in the Metro look: lower-case group titles over live tiles of different sizes, a large Background tile with the Desert stars wallpaper, Apps on Home with the minimal app icons, the time, the language code and a Connections tile listing Alexa, Spotify and the calendars](docs/images/frame-home-settings-metro.jpg) |
 
 | Metro pivot: Layout | Metro pivot: Apps on Home | Dock layout |
 | --- | --- | --- |
 | ![Metro pivot page: a steady ‹ Settings header over the pivot titles background, layout and style, the Bottom bar and Top bar dropdown rows on the left and a live preview of Home on the right](docs/images/frame-home-metro-layout.jpg) | ![Apps on Home in the Metro pivot: the apps on Home in a numbered row like the dock, a line where Home starts to scroll, and the installed apps that are not on Home listed below to add](docs/images/frame-home-apps-on-home.jpg) | ![Dock layout: one glass shelf with minimal white icons and names, the corner clock with weather and indoor temperature, the date, a glass panel with name days and today's and tomorrow's events, the song card, and the top-row cards](docs/images/frame-home-dock.jpg) |
 
-Screenshots come from the browser preview with sample data (sample songs, apps, devices and calendar events) and the minimal (white) icon style. The fun fact is a sentence from the song's Wikipedia article (CC BY-SA); the cover is one of the bundled wallpapers.
+Screenshots come from the browser preview with sample data (sample songs, apps, devices and calendar events) the minimal (white) icon style and the bundled Desert stars wallpaper. The fun fact is a sentence from the song's Wikipedia article (CC BY-SA); the cover is one of the bundled wallpapers.
 
 ## What it does
 
