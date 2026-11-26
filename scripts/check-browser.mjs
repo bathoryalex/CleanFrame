@@ -1085,7 +1085,7 @@ try {
     await nav('back'); await current.waitForTimeout(200);
     check('Back from there returns to the overview on the Wi‑Fi QR tile', await current.evaluate(() => document.querySelector('.metro-tile.is-focus').getAttribute('data-id')) === 'wifiqr');
     await current.evaluate(() => ShoreQA.activate('settings.group.connections')); await current.waitForTimeout(200); await act('conn.alexa'); await current.waitForTimeout(200);
-    check('Pages under Connections are a pivot too: Alexa, Spotify, Calendar', same(await current.evaluate(() => [...document.querySelectorAll('.pivot-head .pivot-item')].map(e => e.textContent + (e.classList.contains('is-current') ? '*' : ''))), ['Alexa*', 'Spotify', 'Calendar']));
+    check('Pages under Connections are a pivot too: Alexa, Spotify, Calendar, Kifli', same(await current.evaluate(() => [...document.querySelectorAll('.pivot-head .pivot-item')].map(e => e.textContent + (e.classList.contains('is-current') ? '*' : ''))), ['Alexa*', 'Spotify', 'Calendar', 'Kifli']));
     await nav('right'); await current.waitForTimeout(200);
     check('Right moves from Alexa to Spotify', (await state()).settingsGroup === 'spotify');
     await nav('back'); await current.waitForTimeout(200);
